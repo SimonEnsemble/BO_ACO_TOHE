@@ -447,10 +447,11 @@ end
 
 # ╔═╡ 226e41ca-43e8-41fa-9f67-9ec079b4a554
 function ant_colony_opt(
-	top::TOP;              # problem instance
-	N_ants::Int=20,        # number of ants to use
-	N_iters::Int=250,      # number of iterations
-	ρ::Float64=0.02        # pheremone evaporation rate
+	top::TOP;                 # problem instance
+	N_ants::Int=20,           # number of ants to use
+	N_iters::Int=250,         # number of iterations
+	ρ::Float64=0.02,          # pheremone evaporation rate
+	pheremone_on::Bool=true   # false to make it random search
 )
 	# initialize global best soln and fitness
 	global_best_soln    = [[0]]
@@ -496,22 +497,24 @@ function ant_colony_opt(
 		#=
 		evaporate, deposit pheremone
 		=#
-		evaporate_pheremone!(τ, ρ)
-		
-		# best ant lays pheremone
-		if rand() < 0.5
-			deposit_pheremone!(τ, global_best_soln, global_best_fitness)
-		else
-			deposit_pheremone!(τ, iter_best_soln,   iter_best_fitness)
+		if pheremone_on
+			evaporate_pheremone!(τ, ρ)
+			
+			# best ant lays pheremone
+			if rand() < 0.5
+				deposit_pheremone!(τ, global_best_soln, global_best_fitness)
+			else
+				deposit_pheremone!(τ, iter_best_soln,   iter_best_fitness)
+			end
+			min_max_pheremone!(τ, global_best_fitness, ρ, top)
 		end
-		min_max_pheremone!(τ, global_best_fitness, ρ, top)
 	end
 	@assert issymmetric(τ)
 	return global_best_soln, global_best_fitness, τ
 end
 
 # ╔═╡ ec547ba8-bfbd-46b5-b178-a2aad0d96e03
-solns, fitness, τ = ant_colony_opt(top, N_ants=20, N_iters=200)
+solns, fitness, τ = ant_colony_opt(top, N_ants=20, N_iters=200, pheremone_on=true)
 
 # ╔═╡ b9ab6cfd-723e-4a1a-9adb-a57a993ea41a
 viz_soln(solns, top)
