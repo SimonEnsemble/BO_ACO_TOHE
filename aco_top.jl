@@ -123,8 +123,8 @@ md"### data structure for (partial) solution"
 # ╔═╡ 33474ee2-fbac-4fe0-be95-1b2f4692c670
 begin
 	mutable struct TOPSolution
-		routes::Vector{Vector{Int}}
-		node_visited::Vector{Bool}
+		routes::Vector{Vector{Int}} # of all k robots
+		node_visited::Vector{Bool}  # by any robot
 	end
 	
 	function TOPSolution(top::TOP)
@@ -140,10 +140,19 @@ end
 # ╔═╡ af3fcce1-314e-44aa-b621-a6434ce6c13c
 toy_soln = TOPSolution(top)
 
+# ╔═╡ 7254040a-d7c9-4f2b-a21c-ab4c99a5c95c
+md"### extending a partial soln"
+
 # ╔═╡ 767aecc9-aead-4634-a43b-1382ea1386e6
-function extend_route!(soln::TOPSolution, k::Int, v::Int)
-	push!(soln.routes[k], v)
-	soln.node_visited[v] = true
+function extend_route!(soln::TOPSolution, robot_id::Int, node_id::Int)
+	push!(soln.routes[robot_id], node_id)
+	soln.node_visited[node_id] = true
+	return nothing
+end
+
+# ╔═╡ ab5923d4-f428-4283-aa69-291a3730bc7a
+function end_route!(soln::TOPSolution, robot_id::Int, top::TOP)
+	push!(soln.routes[robot_id], top.base_node_id)
 end
 
 # ╔═╡ 59ed1b10-407c-4b64-ad73-ebf27da92a81
@@ -152,49 +161,44 @@ start node must be included in the route.
 "
 
 # ╔═╡ 49149a54-a135-4d27-a93d-28ce560b0489
-function route_cost(route::Vector{Int}, top::TOP)
+function route_cost(tops::TOPSolution, robot_id::Int, top::TOP)
 	cost = 0.0
-	for i = 1:length(route) - 1
-		cost += top.travel_costs[route[i], route[i+1]]
+	for i = 1:length(tops.routes[robot_id]) - 1
+		cost += top.travel_costs[tops.routes[robot_id][i], tops.routes[robot_id][i+1]]
 	end
 	return cost
 end
-
-# ╔═╡ 5b193227-9c70-48cb-b3d7-fe95b58b1cb1
-route_cost(tops::TOPSolution, k::Int, top::TOP) = route_cost(tops.routes[k], top)
 
 # ╔═╡ 63c44369-195d-469d-be05-ac4eb8d4b50e
 begin
 	extend_route!(toy_soln, 2, 19)
 	extend_route!(toy_soln, 2, 21)
+	extend_route!(toy_soln, 1, 13)
 	@test route_cost(toy_soln, 2, top) == top.travel_costs[1, 19] + top.travel_costs[19, 21]
+	@test route_cost(toy_soln, 1, top) == top.travel_costs[1, 13]
 end
 
-# ╔═╡ ee098886-bbd0-4939-8707-6eaed495bb7e
-@test route_cost([1, 2], top) == top.travel_costs[1, 2]
-
-# ╔═╡ 127f071b-1f14-4b86-8d6a-5f440052d2e3
-@test route_cost([1, 2, 4], top) == top.travel_costs[1, 2] + top.travel_costs[2, 4]
-
 # ╔═╡ bacbbcf1-fa22-453c-8e28-44355a1e8037
-md"### sanity check on proposed solution"
+md"### verify a solution"
 
 # ╔═╡ 134dcca6-13f6-41d4-b1e0-13aea5d55355
 function verify_solution(tops::TOPSolution, top::TOP)
 	# for each robot...
 	for k = top.nb_robots
 		# start, end at base node
-		@test tops.routes[k][1] == tops.routes[k][end] == top.base_node_id
+		@assert tops.routes[k][1] == tops.routes[k][end] == top.base_node_id
 		# route cost less than budget
-		@test route_cost(tops, k, top) ≤ tops.travel_budget
+		@assert route_cost(tops, k, top) ≤ top.travel_budget
 		# all nodes on route marked as visisted
-		@test all([tops.node_visisted[v] for v in tops.routes[k]])
+		@assert all([tops.node_visited[v] for v in tops.routes[k]])
 	end
+	@assert length(tops.routes) == top.nb_robots
+	@assert length(tops.node_visited) == top.nb_nodes
 	# all nodes in routes marked as visisted.
 	# all nodes not in routes marked as not visisted
 	all_nodes_in_routes = unique(vcat(tops.routes...))
-	@test all(tops.node_visisted[all_nodes_in_routes])
-	@test sum(.! tops.node_visisted) == top.nb_nodes - length(all_nodes_in_routes)
+	@assert all(tops.node_visited[all_nodes_in_routes])
+	@assert sum(.! tops.node_visited) == top.nb_nodes - length(all_nodes_in_routes)
 end
 
 # ╔═╡ 82dbf8d6-0810-4219-90d9-5cf3c83eac51
@@ -268,36 +272,26 @@ md"### build candidate set of nodes for extending partial solutions
 exclude the base node. this will be inferred to be the last. depends on robot b/c of its travel budget.
 "
 
-# ╔═╡ 3fcda734-70d8-4704-958a-b5ee276fde34
-# has node v been visited in the routes?
-function node_visited(v::Int, routes::Vector{Vector{Int}}, top::TOP)
-	for k = 1:top.nb_robots
-		if v in routes[k]
-			return true
-		end
-	end
-	return false
-end
-
 # ╔═╡ bd0d87c2-43d8-44bd-8ad0-58a55c1ea287
 function next_node_candidates(
-	partial_routes::Vector{Vector{Int}}, 
+	partial_soln::TOPSolution, 
 	robot_id::Int, 
 	top::TOP
 )
 	# calculate cost expended by this robot so far
-	travel_cost_so_far = route_cost(partial_routes[robot_id], top)
-	# current node on which this robot sits
-	u = partial_routes[robot_id][end]
+	travel_cost_so_far = route_cost(partial_soln, robot_id, top)
+	
+	# u = current node on which this robot sits
+	u = partial_soln.routes[robot_id][end]
 	# build candidate list. loop thru all nodes.
 	node_candidates = Int[]
-	for v = 1:top.nb_nodes
+	for v = 1:top.nb_nodes # v = next node
 		# exclude base
 		if v == top.base_node_id
 			continue
 		end
-		# exclude those visited already by ANY robot (incl. this one!)
-		if node_visited(v, partial_routes, top)
+		# exclude those visited already by ANY robot
+		if partial_soln.node_visited[v]
 			continue
 		end
 
@@ -309,16 +303,21 @@ function next_node_candidates(
 		end
 	end
 	return node_candidates
-	# TODO: make faster by keeping overall list of not-visisted nodes.
-	#   update each time node chosen?
 end
 
 # ╔═╡ a0580015-f04c-40af-912c-39c510d1c596
 md"let's test visually and by building a hueuristic-guided route."
 
+# ╔═╡ 87b1d723-260e-4186-a18f-94cbb54e334d
+begin
+	new_toy_soln = TOPSolution(top)
+	extend_route!(new_toy_soln, 2, 11)
+	extend_route!(new_toy_soln, 2, 5)
+end
+
 # ╔═╡ fc37fc37-8916-48f8-830a-37d7b245ab4a
 test_candidate_list = 
-	next_node_candidates([[1], [1, 67, 42], [1, 97, 15], [1, 58]], 2, top)
+	next_node_candidates(new_toy_soln, 2, top)
 
 # ╔═╡ dc49f03e-47c4-45ce-8745-53b5d2c7abf6
 viz_setup(top, node_labels=true, highlight_node_list=test_candidate_list)
@@ -328,34 +327,37 @@ md"### heuristic route viz"
 
 # ╔═╡ 39a856d3-c14b-441c-b706-86e99c202c72
 function heuristic_guided_routes(top::TOP, η::Matrix{Float64})
-	routes = [[top.base_node_id] for k = 1:top.nb_robots]
+	soln = TOPSolution(top)
 	# for each robot, grow route until it succeeds
 	for k = 1:top.nb_robots
-		candidates = next_node_candidates(routes, k, top)
+		candidates = next_node_candidates(soln, k, top)
 		while length(candidates) > 0
 			# current node
-			u = routes[k][end]
+			u = soln.routes[k][end]
 			# choose next candidate node to be the one with highest heuristic
 			v = candidates[argmax(η[u, candidates])]
-			push!(routes[k], v)
+			extend_route!(soln, k, v)
 			# update candidate list
-			candidates = next_node_candidates(routes, k, top)
+			candidates = next_node_candidates(soln, k, top)
 		end
-		push!(routes[k], 1)
+		end_route!(soln, k, top)
 	end
-	return routes
+	return soln
 end
 
 # ╔═╡ ffd2099b-b366-4ecd-8b9a-706ec50965e9
 hroutes = heuristic_guided_routes(top, η)
 
+# ╔═╡ c8c0a8db-31f6-4e0f-a25b-aff220becdcf
+verify_solution(hroutes, top)
+
 # ╔═╡ 6fa3d448-f3c2-4f77-80df-8d6078fc6c34
-function viz_routes(routes::Vector{Vector{Int}}, top::TOP)
+function viz_routes(soln::TOPSolution, top::TOP)
 	fig = Figure()
 	ax = Axis(fig[1, 1])
 	_draw_nodes!(fig, ax, top)
 	for k = 1:top.nb_robots
-		lines!(top.X[1, routes[k]], top.X[2, routes[k]])
+		lines!(top.X[1, soln.routes[k]], top.X[2, soln.routes[k]])
 	end
 	fig
 end
@@ -504,13 +506,12 @@ viz_edge_labels(top, τ, title="pheremone, τ")
 # ╟─700f73c9-c64a-43e5-90b9-3c9c5e593292
 # ╠═33474ee2-fbac-4fe0-be95-1b2f4692c670
 # ╠═af3fcce1-314e-44aa-b621-a6434ce6c13c
+# ╟─7254040a-d7c9-4f2b-a21c-ab4c99a5c95c
 # ╠═767aecc9-aead-4634-a43b-1382ea1386e6
+# ╠═ab5923d4-f428-4283-aa69-291a3730bc7a
 # ╟─59ed1b10-407c-4b64-ad73-ebf27da92a81
 # ╠═49149a54-a135-4d27-a93d-28ce560b0489
-# ╠═5b193227-9c70-48cb-b3d7-fe95b58b1cb1
 # ╠═63c44369-195d-469d-be05-ac4eb8d4b50e
-# ╠═ee098886-bbd0-4939-8707-6eaed495bb7e
-# ╠═127f071b-1f14-4b86-8d6a-5f440052d2e3
 # ╟─bacbbcf1-fa22-453c-8e28-44355a1e8037
 # ╠═134dcca6-13f6-41d4-b1e0-13aea5d55355
 # ╟─82dbf8d6-0810-4219-90d9-5cf3c83eac51
@@ -524,14 +525,15 @@ viz_edge_labels(top, τ, title="pheremone, τ")
 # ╠═e005bb5a-5432-4604-bbb8-4b9d34ae248d
 # ╠═f12a4dfc-94c8-4102-8aac-bd721d9cb019
 # ╟─d6add022-ebe3-4c87-8e88-7ed2ff5f7b5c
-# ╠═3fcda734-70d8-4704-958a-b5ee276fde34
 # ╠═bd0d87c2-43d8-44bd-8ad0-58a55c1ea287
 # ╟─a0580015-f04c-40af-912c-39c510d1c596
+# ╠═87b1d723-260e-4186-a18f-94cbb54e334d
 # ╠═fc37fc37-8916-48f8-830a-37d7b245ab4a
 # ╠═dc49f03e-47c4-45ce-8745-53b5d2c7abf6
 # ╟─c3b9f562-05c5-46f0-aef9-42b0fa8859a3
 # ╠═39a856d3-c14b-441c-b706-86e99c202c72
 # ╠═ffd2099b-b366-4ecd-8b9a-706ec50965e9
+# ╠═c8c0a8db-31f6-4e0f-a25b-aff220becdcf
 # ╠═6fa3d448-f3c2-4f77-80df-8d6078fc6c34
 # ╠═dca42318-9a56-4d25-9317-3453a6bccdf1
 # ╠═66efb614-8b7d-49ed-8e77-697a793f06e8
