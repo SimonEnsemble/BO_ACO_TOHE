@@ -191,6 +191,8 @@ function verify_solution(tops::TOPSolution, top::TOP)
 		@assert route_cost(tops, k, top) ≤ top.travel_budget
 		# all nodes on route marked as visisted
 		@assert all([tops.node_visited[v] for v in tops.routes[k]])
+		# each robot visits unique vertices. except for start and end are repeated
+		@assert length(unique(tops.routes[k])) == length(tops.routes[k]) - 1
 	end
 	@assert length(tops.routes) == top.nb_robots
 	@assert length(tops.node_visited) == top.nb_nodes
@@ -323,7 +325,7 @@ test_candidate_list =
 viz_setup(top, node_labels=true, highlight_node_list=test_candidate_list)
 
 # ╔═╡ c3b9f562-05c5-46f0-aef9-42b0fa8859a3
-md"### heuristic route viz"
+md"### heuristic-constructed solution viz"
 
 # ╔═╡ 39a856d3-c14b-441c-b706-86e99c202c72
 function heuristic_guided_routes(top::TOP, η::Matrix{Float64})
@@ -352,7 +354,7 @@ hroutes = heuristic_guided_routes(top, η)
 verify_solution(hroutes, top)
 
 # ╔═╡ 6fa3d448-f3c2-4f77-80df-8d6078fc6c34
-function viz_routes(soln::TOPSolution, top::TOP)
+function viz_soln(soln::TOPSolution, top::TOP)
 	fig = Figure()
 	ax = Axis(fig[1, 1])
 	_draw_nodes!(fig, ax, top)
@@ -363,7 +365,7 @@ function viz_routes(soln::TOPSolution, top::TOP)
 end
 
 # ╔═╡ dca42318-9a56-4d25-9317-3453a6bccdf1
-viz_routes(hroutes, top)
+viz_soln(hroutes, top)
 
 # ╔═╡ 66efb614-8b7d-49ed-8e77-697a793f06e8
 team_fitness(hroutes, top)
@@ -373,22 +375,24 @@ md"### extending a partial solution"
 
 # ╔═╡ 134a8884-7467-4d2b-a433-85a46b7470f2
 function extend_partial_solution!(
-	partial_routes::Vector{Vector{Int}}, k::Int, top::TOP, 
+	partial_soln::TOPSolution, robot_id::Int, top::TOP, 
 	τ::Matrix{Float64}, η::Matrix{Float64}
 )
-	vs = next_node_candidates(partial_routes, k, top)
+	vs = next_node_candidates(partial_soln, robot_id, top)
 	# if no budget to visit other nodes...
 	if length(vs) == 0
-		push!(partial_routes[k], top.base_node_id)
+		end_route!(partial_soln, robot_id, top)
 		return true # done
 	else
-		u = partial_routes[k][end] # current node
+		# current node
+		u = partial_soln.routes[robot_id][end]
+		# sample next node
 		v = sample(vs, 
 			ProbabilityWeights(
 				[τ[u, v] * sqrt(η[u, v]) for v in vs]
 			)
 		)
-		push!(partial_routes[k], v)
+		extend_route!(partial_soln, robot_id, v)
 		return false # not done
 	end
 end
@@ -397,36 +401,81 @@ end
 extend_partial_solution!(hroutes, 1, top, ones(top.nb_nodes, top.nb_nodes), η)
 
 # ╔═╡ 7b9cbad1-e433-439e-95d9-5a39fce063e7
-md"### 🐜 time"
+md"### 🐜 ACO"
+
+# ╔═╡ c367f543-187f-40fe-9a06-cdbcf845066e
+function evaporate_pheremone!(τ::Matrix{Float64}, ρ::Float64)
+	τ .*= (1 - ρ)
+end
+
+# ╔═╡ 299f4228-cb24-4a59-8aab-b8c2e8a2e676
+function deposit_pheremone!(τ::Matrix{Float64}, soln::TOPSolution, fitness::Float64)
+	for k = 1:top.nb_robots
+		# loop over edges
+		for i = 1:length(soln.routes[k]) - 1
+			# robot k hops from u to v...
+			u = soln.routes[k][i]
+			v = soln.routes[k][i+1]
+			# deposity pheremone
+			τ[u, v] += fitness
+			τ[v, u] = τ[u, v] # symmetry
+		end
+	end
+	return nothing
+end
+
+# ╔═╡ e916ba8a-8de3-4e1e-9d9e-c24090d1578c
+function min_max_pheremone!(
+	τ::Matrix{Float64}, 
+	global_best_fitness::Float64, 
+	ρ::Float64,
+	top::TOP
+)
+	τ_max = global_best_fitness / ρ
+	τ_min = (1 - 0.05 ^ (1/top.nb_nodes)) / ((top.nb_nodes/2 - 1) * 0.05 ^ (1/top.nb_nodes)) * τ_max
+	for u = 1:top.nb_nodes
+		for v = u+1:top.nb_nodes
+			if τ[u, v] < τ_min
+				τ[u, v] = τ[v, u] = τ_min
+			end
+			if τ[u, v] > τ_max
+				τ[u, v] = τ[v, u] = τ_max
+			end
+		end
+	end
+end
 
 # ╔═╡ 226e41ca-43e8-41fa-9f67-9ec079b4a554
-function ant_colony_opt(top::TOP; N_ants::Int=20, N_iters::Int=250, ρ::Float64=0.02)
-	# initialize global best fitness and route
+function ant_colony_opt(
+	top::TOP;              # problem instance
+	N_ants::Int=20,        # number of ants to use
+	N_iters::Int=250,      # number of iterations
+	ρ::Float64=0.02        # pheremone evaporation rate
+)
+	# initialize global best soln and fitness
+	global_best_soln    = [[0]]
 	global_best_fitness = -Inf
-	global_best_routes = [[0]]
 	
 	# initialize pheremone
 	τ = ones(top.nb_nodes, top.nb_nodes)
 	for _ = 1:N_iters
-		# initialize routes their costs
-		routes     = [[[top.base_node_id] for k = 1:top.nb_robots] for a = 1:N_ants]
-		fitnesses  = [-Inf  for a = 1:N_ants]
+		# initialize solutions their fitnesses for this iteration
+		solns      = [TOPSolution(top) for a = 1:N_ants]
+		fitnesses  = [-Inf             for a = 1:N_ants]
 
 		#=
-		each ant finds a route.
-		sequential method.
+		each ant finds a TOP solution.
+		sequential method for determining vehicle routes.
 		=#
 		for a = 1:N_ants
 			for k = 1:top.nb_robots
 				route_complete = false
 				while ! route_complete
-					route_complete = extend_partial_solution!(routes[a], k, top, τ, η)
+					route_complete = extend_partial_solution!(solns[a], k, top, τ, η)
 				end
-				# checks
-				@assert route_cost(routes[a][k], top) ≤ top.travel_budget
-				@assert length(unique(routes[a][k])) == length(routes[a][k]) - 1
 			end
-			fitnesses[a] = team_fitness(routes[a], top)
+			fitnesses[a] = team_fitness(solns[a], top)
+			verify_solution(solns[a], top)
 		end
 			
 		#=
@@ -436,58 +485,36 @@ function ant_colony_opt(top::TOP; N_ants::Int=20, N_iters::Int=250, ρ::Float64=
 		id_best_ant = argmax(fitnesses)
 		# TODO local search
 		# locally_optimized_best_route = two_opt_route(routes[id_best_ant], op)
-		best_routes = routes[id_best_ant]
-		best_fitness = team_fitness(best_routes, top)
+		iter_best_soln    = solns[id_best_ant]
+		iter_best_fitness = team_fitness(iter_best_soln, top)
 
-		if best_fitness > global_best_fitness
-			global_best_fitness = best_fitness
-			global_best_routes = deepcopy(best_routes)
+		if iter_best_fitness > global_best_fitness
+			global_best_fitness = iter_best_fitness
+			global_best_soln = deepcopy(iter_best_soln)
 		end
 
 		#=
-		pheremone evaporation
+		evaporate, deposit pheremone
 		=#
-		τ .*= (1 - ρ)
+		evaporate_pheremone!(τ, ρ)
 		
-		#=
-		best ant lays pheremone
-		=#
-		for k = 1:top.nb_robots
-			# loop over edges
-			for i = 1:length(best_routes[k])-1
-				# robot k hops from u to v...
-				u = best_routes[k][i]
-				v = best_routes[k][i+1]
-				# deposity pheremone
-				# alt. between using best fitness THIS iteration and global
-				τ[u, v] += (rand() < 0.5) ? best_fitness : global_best_fitness
-				τ[v, u] = τ[u, v] # symmetry
-			end
+		# best ant lays pheremone
+		if rand() < 0.5
+			deposit_pheremone!(τ, global_best_soln, global_best_fitness)
+		else
+			deposit_pheremone!(τ, iter_best_soln,   iter_best_fitness)
 		end
-
-		# clip pheremone
-		τ_max = global_best_fitness / ρ
-		τ_min = (1 - 0.05 ^ (1/top.nb_nodes)) / ((top.nb_nodes/2 - 1) * 0.05 ^ (1/top.nb_nodes)) * τ_max
-		for u = 1:top.nb_nodes
-			for v = u+1:top.nb_nodes
-				if τ[u, v] < τ_min
-					τ[u, v] = τ[v, u] = τ_min
-				end
-				if τ[u, v] > τ_max
-					τ[u, v] = τ[v, u] = τ_max
-				end
-			end
-		end
+		min_max_pheremone!(τ, global_best_fitness, ρ, top)
 	end
-	# @assert issymmetric(τs)
-	return global_best_routes, global_best_fitness, τ
+	@assert issymmetric(τ)
+	return global_best_soln, global_best_fitness, τ
 end
 
 # ╔═╡ ec547ba8-bfbd-46b5-b178-a2aad0d96e03
-routes, fitness, τ = ant_colony_opt(top, N_ants=20, N_iters=150)
+solns, fitness, τ = ant_colony_opt(top, N_ants=20, N_iters=200)
 
 # ╔═╡ b9ab6cfd-723e-4a1a-9adb-a57a993ea41a
-viz_routes(routes, top)
+viz_soln(solns, top)
 
 # ╔═╡ 84c394e3-9193-4e76-84f6-542f0fdb4735
 viz_edge_labels(top, τ, title="pheremone, τ")
@@ -541,6 +568,9 @@ viz_edge_labels(top, τ, title="pheremone, τ")
 # ╠═134a8884-7467-4d2b-a433-85a46b7470f2
 # ╠═865d698b-b226-4b3d-af07-567f91af2aff
 # ╟─7b9cbad1-e433-439e-95d9-5a39fce063e7
+# ╠═c367f543-187f-40fe-9a06-cdbcf845066e
+# ╠═299f4228-cb24-4a59-8aab-b8c2e8a2e676
+# ╠═e916ba8a-8de3-4e1e-9d9e-c24090d1578c
 # ╠═226e41ca-43e8-41fa-9f67-9ec079b4a554
 # ╠═ec547ba8-bfbd-46b5-b178-a2aad0d96e03
 # ╠═b9ab6cfd-723e-4a1a-9adb-a57a993ea41a
