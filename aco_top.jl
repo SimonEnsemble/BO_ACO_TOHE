@@ -160,13 +160,18 @@ md"### route cost
 start node must be included in the route.
 "
 
-# ╔═╡ 49149a54-a135-4d27-a93d-28ce560b0489
-function route_cost(tops::TOPSolution, robot_id::Int, top::TOP)
+# ╔═╡ 426023ec-dd44-4641-a5c9-a288f71dc9a4
+function route_cost(route::Vector{Int}, top::TOP)
 	cost = 0.0
-	for i = 1:length(tops.routes[robot_id]) - 1
-		cost += top.travel_costs[tops.routes[robot_id][i], tops.routes[robot_id][i+1]]
+	for i = 1:length(route) - 1
+		cost += top.travel_costs[route[i], route[i+1]]
 	end
 	return cost
+end
+
+# ╔═╡ 49149a54-a135-4d27-a93d-28ce560b0489
+function route_cost(soln::TOPSolution, robot_id::Int, top::TOP)
+	return route_cost(soln.routes[robot_id], top)
 end
 
 # ╔═╡ 63c44369-195d-469d-be05-ac4eb8d4b50e
@@ -370,8 +375,40 @@ viz_soln(hroutes, top)
 # ╔═╡ 66efb614-8b7d-49ed-8e77-697a793f06e8
 team_fitness(hroutes, top)
 
+# ╔═╡ 4a1ce44a-5d74-43a5-b6f8-046e3cdbd358
+md"### TODO: local search
+
+* 2-opt of a route to make it shorter while visiting the same node set
+* insertion of other nodes unvisited, on the way.
+"
+
+# ╔═╡ 244e1a66-fcf4-4f30-a0d8-3883690fcdf3
+function two_opt_route!(soln::TOPSolution, robot_id::Int, top::TOP)
+    opt_cost = route_cost(soln, robot_id, top)
+    found_improvement = true
+    while found_improvement
+        found_improvement = false
+        # end node cannot be swapped
+        for i = 1:length(route)-2
+            for j = i+1:length(route)-1
+                new_route = vcat(route[1:i], reverse(route[i+1:j]), route[j+1:end])
+                this_route_cost = route_cost(new_route, C)
+                if this_route_cost < opt_distance
+                    found_improvement = true
+                    opt_distance = this_route_cost
+                    route = new_route
+                end
+            end
+        end
+    end
+    return route
+end
+
+# ╔═╡ e8e8b2c4-1ba7-4e66-ba0e-39a5408bb509
+@info "above IN PROGRESS"
+
 # ╔═╡ e02cf577-60bb-45f0-8739-0df6232aa14b
-md"### extending a partial solution"
+md"### extending a partial solution (for ACO)"
 
 # ╔═╡ 134a8884-7467-4d2b-a433-85a46b7470f2
 function extend_partial_solution!(
@@ -540,6 +577,7 @@ viz_edge_labels(top, τ, title="pheremone, τ")
 # ╠═767aecc9-aead-4634-a43b-1382ea1386e6
 # ╠═ab5923d4-f428-4283-aa69-291a3730bc7a
 # ╟─59ed1b10-407c-4b64-ad73-ebf27da92a81
+# ╠═426023ec-dd44-4641-a5c9-a288f71dc9a4
 # ╠═49149a54-a135-4d27-a93d-28ce560b0489
 # ╠═63c44369-195d-469d-be05-ac4eb8d4b50e
 # ╟─bacbbcf1-fa22-453c-8e28-44355a1e8037
@@ -567,6 +605,9 @@ viz_edge_labels(top, τ, title="pheremone, τ")
 # ╠═6fa3d448-f3c2-4f77-80df-8d6078fc6c34
 # ╠═dca42318-9a56-4d25-9317-3453a6bccdf1
 # ╠═66efb614-8b7d-49ed-8e77-697a793f06e8
+# ╟─4a1ce44a-5d74-43a5-b6f8-046e3cdbd358
+# ╠═244e1a66-fcf4-4f30-a0d8-3883690fcdf3
+# ╠═e8e8b2c4-1ba7-4e66-ba0e-39a5408bb509
 # ╟─e02cf577-60bb-45f0-8739-0df6232aa14b
 # ╠═134a8884-7467-4d2b-a433-85a46b7470f2
 # ╠═865d698b-b226-4b3d-af07-567f91af2aff
