@@ -42,7 +42,7 @@ end
 # ╔═╡ 6205d5f0-da9d-45c0-9b6f-28b7ec766c72
 # start, end nodes are 1 and n
 function top_problem_instance(prob_name::String)
-	ps_filename = joinpath("Set_100_234", prob_name)
+	ps_filename = joinpath("TOP_setups", "Set_100_234", prob_name)
 	ps_file_lines = readlines(ps_filename)
 
 	nb_nodes = parse(Int, split(ps_file_lines[1])[2])
@@ -74,6 +74,8 @@ function _draw_nodes!(
 	fig, ax, top::TOP; 
 	node_labels::Bool=false, highlight_node_list::Vector{Int}=Int[]
 )
+	ax.xlabel = "[length]"
+	ax.ylabel = "[length]"
 	ax.aspect = DataAspect()
 	sp = scatter!(
 		top.X[1, :], top.X[2, :], 
@@ -81,7 +83,7 @@ function _draw_nodes!(
 		strokewidth=1, strokecolor="black"
 	)
 	scatter!(top.X[1, top.base_node_id], top.X[2, top.base_node_id],
-		marker=:x, color="red", markersize=15
+		marker=:+, color="red", markersize=20
 	)
 	if node_labels
 	    for i = 1:top.nb_nodes
@@ -115,6 +117,35 @@ end
 # ╔═╡ bcde78a3-f302-420a-857d-0713fdfff276
 viz_setup(top, node_labels=false)
 
+# ╔═╡ 700f73c9-c64a-43e5-90b9-3c9c5e593292
+md"### data structure for (partial) solution"
+
+# ╔═╡ 33474ee2-fbac-4fe0-be95-1b2f4692c670
+begin
+	mutable struct TOPSolution
+		routes::Vector{Vector{Int}}
+		node_visited::Vector{Bool}
+	end
+	
+	function TOPSolution(top::TOP)
+		tops = TOPSolution(
+			[[top.base_node_id] for k = 1:top.nb_robots],
+			[false for i = 1:top.nb_nodes]
+		)
+		tops.node_visited[top.base_node_id] = true
+		return tops
+	end
+end
+
+# ╔═╡ af3fcce1-314e-44aa-b621-a6434ce6c13c
+toy_soln = TOPSolution(top)
+
+# ╔═╡ 767aecc9-aead-4634-a43b-1382ea1386e6
+function extend_route!(soln::TOPSolution, k::Int, v::Int)
+	push!(soln.routes[k], v)
+	soln.node_visited[v] = true
+end
+
 # ╔═╡ 59ed1b10-407c-4b64-ad73-ebf27da92a81
 md"### route cost
 start node must be included in the route.
@@ -129,11 +160,42 @@ function route_cost(route::Vector{Int}, top::TOP)
 	return cost
 end
 
+# ╔═╡ 5b193227-9c70-48cb-b3d7-fe95b58b1cb1
+route_cost(tops::TOPSolution, k::Int, top::TOP) = route_cost(tops.routes[k], top)
+
+# ╔═╡ 63c44369-195d-469d-be05-ac4eb8d4b50e
+begin
+	extend_route!(toy_soln, 2, 19)
+	extend_route!(toy_soln, 2, 21)
+	@test route_cost(toy_soln, 2, top) == top.travel_costs[1, 19] + top.travel_costs[19, 21]
+end
+
 # ╔═╡ ee098886-bbd0-4939-8707-6eaed495bb7e
 @test route_cost([1, 2], top) == top.travel_costs[1, 2]
 
 # ╔═╡ 127f071b-1f14-4b86-8d6a-5f440052d2e3
 @test route_cost([1, 2, 4], top) == top.travel_costs[1, 2] + top.travel_costs[2, 4]
+
+# ╔═╡ bacbbcf1-fa22-453c-8e28-44355a1e8037
+md"### sanity check on proposed solution"
+
+# ╔═╡ 134dcca6-13f6-41d4-b1e0-13aea5d55355
+function verify_solution(tops::TOPSolution, top::TOP)
+	# for each robot...
+	for k = top.nb_robots
+		# start, end at base node
+		@test tops.routes[k][1] == tops.routes[k][end] == top.base_node_id
+		# route cost less than budget
+		@test route_cost(tops, k, top) ≤ tops.travel_budget
+		# all nodes on route marked as visisted
+		@test all([tops.node_visisted[v] for v in tops.routes[k]])
+	end
+	# all nodes in routes marked as visisted.
+	# all nodes not in routes marked as not visisted
+	all_nodes_in_routes = unique(vcat(tops.routes...))
+	@test all(tops.node_visisted[all_nodes_in_routes])
+	@test sum(.! tops.node_visisted) == top.nb_nodes - length(all_nodes_in_routes)
+end
 
 # ╔═╡ 82dbf8d6-0810-4219-90d9-5cf3c83eac51
 md"### team fitness function
@@ -142,16 +204,16 @@ judges quality of paths collectively---the sum of rewards collected among all ro
 "
 
 # ╔═╡ c3db3a44-bd33-41f0-9bdd-44d88874f00b
-function team_fitness(routes::Vector{Vector{Int}}, top::TOP)
-	fit = 0.0
-	for route in routes
-		fit += sum(top.rewards[route])
-	end
-	return fit / top.rewards_sum
+# handles redundance in routes.
+function team_fitness(soln::TOPSolution, top::TOP)
+	return sum(top.rewards[soln.node_visited]) / top.rewards_sum
 end
 
 # ╔═╡ 45014e4d-9ca3-436e-afbb-6180f665ee74
-@test team_fitness([[2, 13], [3]], top) ≈ sum(top.rewards[[2, 3, 13]]) / sum(top.rewards)
+begin
+	extend_route!(toy_soln, 3, 13)
+	@test team_fitness(toy_soln, top) ≈ sum(top.rewards[[1, 19, 21, 13]]) / sum(top.rewards)
+end
 
 # ╔═╡ a7ee000f-65a8-487c-8231-c1651e4cf3ee
 md"## ant colony optimization
@@ -170,7 +232,7 @@ function _η(i::Int, j::Int, top::TOP)
 	if i == j
 		return 0.0
 	else
-		return top.rewards[j] / top.travel_costs[i, j]
+		return top.rewards[j] / top.travel_costs[i, j] # reward per travel cost
 	end
 end
 
@@ -207,6 +269,7 @@ exclude the base node. this will be inferred to be the last. depends on robot b/
 "
 
 # ╔═╡ 3fcda734-70d8-4704-958a-b5ee276fde34
+# has node v been visited in the routes?
 function node_visited(v::Int, routes::Vector{Vector{Int}}, top::TOP)
 	for k = 1:top.nb_robots
 		if v in routes[k]
@@ -438,10 +501,18 @@ viz_edge_labels(top, τ, title="pheremone, τ")
 # ╠═def3704d-45d5-47c4-929b-75fe71c825ee
 # ╠═ed2f859e-420a-4992-a7a7-771f9c8b53b4
 # ╠═bcde78a3-f302-420a-857d-0713fdfff276
+# ╟─700f73c9-c64a-43e5-90b9-3c9c5e593292
+# ╠═33474ee2-fbac-4fe0-be95-1b2f4692c670
+# ╠═af3fcce1-314e-44aa-b621-a6434ce6c13c
+# ╠═767aecc9-aead-4634-a43b-1382ea1386e6
 # ╟─59ed1b10-407c-4b64-ad73-ebf27da92a81
 # ╠═49149a54-a135-4d27-a93d-28ce560b0489
+# ╠═5b193227-9c70-48cb-b3d7-fe95b58b1cb1
+# ╠═63c44369-195d-469d-be05-ac4eb8d4b50e
 # ╠═ee098886-bbd0-4939-8707-6eaed495bb7e
 # ╠═127f071b-1f14-4b86-8d6a-5f440052d2e3
+# ╟─bacbbcf1-fa22-453c-8e28-44355a1e8037
+# ╠═134dcca6-13f6-41d4-b1e0-13aea5d55355
 # ╟─82dbf8d6-0810-4219-90d9-5cf3c83eac51
 # ╠═c3db3a44-bd33-41f0-9bdd-44d88874f00b
 # ╠═45014e4d-9ca3-436e-afbb-6180f665ee74
