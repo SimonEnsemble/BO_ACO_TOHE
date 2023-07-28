@@ -79,7 +79,7 @@ function _draw_nodes!(
 	ax.aspect = DataAspect()
 	sp = scatter!(
 		top.X[1, :], top.X[2, :], 
-		color=top.rewards, markersize=12, colormap=ColorSchemes.Greens,
+		color=top.rewards, markersize=12, colormap=ColorSchemes.grays,
 		strokewidth=1, strokecolor="black"
 	)
 	scatter!(top.X[1, top.base_node_id], top.X[2, top.base_node_id],
@@ -357,10 +357,10 @@ verify_solution(hroutes, top)
 function viz_soln(soln::TOPSolution, top::TOP)
 	fig = Figure()
 	ax = Axis(fig[1, 1])
-	_draw_nodes!(fig, ax, top)
 	for k = 1:top.nb_robots
 		lines!(top.X[1, soln.routes[k]], top.X[2, soln.routes[k]])
 	end
+	_draw_nodes!(fig, ax, top)
 	fig
 end
 
