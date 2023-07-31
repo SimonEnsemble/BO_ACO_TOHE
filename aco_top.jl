@@ -8,7 +8,7 @@ using InteractiveUtils
 begin
 	import Pkg; Pkg.activate()
 	
-	using CairoMakie, Graphs, Combinatorics, PlutoUI, LinearAlgebra, Random, StatsBase, ColorSchemes, Test
+	using CairoMakie, Graphs, Combinatorics, PlutoUI, LinearAlgebra, Random, StatsBase, ColorSchemes, Test, Printf
 end
 
 # ╔═╡ 2149006c-4de8-4c06-9bb4-558806f24cd1
@@ -344,7 +344,7 @@ viz_setup(top, node_labels=true, highlight_node_list=test_candidate_list)
 md"### heuristic-constructed solution viz"
 
 # ╔═╡ 39a856d3-c14b-441c-b706-86e99c202c72
-function heuristic_guided_routes(top::TOP, η::Matrix{Float64})
+function heuristic_guided_soln(top::TOP, η::Matrix{Float64})
 	soln = TOPSolution(top)
 	# for each robot, grow route until it succeeds
 	for k = 1:top.nb_robots
@@ -365,55 +365,113 @@ function heuristic_guided_routes(top::TOP, η::Matrix{Float64})
 end
 
 # ╔═╡ ffd2099b-b366-4ecd-8b9a-706ec50965e9
-hroutes = heuristic_guided_routes(top, η)
+h_soln = heuristic_guided_soln(top, η)
 
 # ╔═╡ 66efb614-8b7d-49ed-8e77-697a793f06e8
-hfitness = team_fitness(hroutes, top)
+h_fitness = team_fitness(h_soln, top)
 
 # ╔═╡ 6fa3d448-f3c2-4f77-80df-8d6078fc6c34
 function viz_soln(soln::TOPSolution, top::TOP)
 	fig = Figure()
 	ax = Axis(fig[1, 1])
+	line_plots = []
 	for k = 1:top.nb_robots
-		lines!(top.X[1, soln.routes[k]], top.X[2, soln.routes[k]])
+		push!(line_plots,
+			lines!(top.X[1, soln.routes[k]], top.X[2, soln.routes[k]])
+		)
 	end
 	_draw_nodes!(fig, ax, top)
+	Legend(
+		fig[2, 1], line_plots, ["robot $k" for k = 1:top.nb_robots], 
+		orientation=:horizontal, tellwidth=false, tellheight=true,
+		labelsize=12
+	)
 	fig
 end
 
 # ╔═╡ dca42318-9a56-4d25-9317-3453a6bccdf1
-viz_soln(hroutes, top)
+viz_soln(h_soln, top)
 
 # ╔═╡ 4a1ce44a-5d74-43a5-b6f8-046e3cdbd358
-md"### TODO: local search
+md"### local search
 
-* 2-opt of a route to make it shorter while visiting the same node set
-* insertion of other nodes unvisited, on the way.
+#### 2-opt
+💡 we visit the same node set, but change the order in which the nodes are visitsed (that's all). so reward collected stays the same.
+see [Wikipedia](https://en.wikipedia.org/wiki/2-opt). 
+
 "
 
 # ╔═╡ 244e1a66-fcf4-4f30-a0d8-3883690fcdf3
-function two_opt_route!(soln::TOPSolution, robot_id::Int, top::TOP)
-    opt_cost = route_cost(soln, robot_id, top)
-    found_improvement = true
-    while found_improvement
-        found_improvement = false
-        # end node cannot be swapped
-        for i = 1:length(route)-2
-            for j = i+1:length(route)-1
+function two_opt_route!(
+	soln::TOPSolution, 
+	robot_id::Int, 
+	top::TOP; 
+	verbose::Bool=false
+)
+	# get the current route, its length, and its cost
+	route = soln.routes[robot_id]
+	n = length(route)
+    cost = route_cost(route, top) # will change later
+	initial_cost = cost # will not change
+	# keep trying to reduce the cost of the route...
+    found_cost_reduction = true # to enter the while loop
+    while found_cost_reduction
+        found_cost_reduction = false # we'll flip this later if we do...
+		# break route 1 -> ... -> n into three segments:
+		# 1) 1   -> ... -> i
+		# 2) i+1 -> ... -> j
+		# 3) j+1 -> ... -> n
+		# 2-opt re-constructs route as:
+		#   1) follow segment (1)
+		#   2) connect i to j
+		#   2) follow segment (2) in reverse
+		#   3) connect i+1 to j+1 and follow segment (3)
+		# same set of nodes are visited.
+		# if this route is shorter, we accept it.
+        for i = 1:n-2 # end node cannot be swapped. gotta end there.
+            for j = i+1:n-1 # any earlier node can be connected to last
                 new_route = vcat(route[1:i], reverse(route[i+1:j]), route[j+1:end])
-                this_route_cost = route_cost(new_route, C)
-                if this_route_cost < opt_distance
-                    found_improvement = true
-                    opt_distance = this_route_cost
+                new_cost = route_cost(new_route, top)
+                if new_cost < cost
+                    found_cost_reduction = true
+                    cost = new_cost
                     route = new_route
                 end
             end
         end
     end
-    return route
+	# assert there was a cost reduction
+	@assert initial_cost ≥ cost
+	if verbose
+		if initial_cost > cost
+			@printf("route %d cost: %.2f -> %.2f\n", robot_id, initial_cost, cost)
+		end
+	end
+	# replace current route with the optimized one.
+	soln.routes[robot_id] = route
+	return cost # new cost
 end
 
-# ╔═╡ e8e8b2c4-1ba7-4e66-ba0e-39a5408bb509
+# ╔═╡ dac1d857-3ebc-4c76-b328-10c5f8349beb
+function two_opt_routes!(soln::TOPSolution, top::TOP; verbose::Bool=false)
+	init_fitness = team_fitness(soln, top)
+	for robot_id = 1:top.nb_robots
+		two_opt_route!(soln, robot_id, top, verbose=verbose)
+	end
+	@assert init_fitness ≈ team_fitness(soln, top) # check fitness doesn't change
+end
+
+# ╔═╡ 7f001653-99bb-4589-a0f2-1aa03db7f777
+two_opt_routes!(h_soln, top, verbose=true)
+
+# ╔═╡ 822462b0-bebb-4f58-aa28-a4b3ce63e799
+viz_soln(h_soln, top)
+
+# ╔═╡ ae03c18d-4a95-4c2c-99b4-fdf4f13ba192
+md"#### insertion of other unvisited nodes (if possible)
+"
+
+# ╔═╡ 525e1e2b-f5f6-4914-91ef-81f99917240b
 @info "above IN PROGRESS"
 
 # ╔═╡ e02cf577-60bb-45f0-8739-0df6232aa14b
@@ -655,7 +713,11 @@ viz_edge_labels(top, aco_res.τ, title="pheremone, τ")
 # ╠═dca42318-9a56-4d25-9317-3453a6bccdf1
 # ╟─4a1ce44a-5d74-43a5-b6f8-046e3cdbd358
 # ╠═244e1a66-fcf4-4f30-a0d8-3883690fcdf3
-# ╠═e8e8b2c4-1ba7-4e66-ba0e-39a5408bb509
+# ╠═dac1d857-3ebc-4c76-b328-10c5f8349beb
+# ╠═7f001653-99bb-4589-a0f2-1aa03db7f777
+# ╠═822462b0-bebb-4f58-aa28-a4b3ce63e799
+# ╟─ae03c18d-4a95-4c2c-99b4-fdf4f13ba192
+# ╠═525e1e2b-f5f6-4914-91ef-81f99917240b
 # ╟─e02cf577-60bb-45f0-8739-0df6232aa14b
 # ╠═134a8884-7467-4d2b-a433-85a46b7470f2
 # ╠═865d698b-b226-4b3d-af07-567f91af2aff
