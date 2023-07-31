@@ -15,7 +15,18 @@ end
 TableOfContents()
 
 # ╔═╡ 06460a99-f6ca-48c0-8f0d-ef081a498cf7
-set_theme!(theme_minimal()); update_theme!(resolution=(500, 500))
+begin
+	import AlgebraOfGraphics: set_aog_theme!, firasans
+	set_aog_theme!(fonts=[firasans("Light"), firasans("Light")])
+	the_resolution = (500, 380)
+	update_theme!(
+		fontsize=20, 
+		linewidth=2,
+		markersize=14,
+		titlefont=firasans("Light"),
+		resolution=the_resolution
+	)
+end
 
 # ╔═╡ 797adf94-2ca8-11ee-34ea-13dce83b4f5c
 md"# ant colony optimization (ACO) for team orienteering problem (TOP)
@@ -349,14 +360,15 @@ function heuristic_guided_routes(top::TOP, η::Matrix{Float64})
 		end
 		end_route!(soln, k, top)
 	end
+	verify_solution(soln, top)
 	return soln
 end
 
 # ╔═╡ ffd2099b-b366-4ecd-8b9a-706ec50965e9
 hroutes = heuristic_guided_routes(top, η)
 
-# ╔═╡ c8c0a8db-31f6-4e0f-a25b-aff220becdcf
-verify_solution(hroutes, top)
+# ╔═╡ 66efb614-8b7d-49ed-8e77-697a793f06e8
+hfitness = team_fitness(hroutes, top)
 
 # ╔═╡ 6fa3d448-f3c2-4f77-80df-8d6078fc6c34
 function viz_soln(soln::TOPSolution, top::TOP)
@@ -371,9 +383,6 @@ end
 
 # ╔═╡ dca42318-9a56-4d25-9317-3453a6bccdf1
 viz_soln(hroutes, top)
-
-# ╔═╡ 66efb614-8b7d-49ed-8e77-697a793f06e8
-team_fitness(hroutes, top)
 
 # ╔═╡ 4a1ce44a-5d74-43a5-b6f8-046e3cdbd358
 md"### TODO: local search
@@ -482,30 +491,42 @@ function min_max_pheremone!(
 	end
 end
 
+# ╔═╡ 2f5687cc-657f-48d3-94ce-6359710b6385
+struct ACOResult
+	top::TOP
+	nb_iters::Int
+	global_best_soln::TOPSolution
+	global_best_fitness::Float64
+	τ::Matrix{Float64}
+	fitness_over_iters::Vector{Float64}
+end
+
 # ╔═╡ 226e41ca-43e8-41fa-9f67-9ec079b4a554
 function ant_colony_opt(
-	top::TOP;                 # problem instance
-	N_ants::Int=20,           # number of ants to use
-	N_iters::Int=250,         # number of iterations
-	ρ::Float64=0.02,          # pheremone evaporation rate
-	pheremone_on::Bool=true   # false to make it random search
+	top::TOP;                  # problem instance
+	nb_ants::Int=20,           # number of ants to use
+	nb_iters::Int=250,         # number of iterations
+	ρ::Float64=0.02,           # pheremone evaporation rate
+	pheremone_on::Bool=true,   # false to make it random search
+	verify_solns::Bool=true    # safe but slows down.
 )
 	# initialize global best soln and fitness
 	global_best_soln    = [[0]]
 	global_best_fitness = -Inf
+	fitness_over_iters  = zeros(nb_iters)
 	
 	# initialize pheremone
 	τ = ones(top.nb_nodes, top.nb_nodes)
-	for _ = 1:N_iters
+	for iter = 1:nb_iters
 		# initialize solutions their fitnesses for this iteration
-		solns      = [TOPSolution(top) for a = 1:N_ants]
-		fitnesses  = [-Inf             for a = 1:N_ants]
+		solns      = [TOPSolution(top) for a = 1:nb_ants]
+		fitnesses  = [-Inf             for a = 1:nb_ants]
 
 		#=
 		each ant finds a TOP solution.
 		sequential method for determining vehicle routes.
 		=#
-		for a = 1:N_ants
+		for a = 1:nb_ants
 			for k = 1:top.nb_robots
 				route_complete = false
 				while ! route_complete
@@ -513,7 +534,9 @@ function ant_colony_opt(
 				end
 			end
 			fitnesses[a] = team_fitness(solns[a], top)
-			verify_solution(solns[a], top)
+			if verify_solns
+				verify_solution(solns[a], top)
+			end
 		end
 			
 		#=
@@ -545,19 +568,45 @@ function ant_colony_opt(
 			end
 			min_max_pheremone!(τ, global_best_fitness, ρ, top)
 		end
+
+		# track progress
+		fitness_over_iters[iter] = iter_best_fitness
 	end
 	@assert issymmetric(τ)
-	return global_best_soln, global_best_fitness, τ
+	return ACOResult(
+		top,
+		nb_iters,
+		global_best_soln,
+		global_best_fitness, 
+		τ, 
+		fitness_over_iters
+	)
 end
 
 # ╔═╡ ec547ba8-bfbd-46b5-b178-a2aad0d96e03
-solns, fitness, τ = ant_colony_opt(top, N_ants=20, N_iters=200, pheremone_on=true)
+aco_res = ant_colony_opt(top, nb_ants=20, nb_iters=1000, pheremone_on=true)
+
+# ╔═╡ 647b03bb-329f-43f5-ac17-74964cffaa70
+function viz_trajectory(aco_res::ACOResult, baseline_fitness::Float64)
+	fig = Figure()
+	ax = Axis(
+		fig[1, 1], 
+		xlabel="iteration", 
+		ylabel="fitness\n(of iteration-best solution)"
+	)
+	hlines!([baseline_fitness], color="gray", linestyle=:dash)
+	lines!(1:aco_res.nb_iters, aco_res.fitness_over_iters)
+	fig
+end
+
+# ╔═╡ 354cb62d-d99b-4c96-8a4e-c544417a3428
+viz_trajectory(aco_res, hfitness)
 
 # ╔═╡ b9ab6cfd-723e-4a1a-9adb-a57a993ea41a
-viz_soln(solns, top)
+viz_soln(aco_res.global_best_soln, top)
 
 # ╔═╡ 84c394e3-9193-4e76-84f6-542f0fdb4735
-viz_edge_labels(top, τ, title="pheremone, τ")
+viz_edge_labels(top, aco_res.τ, title="pheremone, τ")
 
 # ╔═╡ Cell order:
 # ╠═4678e159-7dee-4013-9749-41e2f505777a
@@ -601,10 +650,9 @@ viz_edge_labels(top, τ, title="pheremone, τ")
 # ╟─c3b9f562-05c5-46f0-aef9-42b0fa8859a3
 # ╠═39a856d3-c14b-441c-b706-86e99c202c72
 # ╠═ffd2099b-b366-4ecd-8b9a-706ec50965e9
-# ╠═c8c0a8db-31f6-4e0f-a25b-aff220becdcf
+# ╠═66efb614-8b7d-49ed-8e77-697a793f06e8
 # ╠═6fa3d448-f3c2-4f77-80df-8d6078fc6c34
 # ╠═dca42318-9a56-4d25-9317-3453a6bccdf1
-# ╠═66efb614-8b7d-49ed-8e77-697a793f06e8
 # ╟─4a1ce44a-5d74-43a5-b6f8-046e3cdbd358
 # ╠═244e1a66-fcf4-4f30-a0d8-3883690fcdf3
 # ╠═e8e8b2c4-1ba7-4e66-ba0e-39a5408bb509
@@ -615,7 +663,10 @@ viz_edge_labels(top, τ, title="pheremone, τ")
 # ╠═c367f543-187f-40fe-9a06-cdbcf845066e
 # ╠═299f4228-cb24-4a59-8aab-b8c2e8a2e676
 # ╠═e916ba8a-8de3-4e1e-9d9e-c24090d1578c
+# ╠═2f5687cc-657f-48d3-94ce-6359710b6385
 # ╠═226e41ca-43e8-41fa-9f67-9ec079b4a554
 # ╠═ec547ba8-bfbd-46b5-b178-a2aad0d96e03
+# ╠═647b03bb-329f-43f5-ac17-74964cffaa70
+# ╠═354cb62d-d99b-4c96-8a4e-c544417a3428
 # ╠═b9ab6cfd-723e-4a1a-9adb-a57a993ea41a
 # ╠═84c394e3-9193-4e76-84f6-542f0fdb4735
