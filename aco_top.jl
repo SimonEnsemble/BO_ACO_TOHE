@@ -645,7 +645,8 @@ function ant_colony_opt(
 	nb_ants::Int=20,           # number of ants to use
 	nb_iters::Int=250,         # number of iterations
 	ρ::Float64=0.02,           # pheremone evaporation rate
-	pheremone_on::Bool=true,   # false to make it random search
+	pheremone::Bool=true,      # false to make it random search
+	local_search::Bool=true,   # call local search route each iter
 	verify_solns::Bool=true    # safe but slows down.
 )
 	# initialize global best soln and fitness
@@ -678,13 +679,18 @@ function ant_colony_opt(
 		end
 			
 		#=
-		get best routes found among ants. 
-		TODO: add local search.
+		get best route found among ants.
 		=#
 		id_best_ant = argmax(fitnesses)
-		# TODO local search
-		# locally_optimized_best_route = two_opt_route(routes[id_best_ant], op)
-		iter_best_soln    = solns[id_best_ant]
+		iter_best_soln = solns[id_best_ant]
+
+		#=
+		local search to improve route
+		=#
+		if local_search
+			two_opt_routes!(iter_best_soln, top)
+			insert_feasible_nodes!(iter_best_soln, top)
+		end
 		iter_best_fitness = team_fitness(iter_best_soln, top)
 
 		if iter_best_fitness > global_best_fitness
@@ -695,7 +701,7 @@ function ant_colony_opt(
 		#=
 		evaporate, deposit pheremone
 		=#
-		if pheremone_on
+		if pheremone
 			evaporate_pheremone!(τ, ρ)
 			
 			# best ant lays pheremone
@@ -721,11 +727,8 @@ function ant_colony_opt(
 	)
 end
 
-# ╔═╡ ec547ba8-bfbd-46b5-b178-a2aad0d96e03
-aco_res = ant_colony_opt(top, nb_ants=20, nb_iters=1000, pheremone_on=true)
-
 # ╔═╡ 647b03bb-329f-43f5-ac17-74964cffaa70
-function viz_trajectory(aco_res::ACOResult, baseline_fitness::Float64)
+function viz_trajectory(aco_res::ACOResult, baseline_fitness::Float64; ylimits=(0, 1))
 	fig = Figure()
 	ax = Axis(
 		fig[1, 1], 
@@ -734,11 +737,19 @@ function viz_trajectory(aco_res::ACOResult, baseline_fitness::Float64)
 	)
 	hlines!([baseline_fitness], color="gray", linestyle=:dash)
 	lines!(1:aco_res.nb_iters, aco_res.fitness_over_iters)
+	ylims!(ylimits[1], ylimits[2])
 	fig
 end
 
+# ╔═╡ ec547ba8-bfbd-46b5-b178-a2aad0d96e03
+aco_res = ant_colony_opt(
+	top, 
+	nb_ants=20, nb_iters=500,
+	pheremone=true, local_search=true
+)
+
 # ╔═╡ 354cb62d-d99b-4c96-8a4e-c544417a3428
-viz_trajectory(aco_res, h_fitness)
+viz_trajectory(aco_res, h_fitness_ls, ylimits=(0.3, 0.7))
 
 # ╔═╡ b9ab6cfd-723e-4a1a-9adb-a57a993ea41a
 viz_soln(aco_res.global_best_soln, top)
@@ -812,8 +823,8 @@ viz_edge_labels(top, aco_res.τ, title="pheremone, τ")
 # ╠═e916ba8a-8de3-4e1e-9d9e-c24090d1578c
 # ╠═2f5687cc-657f-48d3-94ce-6359710b6385
 # ╠═226e41ca-43e8-41fa-9f67-9ec079b4a554
-# ╠═ec547ba8-bfbd-46b5-b178-a2aad0d96e03
 # ╠═647b03bb-329f-43f5-ac17-74964cffaa70
+# ╠═ec547ba8-bfbd-46b5-b178-a2aad0d96e03
 # ╠═354cb62d-d99b-4c96-8a4e-c544417a3428
 # ╠═b9ab6cfd-723e-4a1a-9adb-a57a993ea41a
 # ╠═84c394e3-9193-4e76-84f6-542f0fdb4735
