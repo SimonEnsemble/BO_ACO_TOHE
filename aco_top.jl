@@ -640,6 +640,7 @@ struct ACOResult
 end
 
 # ╔═╡ 226e41ca-43e8-41fa-9f67-9ec079b4a554
+# TODO: sequential, concurrent etc.
 function ant_colony_opt(
 	top::TOP;                  # problem instance
 	nb_ants::Int=20,           # number of ants to use
@@ -647,8 +648,12 @@ function ant_colony_opt(
 	ρ::Float64=0.02,           # pheremone evaporation rate
 	pheremone::Bool=true,      # false to make it random search
 	local_search::Bool=true,   # call local search route each iter
-	verify_solns::Bool=true    # safe but slows down.
+	verify_solns::Bool=true,   # safe but slows down
+	# methods for assembling the k vehicle routes
+	route_construction_method::Symbol=:sequential,
+	randomize_concurrent::Bool=false
 )
+	@assert route_construction_method in [:sequential, :concurrent]
 	# initialize global best soln and fitness
 	global_best_soln    = [[0]]
 	global_best_fitness = -Inf
@@ -666,10 +671,28 @@ function ant_colony_opt(
 		sequential method for determining vehicle routes.
 		=#
 		for a = 1:nb_ants
-			for k = 1:top.nb_robots
-				route_complete = false
-				while ! route_complete
-					route_complete = extend_partial_solution!(solns[a], k, top, τ, η)
+			if route_construction_method == :sequential
+				for k = 1:top.nb_robots
+					route_complete = false
+					while ! route_complete
+						route_complete = extend_partial_solution!(
+							solns[a], k, top, τ, η)
+					end
+				end
+			elseif route_construction_method == :concurrent
+				route_complete = [false for k = 1:top.nb_robots]
+				all_robots = collect(1:top.nb_robots)
+				while ! all(route_complete)
+					if randomize_concurrent
+						shuffle!(all_robots)
+					end
+					for k in all_robots
+						if route_complete[k]
+							continue
+						end
+						route_complete[k] = extend_partial_solution!(
+							solns[a], k, top, τ, η)
+					end
 				end
 			end
 			fitnesses[a] = team_fitness(solns[a], top)
@@ -744,8 +767,11 @@ end
 # ╔═╡ ec547ba8-bfbd-46b5-b178-a2aad0d96e03
 aco_res = ant_colony_opt(
 	top, 
-	nb_ants=20, nb_iters=500,
-	pheremone=true, local_search=true
+	nb_ants=20, nb_iters=750,
+	pheremone=true, local_search=true,
+	route_construction_method=:sequential,
+	#route_construction_method=:concurrent,
+	randomize_concurrent=false
 )
 
 # ╔═╡ 354cb62d-d99b-4c96-8a4e-c544417a3428
