@@ -50,8 +50,15 @@ struct TOP
 	base_node_id::Int
 end
 
+# ╔═╡ 34fd7256-bcc9-44f9-b19b-4c21dbeb594c
+A = rand(3, 3)
+
+# ╔═╡ 36133dc8-bcb2-49dd-a418-74fa6526ef3b
+A[[3, 2, 1], [3, 2, 1]]
+
 # ╔═╡ 6205d5f0-da9d-45c0-9b6f-28b7ec766c72
-# start, end nodes are 1 and n
+# start, end nodes are 1 and n in this formulation, hence have reward zero.
+# I'm going to sort by reward, to make local search faster
 function top_problem_instance(prob_name::String)
 	ps_filename = joinpath("TOP_setups", "Set_100_234", prob_name)
 	ps_file_lines = readlines(ps_filename)
@@ -69,11 +76,16 @@ function top_problem_instance(prob_name::String)
 			X[k, i] = parse(Float64, line[k])
 		end
 	end
+	# sort by reward
+	ids_sorted = sortperm(rewards, rev=true)
+	rewards = rewards[ids_sorted]
+	X = X[:, ids_sorted]
+	base_node_id = findfirst(ids_sorted .== 1)
 
 	travel_costs = [norm(X[:, i] - X[:, j]) for i in 1:nb_nodes, j in 1:nb_nodes]
 
 	return TOP(
-		nb_nodes, nb_robots, X, rewards, sum(rewards), travel_costs, travel_budget, 1
+		nb_nodes, nb_robots, X, rewards, sum(rewards), travel_costs, travel_budget, base_node_id
 	)
 end
 
@@ -190,33 +202,34 @@ begin
 	extend_route!(toy_soln, 2, 19)
 	extend_route!(toy_soln, 2, 21)
 	extend_route!(toy_soln, 1, 13)
-	@test route_cost(toy_soln, 2, top) == top.travel_costs[1, 19] + top.travel_costs[19, 21]
-	@test route_cost(toy_soln, 1, top) == top.travel_costs[1, 13]
+	@test route_cost(toy_soln, 2, top) == top.travel_costs[top.base_node_id, 19] + top.travel_costs[19, 21]
+	@test route_cost(toy_soln, 1, top) == top.travel_costs[top.base_node_id, 13]
 end
 
 # ╔═╡ bacbbcf1-fa22-453c-8e28-44355a1e8037
 md"### verify a solution"
 
 # ╔═╡ 134dcca6-13f6-41d4-b1e0-13aea5d55355
-function verify_solution(tops::TOPSolution, top::TOP)
+# TODO add flag to make sure not redundant
+function verify_solution(soln::TOPSolution, top::TOP)
 	# for each robot...
 	for k = top.nb_robots
 		# start, end at base node
-		@assert tops.routes[k][1] == tops.routes[k][end] == top.base_node_id
+		@assert soln.routes[k][1] == soln.routes[k][end] == top.base_node_id
 		# route cost less than budget
-		@assert route_cost(tops, k, top) ≤ top.travel_budget
+		@assert route_cost(soln, k, top) ≤ top.travel_budget
 		# all nodes on route marked as visisted
-		@assert all([tops.node_visited[v] for v in tops.routes[k]])
+		@assert all([soln.node_visited[v] for v in soln.routes[k]])
 		# each robot visits unique vertices. except for start and end are repeated
-		@assert length(unique(tops.routes[k])) == length(tops.routes[k]) - 1
+		@assert length(unique(soln.routes[k])) == length(soln.routes[k]) - 1
 	end
-	@assert length(tops.routes) == top.nb_robots
-	@assert length(tops.node_visited) == top.nb_nodes
-	# all nodes in routes marked as visisted.
+	@assert length(soln.routes) == top.nb_robots
+	@assert length(soln.node_visited) == top.nb_nodes
+	# all nodes in routes marked as soln.
 	# all nodes not in routes marked as not visisted
-	all_nodes_in_routes = unique(vcat(tops.routes...))
-	@assert all(tops.node_visited[all_nodes_in_routes])
-	@assert sum(.! tops.node_visited) == top.nb_nodes - length(all_nodes_in_routes)
+	all_nodes_in_routes = unique(vcat(soln.routes...))
+	@assert all(soln.node_visited[all_nodes_in_routes])
+	@assert sum(.! soln.node_visited) == top.nb_nodes - length(all_nodes_in_routes)
 end
 
 # ╔═╡ 82dbf8d6-0810-4219-90d9-5cf3c83eac51
@@ -234,7 +247,7 @@ end
 # ╔═╡ 45014e4d-9ca3-436e-afbb-6180f665ee74
 begin
 	extend_route!(toy_soln, 3, 13)
-	@test team_fitness(toy_soln, top) ≈ sum(top.rewards[[1, 19, 21, 13]]) / sum(top.rewards)
+	@test team_fitness(toy_soln, top) ≈ sum(top.rewards[[top.base_node_id, 19, 21, 13]]) / sum(top.rewards)
 end
 
 # ╔═╡ a7ee000f-65a8-487c-8231-c1651e4cf3ee
@@ -435,7 +448,7 @@ function two_opt_route!(
                 if new_cost < cost
                     found_cost_reduction = true
                     cost = new_cost
-                    route = new_route
+                    route .= new_route # dot needed to actually replace the route
                 end
             end
         end
@@ -447,8 +460,6 @@ function two_opt_route!(
 			@printf("route %d cost: %.2f -> %.2f\n", robot_id, initial_cost, cost)
 		end
 	end
-	# replace current route with the optimized one.
-	soln.routes[robot_id] = route
 	return cost # new cost
 end
 
@@ -459,6 +470,7 @@ function two_opt_routes!(soln::TOPSolution, top::TOP; verbose::Bool=false)
 		two_opt_route!(soln, robot_id, top, verbose=verbose)
 	end
 	@assert init_fitness ≈ team_fitness(soln, top) # check fitness doesn't change
+	verify_solution(soln, top)
 end
 
 # ╔═╡ 7f001653-99bb-4589-a0f2-1aa03db7f777
@@ -468,11 +480,82 @@ two_opt_routes!(h_soln, top, verbose=true)
 viz_soln(h_soln, top)
 
 # ╔═╡ ae03c18d-4a95-4c2c-99b4-fdf4f13ba192
-md"#### insertion of other unvisited nodes (if possible)
+md"#### node insertion
+after 2-opt, there may be room to insert a another node.
 "
 
 # ╔═╡ 525e1e2b-f5f6-4914-91ef-81f99917240b
-@info "above IN PROGRESS"
+# returns true if success, false if not possible.
+function attempt_node_insertion!(
+	soln::TOPSolution, 
+	robot_id::Int, 
+	top::TOP;
+	verbose::Bool=false
+)
+	# retreive this route and calculate its cost
+	route = soln.routes[robot_id]
+	cost = route_cost(route, top)
+	# loop over edges which we could insert a node
+	# idea: current route = ... -> u -> w -> ...
+	#           new route = ... -> u -> v -> w -> ...
+	#   i  = candidate location for new node in the array
+	# note: do in random order to not impose bias
+	for i = shuffle(2:length(soln.routes[robot_id]))
+		# look at edge (u, w) in the route
+		u = soln.routes[robot_id][i-1]
+		w = soln.routes[robot_id][i]
+		# loop over other nodes we could possibly extend.
+		#  (the nodes in the problems setup are sorted by reward)
+		for v in 1:top.nb_nodes
+			# if already visisted by any robot, not a candidate.
+			if soln.node_visited[v]
+				continue
+			end
+			# if we afford to insert this node, let's do it.
+			#  gotta: (1) break u -> w edge
+			#         (2) add u -> v, v -> w edge.
+			if cost - top.travel_costs[u, w] + top.travel_costs[u, v] + 
+					top.travel_costs[v, w] < top.travel_budget
+				# actually do the insertion
+				insert!(route, i, v)
+				soln.node_visited[v] = true
+				# print off wut we did
+				if verbose
+					@printf("route %d: insert %d between %d and %d\n", robot_id, v, u, w)
+				end
+				# return true cuz of success
+				return true
+			end
+		end
+	end
+	return false # if got this far, couldn't make an insertion work.
+end
+
+# ╔═╡ f9bf6c05-bbdd-4553-9c6e-23818700681b
+function insert_feasible_nodes!(
+	soln::TOPSolution, 
+	top::TOP;
+	verbose::Bool=false
+)
+	for robot_id = 1:top.nb_robots
+		# keep inserting nodes in the route till we can't
+		insertion_success = true # to entire while loop
+		while insertion_success
+			insertion_success = attempt_node_insertion!(
+				soln, robot_id, top, verbose=verbose)
+		end
+	end
+	verify_solution(soln, top)
+end
+
+# ╔═╡ 11f2de84-611f-4468-b9ad-a4997516c279
+insert_feasible_nodes!(h_soln, top, verbose=true)
+
+# ╔═╡ 8ab296a3-8b57-472d-82ce-bc75df6d1b19
+viz_soln(h_soln, top)
+
+# ╔═╡ 75c97fe9-67ea-4f46-96d5-1870d3e99bd5
+h_fitness_ls = team_fitness(h_soln, top) # after local search
 
 # ╔═╡ e02cf577-60bb-45f0-8739-0df6232aa14b
 md"### extending a partial solution (for ACO)"
@@ -500,9 +583,6 @@ function extend_partial_solution!(
 		return false # not done
 	end
 end
-
-# ╔═╡ 865d698b-b226-4b3d-af07-567f91af2aff
-extend_partial_solution!(hroutes, 1, top, ones(top.nb_nodes, top.nb_nodes), η)
 
 # ╔═╡ 7b9cbad1-e433-439e-95d9-5a39fce063e7
 md"### 🐜 ACO"
@@ -658,7 +738,7 @@ function viz_trajectory(aco_res::ACOResult, baseline_fitness::Float64)
 end
 
 # ╔═╡ 354cb62d-d99b-4c96-8a4e-c544417a3428
-viz_trajectory(aco_res, hfitness)
+viz_trajectory(aco_res, h_fitness)
 
 # ╔═╡ b9ab6cfd-723e-4a1a-9adb-a57a993ea41a
 viz_soln(aco_res.global_best_soln, top)
@@ -672,6 +752,8 @@ viz_edge_labels(top, aco_res.τ, title="pheremone, τ")
 # ╠═06460a99-f6ca-48c0-8f0d-ef081a498cf7
 # ╟─797adf94-2ca8-11ee-34ea-13dce83b4f5c
 # ╠═48338f22-3a1a-4534-ac4d-84cc7baa7725
+# ╠═34fd7256-bcc9-44f9-b19b-4c21dbeb594c
+# ╠═36133dc8-bcb2-49dd-a418-74fa6526ef3b
 # ╠═6205d5f0-da9d-45c0-9b6f-28b7ec766c72
 # ╠═6f743d4e-758a-47c6-a48d-319b243bf798
 # ╠═def3704d-45d5-47c4-929b-75fe71c825ee
@@ -718,9 +800,12 @@ viz_edge_labels(top, aco_res.τ, title="pheremone, τ")
 # ╠═822462b0-bebb-4f58-aa28-a4b3ce63e799
 # ╟─ae03c18d-4a95-4c2c-99b4-fdf4f13ba192
 # ╠═525e1e2b-f5f6-4914-91ef-81f99917240b
+# ╠═f9bf6c05-bbdd-4553-9c6e-23818700681b
+# ╠═11f2de84-611f-4468-b9ad-a4997516c279
+# ╠═8ab296a3-8b57-472d-82ce-bc75df6d1b19
+# ╠═75c97fe9-67ea-4f46-96d5-1870d3e99bd5
 # ╟─e02cf577-60bb-45f0-8739-0df6232aa14b
 # ╠═134a8884-7467-4d2b-a433-85a46b7470f2
-# ╠═865d698b-b226-4b3d-af07-567f91af2aff
 # ╟─7b9cbad1-e433-439e-95d9-5a39fce063e7
 # ╠═c367f543-187f-40fe-9a06-cdbcf845066e
 # ╠═299f4228-cb24-4a59-8aab-b8c2e8a2e676
