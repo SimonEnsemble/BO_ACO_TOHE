@@ -250,6 +250,11 @@ begin
 	@test team_fitness(toy_soln, top) ≈ sum(top.rewards[[top.base_node_id, 19, 21, 13]]) / sum(top.rewards)
 end
 
+# ╔═╡ 619b4cd2-4754-4a9f-a0a8-4335561591c4
+function per_robot_fitness(soln::TOPSolution, top::TOP)
+	return [sum(top.rewards[soln.routes[k]]) for k = 1:top.nb_robots] / top.rewards_sum
+end
+
 # ╔═╡ a7ee000f-65a8-487c-8231-c1651e4cf3ee
 md"## ant colony optimization
 
@@ -342,8 +347,10 @@ md"let's test visually and by building a hueuristic-guided route."
 # ╔═╡ 87b1d723-260e-4186-a18f-94cbb54e334d
 begin
 	new_toy_soln = TOPSolution(top)
-	extend_route!(new_toy_soln, 2, 11)
+	extend_route!(new_toy_soln, 2, 25)
 	extend_route!(new_toy_soln, 2, 5)
+	extend_route!(new_toy_soln, 2, 16)
+	new_toy_soln.routes
 end
 
 # ╔═╡ fc37fc37-8916-48f8-830a-37d7b245ab4a
@@ -767,7 +774,7 @@ end
 # ╔═╡ ec547ba8-bfbd-46b5-b178-a2aad0d96e03
 aco_res = ant_colony_opt(
 	top, 
-	nb_ants=20, nb_iters=750,
+	nb_ants=20, nb_iters=1000,
 	pheremone=true, local_search=true,
 	route_construction_method=:sequential,
 	#route_construction_method=:concurrent,
@@ -776,6 +783,9 @@ aco_res = ant_colony_opt(
 
 # ╔═╡ 354cb62d-d99b-4c96-8a4e-c544417a3428
 viz_trajectory(aco_res, h_fitness_ls, ylimits=(0.3, 0.7))
+
+# ╔═╡ 62d04526-4619-4c87-a001-3a205140f497
+per_robot_fitness(aco_res.global_best_soln, top) # analyze dynamics of this.
 
 # ╔═╡ b9ab6cfd-723e-4a1a-9adb-a57a993ea41a
 viz_soln(aco_res.global_best_soln, top)
@@ -811,6 +821,7 @@ viz_edge_labels(top, aco_res.τ, title="pheremone, τ")
 # ╟─82dbf8d6-0810-4219-90d9-5cf3c83eac51
 # ╠═c3db3a44-bd33-41f0-9bdd-44d88874f00b
 # ╠═45014e4d-9ca3-436e-afbb-6180f665ee74
+# ╠═619b4cd2-4754-4a9f-a0a8-4335561591c4
 # ╟─a7ee000f-65a8-487c-8231-c1651e4cf3ee
 # ╟─62ccf17d-3e8b-4e72-85f8-9f8836372ca7
 # ╠═c9fa28f5-702a-41e6-94aa-bcb9e96caa78
@@ -852,5 +863,6 @@ viz_edge_labels(top, aco_res.τ, title="pheremone, τ")
 # ╠═647b03bb-329f-43f5-ac17-74964cffaa70
 # ╠═ec547ba8-bfbd-46b5-b178-a2aad0d96e03
 # ╠═354cb62d-d99b-4c96-8a4e-c544417a3428
+# ╠═62d04526-4619-4c87-a001-3a205140f497
 # ╠═b9ab6cfd-723e-4a1a-9adb-a57a993ea41a
 # ╠═84c394e3-9193-4e76-84f6-542f0fdb4735
