@@ -51,9 +51,6 @@ struct TOP
 	starting_base::Vector{Int} # which base does the robot start on?
 end
 
-# ╔═╡ a84ec53c-3eae-4603-90a8-3c5c4e35bb76
-sample([99, 100])
-
 # ╔═╡ 6205d5f0-da9d-45c0-9b6f-28b7ec766c72
 # start, end nodes are 1 and n in this formulation, hence have reward zero.
 # I'm going to sort by reward, to make local search faster
@@ -104,7 +101,7 @@ function top_problem_instance(prob_name::String)
 end
 
 # ╔═╡ 6f743d4e-758a-47c6-a48d-319b243bf798
-top = top_problem_instance("p4.4.l.txt")
+top = top_problem_instance("p4.4.o.txt")
 
 # ╔═╡ def3704d-45d5-47c4-929b-75fe71c825ee
 function _draw_nodes!(
@@ -132,7 +129,7 @@ function _draw_nodes!(
 	if length(highlight_node_list) > 0
 		scatter!(
 			top.X[1, highlight_node_list], top.X[2, highlight_node_list], 
-			strokecolor="red", markersize=12, strokewidth=2, color=("white", 0.0)
+			strokecolor="blue", markersize=12, strokewidth=2, color=("white", 0.0)
 		)
 	end
     Colorbar(fig[1, 2], sp, label="reward")
@@ -174,10 +171,10 @@ begin
 	
 	function TOPSolution(top::TOP)
 		tops = TOPSolution(
-			[[top.base_node_id] for k = 1:top.nb_robots],
+			[[top.starting_base[k]] for k = 1:top.nb_robots],
 			[false for i = 1:top.nb_nodes]
 		)
-		tops.node_visited[top.base_node_ids] = true
+		tops.node_visited[top.base_node_ids] .= true
 		return tops
 	end
 end
@@ -189,20 +186,26 @@ toy_soln = TOPSolution(top)
 md"### extending a partial soln"
 
 # ╔═╡ 767aecc9-aead-4634-a43b-1382ea1386e6
-function extend_route!(soln::TOPSolution, robot_id::Int, node_id::Int)
-	push!(soln.routes[robot_id], node_id)
-	soln.node_visited[node_id] = true
+function extend_route!(partial_soln::TOPSolution, robot_id::Int, node_id::Int)
+	push!(partial_soln.routes[robot_id], node_id)
+	partial_soln.node_visited[node_id] = true
 	return nothing
 end
 
-# ╔═╡ ab5923d4-f428-4283-aa69-291a3730bc7a
-function end_route!(soln::TOPSolution, robot_id::Int, top::TOP)
-	push!(soln.routes[robot_id], top.base_node_id)
+# ╔═╡ 80ff82f3-8c24-45b1-92a0-dbfbedc52e03
+function end_route!(partial_soln::TOPSolution, robot_id::Int, top::TOP)
+	# current node
+	u = partial_soln.routes[robot_id][end]
+	
+	# find closest base node that we can afford to travel to.
+	base_id = top.base_node_ids[argmin(top.travel_costs[u, top.base_node_ids])]
+	# end with this base.
+	extend_route!(partial_soln, robot_id, base_id)
 end
 
 # ╔═╡ 59ed1b10-407c-4b64-ad73-ebf27da92a81
 md"### route cost
-start node must be included in the route.
+start, end node must be included in the route if complete.
 "
 
 # ╔═╡ 426023ec-dd44-4641-a5c9-a288f71dc9a4
@@ -224,8 +227,8 @@ begin
 	extend_route!(toy_soln, 2, 19)
 	extend_route!(toy_soln, 2, 21)
 	extend_route!(toy_soln, 1, 13)
-	@test route_cost(toy_soln, 2, top) == top.travel_costs[top.base_node_id, 19] + top.travel_costs[19, 21]
-	@test route_cost(toy_soln, 1, top) == top.travel_costs[top.base_node_id, 13]
+	@test route_cost(toy_soln, 2, top) == top.travel_costs[top.starting_base[2], 19] + top.travel_costs[19, 21]
+	@test route_cost(toy_soln, 1, top) == top.travel_costs[top.starting_base[1], 13]
 end
 
 # ╔═╡ bacbbcf1-fa22-453c-8e28-44355a1e8037
@@ -236,14 +239,16 @@ md"### verify a solution"
 function verify_solution(soln::TOPSolution, top::TOP)
 	# for each robot...
 	for k = top.nb_robots
-		# start, end at base node
-		@assert soln.routes[k][1] == soln.routes[k][end] == top.base_node_id
+		# start at specific base node
+		@assert soln.routes[k][1] in top.starting_base[k]
+		# end at SOME base node
+		@assert soln.routes[k][end] in top.base_node_ids
 		# route cost less than budget
 		@assert route_cost(soln, k, top) ≤ top.travel_budget
 		# all nodes on route marked as visisted
 		@assert all([soln.node_visited[v] for v in soln.routes[k]])
-		# each robot visits unique vertices. except for start and end are repeated
-		@assert length(unique(soln.routes[k])) == length(soln.routes[k]) - 1
+		# each robot visits unique vertices.
+		@assert length(unique(soln.routes[k][2:end-1])) == length(soln.routes[k])-2
 	end
 	@assert length(soln.routes) == top.nb_robots
 	@assert length(soln.node_visited) == top.nb_nodes
@@ -267,15 +272,15 @@ function team_fitness(soln::TOPSolution, top::TOP)
 end
 
 # ╔═╡ 45014e4d-9ca3-436e-afbb-6180f665ee74
-begin
-	extend_route!(toy_soln, 3, 13)
-	@test team_fitness(toy_soln, top) ≈ sum(top.rewards[[top.base_node_id, 19, 21, 13]]) / sum(top.rewards)
-end
+@test team_fitness(toy_soln, top) ≈ sum(top.rewards[[top.starting_base[3], 19, 21, 13]]) / sum(top.rewards)
 
 # ╔═╡ 619b4cd2-4754-4a9f-a0a8-4335561591c4
 function per_robot_fitness(soln::TOPSolution, top::TOP)
 	return [sum(top.rewards[soln.routes[k]]) for k = 1:top.nb_robots] / top.rewards_sum
 end
+
+# ╔═╡ c373aeb3-4a6e-4a9c-8b97-ca6c51dfde7b
+@assert sum(per_robot_fitness(toy_soln, top)) ≈ team_fitness(toy_soln, top)
 
 # ╔═╡ a7ee000f-65a8-487c-8231-c1651e4cf3ee
 md"## ant colony optimization
@@ -327,10 +332,11 @@ viz_edge_labels(top, η, title="heuristic, η")
 # ╔═╡ d6add022-ebe3-4c87-8e88-7ed2ff5f7b5c
 md"### build candidate set of nodes for extending partial solutions
 
-exclude the base node. this will be inferred to be the last. depends on robot b/c of its travel budget.
+don't include base nodes.
 "
 
 # ╔═╡ bd0d87c2-43d8-44bd-8ad0-58a55c1ea287
+# base nodes excluded. if this empty, we gotta go back to a base.
 function next_node_candidates(
 	partial_soln::TOPSolution, 
 	robot_id::Int, 
@@ -341,11 +347,12 @@ function next_node_candidates(
 	
 	# u = current node on which this robot sits
 	u = partial_soln.routes[robot_id][end]
+
 	# build candidate list. loop thru all nodes.
 	node_candidates = Int[]
 	for v = 1:top.nb_nodes # v = next node
-		# exclude base
-		if v == top.base_node_id
+		# exclude base nodes, so we know when we gotta go back to a base.
+		if v in top.base_node_ids
 			continue
 		end
 		# exclude those visited already by ANY robot
@@ -354,10 +361,13 @@ function next_node_candidates(
 		end
 
 		# if got this far, node v hasn't been visited yet.
-		# add if possible to travel to it then back to base node.
-		if (travel_cost_so_far + top.travel_costs[u, v] + 
-				top.travel_costs[v, top.base_node_id]) ≤ top.travel_budget
-			push!(node_candidates, v)
+		# it's a candidate if it's possible to travel to it then back to SOME base.
+		for b in top.base_node_ids
+			if (travel_cost_so_far + top.travel_costs[u, v] + 
+				top.travel_costs[v, b]) ≤ top.travel_budget
+				push!(node_candidates, v)
+				continue # don't want to add twice!
+			end
 		end
 	end
 	return node_candidates
@@ -369,9 +379,10 @@ md"let's test visually and by building a hueuristic-guided route."
 # ╔═╡ 87b1d723-260e-4186-a18f-94cbb54e334d
 begin
 	new_toy_soln = TOPSolution(top)
-	extend_route!(new_toy_soln, 2, 25)
 	extend_route!(new_toy_soln, 2, 5)
+	extend_route!(new_toy_soln, 2, 26)
 	extend_route!(new_toy_soln, 2, 16)
+	extend_route!(new_toy_soln, 2, 22)
 	new_toy_soln.routes
 end
 
@@ -413,7 +424,11 @@ h_soln = heuristic_guided_soln(top, η)
 h_fitness = team_fitness(h_soln, top)
 
 # ╔═╡ 6fa3d448-f3c2-4f77-80df-8d6078fc6c34
-function viz_soln(soln::TOPSolution, top::TOP)
+function viz_soln(
+	soln::TOPSolution,
+	top::TOP; 
+	savename::Union{String, Nothing}=nothing
+)
 	fig = Figure()
 	ax = Axis(fig[1, 1])
 	line_plots = []
@@ -428,6 +443,9 @@ function viz_soln(soln::TOPSolution, top::TOP)
 		orientation=:horizontal, tellwidth=false, tellheight=true,
 		labelsize=12
 	)
+	if ! isnothing(savename)
+		save(savename * ".pdf", fig)
+	end
 	fig
 end
 
@@ -804,13 +822,13 @@ aco_res = ant_colony_opt(
 )
 
 # ╔═╡ 354cb62d-d99b-4c96-8a4e-c544417a3428
-viz_trajectory(aco_res, h_fitness_ls, ylimits=(0.3, 0.7))
+viz_trajectory(aco_res, h_fitness_ls, ylimits=(0.3, 1.0))
 
 # ╔═╡ 62d04526-4619-4c87-a001-3a205140f497
 per_robot_fitness(aco_res.global_best_soln, top) # analyze dynamics of this.
 
 # ╔═╡ b9ab6cfd-723e-4a1a-9adb-a57a993ea41a
-viz_soln(aco_res.global_best_soln, top)
+viz_soln(aco_res.global_best_soln, top, savename="aco_two_warehouses")
 
 # ╔═╡ 84c394e3-9193-4e76-84f6-542f0fdb4735
 viz_edge_labels(top, aco_res.τ, title="pheremone, τ")
@@ -821,7 +839,6 @@ viz_edge_labels(top, aco_res.τ, title="pheremone, τ")
 # ╠═06460a99-f6ca-48c0-8f0d-ef081a498cf7
 # ╟─797adf94-2ca8-11ee-34ea-13dce83b4f5c
 # ╠═48338f22-3a1a-4534-ac4d-84cc7baa7725
-# ╠═a84ec53c-3eae-4603-90a8-3c5c4e35bb76
 # ╠═6205d5f0-da9d-45c0-9b6f-28b7ec766c72
 # ╠═6f743d4e-758a-47c6-a48d-319b243bf798
 # ╠═def3704d-45d5-47c4-929b-75fe71c825ee
@@ -832,7 +849,7 @@ viz_edge_labels(top, aco_res.τ, title="pheremone, τ")
 # ╠═af3fcce1-314e-44aa-b621-a6434ce6c13c
 # ╟─7254040a-d7c9-4f2b-a21c-ab4c99a5c95c
 # ╠═767aecc9-aead-4634-a43b-1382ea1386e6
-# ╠═ab5923d4-f428-4283-aa69-291a3730bc7a
+# ╠═80ff82f3-8c24-45b1-92a0-dbfbedc52e03
 # ╟─59ed1b10-407c-4b64-ad73-ebf27da92a81
 # ╠═426023ec-dd44-4641-a5c9-a288f71dc9a4
 # ╠═49149a54-a135-4d27-a93d-28ce560b0489
@@ -843,6 +860,7 @@ viz_edge_labels(top, aco_res.τ, title="pheremone, τ")
 # ╠═c3db3a44-bd33-41f0-9bdd-44d88874f00b
 # ╠═45014e4d-9ca3-436e-afbb-6180f665ee74
 # ╠═619b4cd2-4754-4a9f-a0a8-4335561591c4
+# ╠═c373aeb3-4a6e-4a9c-8b97-ca6c51dfde7b
 # ╟─a7ee000f-65a8-487c-8231-c1651e4cf3ee
 # ╟─62ccf17d-3e8b-4e72-85f8-9f8836372ca7
 # ╠═c9fa28f5-702a-41e6-94aa-bcb9e96caa78
