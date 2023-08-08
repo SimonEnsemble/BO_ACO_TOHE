@@ -7,7 +7,7 @@ using InteractiveUtils
 # ╔═╡ d04e8854-3557-11ee-3f0a-2f68a1123873
 begin
 	import Pkg; Pkg.activate()
-	using Graphs, GraphMakie, MetaGraphs, CairoMakie, ColorSchemes, Distributions, NetworkLayout, Random, PlutoUI
+	using Graphs, GraphMakie, MetaGraphs, CairoMakie, ColorSchemes, Distributions, NetworkLayout, Random, PlutoUI, StatsBase
 
 	import AlgebraOfGraphics: set_aog_theme!, firasans
 	set_aog_theme!(fonts=[firasans("Light"), firasans("Light")])
@@ -73,8 +73,13 @@ top = TOP(
 )
 
 # ╔═╡ ddfcf601-a6cf-4c52-820d-fcf71bbf3d72
-mutable struct Robot
-	path::Vector{Int}
+begin
+	mutable struct Robot
+		path::Vector{Int}
+		done::Bool
+	end
+	
+	Robot() = Robot([1], false)
 end
 
 # ╔═╡ f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
@@ -181,19 +186,19 @@ function verify_path(path::Vector{Int}, top::TOP)
 end
 
 # ╔═╡ cdb0e3ec-426a-48f2-800f-f70cfc20492a
-function π_robot_survives(robot::Robot, top::TOP)
+function π_robot_survives(path::Vector{Int}, top::TOP)
 	# path length, in terms of # edges
-	ℓ = length(robot.path) - 1
+	ℓ = length(path) - 1
 	# product of survival probabilities along the path (gotta survive all)
 	return prod(
-		get_prop(top.g, robot.path[n], robot.path[n+1], :ω)
+		get_prop(top.g, path[n], path[n+1], :ω)
 			for n = 1:ℓ # n := edge along the path.
 	)
 end
 
 # ╔═╡ 2f78b5b8-e996-4b65-b8cc-7b27e45242ec
 function 𝔼_nb_robots_survive(robots::Vector{Robot}, top::TOP)
-	return sum(π_robot_survives(robot, top) for robot in robots)
+	return sum(π_robot_survives(robot.path, top) for robot in robots)
 end
 
 # ╔═╡ 732e023a-048f-4cf4-beba-c14d10fe643f
@@ -212,7 +217,7 @@ function π_robot_visits_node_j(robot::Robot, j::Int, top::TOP)
 		# case: node j in path
 		#    then we gotta survive the path up till and including node j.
 		# @assert path[id_path_giving_node_j] == j
-		return π_robot_survives(Robot(robot.path[1:id_path_giving_node_j]), top)
+		return π_robot_survives(robot.path[1:id_path_giving_node_j], top)
 	end
 end
 
@@ -227,7 +232,7 @@ function random_path(n::Int, top::TOP)
 		end
 		path[i+1] = sample(next_candidates)
 	end
-	return Robot(path)
+	return Robot(path, false)
 end
 
 # ╔═╡ ad1c64f5-94b6-4c51-b66d-7cbe77495b2b
@@ -266,7 +271,7 @@ end
 robots = [random_path(3, top), random_path(4, top), random_path(2, top)]
 
 # ╔═╡ 241eea88-7610-4a54-af23-316b3fdf9780
-π_robot_survives(robots[1], top)
+π_robot_survives(robots[1].path, top)
 
 # ╔═╡ 67706b5c-ef3f-48df-b2e2-ace159f814e1
 π_robot_visits_node_j(robots[1], 15, top)
@@ -278,10 +283,10 @@ viz_setup(top, robots=robots)
 𝔼_reward(robots, top)
 
 # ╔═╡ 1b5cfbae-7010-4e37-b8a8-f91df6577eeb
-𝔼_nb_robots_survive(robots[1:3], top)
+𝔼_nb_robots_survive(robots, top)
 
 # ╔═╡ 0c5d0bbd-d278-4caa-ab1c-a886c2f4aaaa
-π_robot_survives(robots[3], top)
+π_robot_survives(robots[3].path, top)
 
 # ╔═╡ 9d44f37d-8c05-450a-a448-7be50387499c
 md"## MO-ACO
@@ -315,9 +320,15 @@ struct Objs
 end
 
 # ╔═╡ 6d1a6ce7-3944-4fbd-ac22-e678d31d9a9b
-struct Soln
-	robots::Vector{Vector{Robot}}
-	objs::Objs
+begin
+	struct Soln
+		robots::Vector{Robot}
+		objs::Objs
+	end
+	Soln(top::TOP) = Soln(
+		[Robot() for k = 1:top.nb_robots], 
+		Objs(NaN, NaN)
+	)
 end
 
 # ╔═╡ e138f48b-eb22-40b8-aab1-ce877fba4f8f
@@ -328,13 +339,54 @@ end
 
 # ╔═╡ d44b2e46-6709-47c6-942a-d9c0e5a7a8bf
 function sol_dominates_sol(soln₁::Soln, soln₂::Soln)
-	better_reward   = soln₁.objs.𝔼_reward         > soln₂.objs.𝔼_reward
-	better_survival = soln₁.objs.𝔼_robots_survive > soln₂.objs.𝔼_robots_survive
+	better_reward   = soln₁.objs.𝔼_reward            >= soln₂.objs.𝔼_reward
+	better_survival = soln₁.objs.𝔼_nb_robots_survive >= soln₂.objs.𝔼_nb_robots_survive
 	return better_reward && better_survival
 end
 
+# ╔═╡ aabcc1a3-082b-468c-ad1e-648329f7f0c9
+function nondominated_solns(solns::Vector{Soln})
+	ids_nondominated = [true for i = 1:length(solns)]
+	# look at each solution.
+	for i = 1:length(solns)
+		# if ANY other solution dominates it, it's not a dominant solution 
+		for j = 1:length(solns)
+			if i == j
+				continue
+			end
+			if sol_dominates_sol(solns[j], solns[i])
+				ids_nondominated[i] = false
+				break
+			end
+		end
+	end
+	return solns[ids_nondominated]
+end
+
+# ╔═╡ 3526e2f9-1e07-43dc-9067-5656d7c864eb
+function viz_Pareto_front(solns::Vector{Soln})
+	local fig = Figure()
+	local ax = Axis(
+		fig[1, 1],
+		xlabel="𝔼(# robots survive)", 
+		ylabel="𝔼(rewards)"
+	)
+	xlims!(0, nothing)
+	ylims!(0, nothing)
+	scatter!(
+		[soln.objs.𝔼_nb_robots_survive for soln in solns],
+		[soln.objs.𝔼_reward for soln in solns]
+	)
+	nd_solns = nondominated_solns(solns)
+	scatter!(
+		[soln.objs.𝔼_nb_robots_survive for soln in nd_solns],
+		[soln.objs.𝔼_reward for soln in nd_solns], marker=:x
+	)
+	fig
+end
+
 # ╔═╡ 4c60da94-d66f-461b-9e48-2a3c5343b80e
-md"### ants and pheremone"
+md"### ants"
 
 # ╔═╡ 4ea8f171-8834-41d2-ac0e-d3101e63cdc0
 struct Ant
@@ -344,11 +396,14 @@ end
 # ╔═╡ e289eb93-1446-4506-abb5-f8b3d58ecca6
 Ants(nb_ants::Int) = [Ant((k - 1) / (nb_ants - 1)) for k = 1:nb_ants]
 
+# ╔═╡ 40266eb7-f001-411f-9227-d165487c8158
+md"### pheremone"
+
 # ╔═╡ 762e252d-dcb9-48d9-b981-fa142e272ea0
 begin
 	struct Pheremone
-		τ_survival ::Matrix{Float64}
-		τ_reward   ::Matrix{Float64}
+		τ_survival::Matrix{Float64}
+		τ_reward  ::Matrix{Float64}
 	end
 	
 	# initialize
@@ -368,6 +423,28 @@ function evaporate!(pheremone::Pheremone, ρ::Float64=0.02)
 	return nothing
 end
 
+# ╔═╡ a52784a1-cd98-45a7-8931-b8488d71ead9
+function lay!(pheremone::Pheremone, nd_solns::Vector{Soln})
+	ℓ = length(nd_solns)
+	# each non-dominated solution contributes pheremone.
+	for nd_soln in nd_solns
+		# loop over robots
+		for robot in nd_soln.robots
+			# loop over robot path
+			for i = 1:length(robot.path)-1
+				# step u -> v
+				u = robot.path[i]
+				v = robot.path[i+1]
+				# lay it!
+				# TODO: doesn't scaling here matter?
+				pheremone.τ_reward[u, v] += nd_soln.objs.𝔼_reward / ℓ
+				pheremone.τ_survival[u, v] += nd_soln.objs.𝔼_nb_robots_survive / ℓ
+			end
+		end
+	end
+	return nothing
+end
+
 # ╔═╡ e56941ec-927e-4e11-8542-3c134c8966f5
 pheremone = Pheremone(top)
 
@@ -382,12 +459,19 @@ md"### building partial solution"
 function next_node_candidates(robot::Robot, top::TOP)
 	# current vertex
 	u = robot.path[end]
-	# return neighbors of u that are not in path so far (excluding base)
-	return [v for v in neighbors(top.g, u) if ! (v in robot.path[2:end])]
+	# return neighbors of u 
+	#  if we exclude nodes visisted already, then
+	#    robot could get stuck.
+	#    def gotta allow the base to be re-visisted...
+	#  we always keep the base as an option
+	return [v for v in neighbors(top.g, u)]# if ! (v in robot.path[2:end])]
 end
 
 # ╔═╡ c34fac32-76b4-4051-ba76-9b5a758954f3
 function extend_path!(robot::Robot, ant::Ant, pheremone::Pheremone, top::TOP)
+	# current vertex
+	u = robot.path[end]
+	
 	# get list of next-node condidates
 	vs = next_node_candidates(robot, top)
 	
@@ -404,14 +488,113 @@ function extend_path!(robot::Robot, ant::Ant, pheremone::Pheremone, top::TOP)
 			transition_probs
 		)
 	)
+
+	# if base node, robot is done
+	if v == 1
+		robot.done = true
+	end
 	
 	# push to robot's path
 	push!(robot.path, v)
 	return v
 end
 
-# ╔═╡ 9e81962d-5ac7-46d2-8e22-d1e0bea87c5a
-viz_setup(top, robots=[robots[3]])
+# ╔═╡ 92b98a6c-3535-4559-951c-210f0d8a8d63
+function construct_soln(ant::Ant, pheremone::Pheremone, top::TOP)
+	# initialize robots
+	robots = [Robot() for k = 1:top.nb_robots]
+	
+	# ant builds a solution
+	for robot in robots
+		while ! robot.done
+			extend_path!(robot, ant, pheremone, top)
+		end
+	end
+	
+	# compute objective values of solution
+	objs = Objs(
+		𝔼_reward(robots, top),
+		𝔼_nb_robots_survive(robots, top)
+	)
+	
+	# voila, we hv solution
+	return Soln(robots, objs)
+end
+
+# ╔═╡ 553626cc-7b2b-440d-b4e2-66a3c2fccba4
+bogus_solns = [construct_soln(ant, pheremone, top) for ant in ants];
+
+# ╔═╡ a53ce432-02d7-45db-ba26-7f182bc26524
+viz_setup(top, robots=bogus_solns[2].robots)
+
+# ╔═╡ 33452066-8a35-4bb0-ae58-8bcfb22e2102
+viz_Pareto_front(bogus_solns)
+
+# ╔═╡ 74459833-f3e5-4b13-b838-380c007c86ed
+md"### 🐜"
+
+# ╔═╡ 2c1eb95b-30dd-4185-8fc4-5c8b6cab507a
+function mo_aco(top::TOP; nb_ants::Int=100, nb_iters::Int=100, verbose::Bool=false)
+	# initialize ants and pheremone
+	ants = Ants(nb_ants)
+	pheremone = Pheremone(top)
+	# shared pool of non-dominated solutions
+	global_nd_solns = Soln[]
+	for i = 1:nb_iters # iterations
+		#=
+		🐜s construct solutions
+		=#
+		solns = Soln[] # ants' solutions this iter
+		for (a, ant) in enumerate(ants)
+			# each ant constructs a solution
+			soln = construct_soln(ant, pheremone, top)
+			push!(solns, soln)
+		end
+
+		#=
+		compute non-dominated solutions
+		=#
+		iter_nd_solns = nondominated_solns(solns)
+
+		#=
+		update global pool of non-dominated solutions
+		=#
+		global_nd_solns = nondominated_solns(
+			vcat(global_nd_solns, iter_nd_solns)
+		)
+
+		if verbose
+			println("iter $i:")
+			println("\t$(length(iter_nd_solns)) nd-solns")
+			println("\tglobally $(length(global_nd_solns)) nd-solns")
+		end
+		
+		#=
+		🐜 lay pheremone
+		=#
+		evaporate!(pheremone)
+		if rand() < 0.2
+			lay!(pheremone, global_nd_solns)
+		else
+			lay!(pheremone, iter_nd_solns)
+		end
+	end
+	# sort by obj
+	ids_sorted = sortperm([s.objs.𝔼_reward for s in global_nd_solns])
+	return global_nd_solns[ids_sorted]
+end
+
+# ╔═╡ a8e27a0e-89da-4206-a7e2-94f796cac8b4
+global_nd_solns = mo_aco(top, verbose=true)
+
+# ╔═╡ 4769582f-6498-4f14-a965-ed109b7f97d1
+viz_Pareto_front(global_nd_solns)
+
+# ╔═╡ 1a92f1b9-0c76-4dfe-b499-9eb9cca61391
+viz_setup(top, robots=global_nd_solns[1].robots)
+
+# ╔═╡ 0988e5aa-09b0-4c10-b23c-86d613e1401c
+viz_setup(top, robots=global_nd_solns[end].robots)
 
 # ╔═╡ Cell order:
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
@@ -448,14 +631,27 @@ viz_setup(top, robots=[robots[3]])
 # ╠═6d1a6ce7-3944-4fbd-ac22-e678d31d9a9b
 # ╠═e138f48b-eb22-40b8-aab1-ce877fba4f8f
 # ╠═d44b2e46-6709-47c6-942a-d9c0e5a7a8bf
+# ╠═aabcc1a3-082b-468c-ad1e-648329f7f0c9
+# ╠═3526e2f9-1e07-43dc-9067-5656d7c864eb
 # ╟─4c60da94-d66f-461b-9e48-2a3c5343b80e
 # ╠═4ea8f171-8834-41d2-ac0e-d3101e63cdc0
 # ╠═e289eb93-1446-4506-abb5-f8b3d58ecca6
+# ╟─40266eb7-f001-411f-9227-d165487c8158
 # ╠═762e252d-dcb9-48d9-b981-fa142e272ea0
 # ╠═0ed6899e-3343-4973-8b9a-fe7547eca346
+# ╠═a52784a1-cd98-45a7-8931-b8488d71ead9
 # ╠═e56941ec-927e-4e11-8542-3c134c8966f5
 # ╠═baefb187-b38c-494a-8d31-b2364fd75caf
 # ╟─9b5a36a0-17a4-403a-9587-9fba3fa1c456
 # ╠═fb1a2c2f-2651-46b3-9f79-2e983a7baca6
 # ╠═c34fac32-76b4-4051-ba76-9b5a758954f3
-# ╠═9e81962d-5ac7-46d2-8e22-d1e0bea87c5a
+# ╠═92b98a6c-3535-4559-951c-210f0d8a8d63
+# ╠═553626cc-7b2b-440d-b4e2-66a3c2fccba4
+# ╠═a53ce432-02d7-45db-ba26-7f182bc26524
+# ╠═33452066-8a35-4bb0-ae58-8bcfb22e2102
+# ╟─74459833-f3e5-4b13-b838-380c007c86ed
+# ╠═2c1eb95b-30dd-4185-8fc4-5c8b6cab507a
+# ╠═a8e27a0e-89da-4206-a7e2-94f796cac8b4
+# ╠═4769582f-6498-4f14-a965-ed109b7f97d1
+# ╠═1a92f1b9-0c76-4dfe-b499-9eb9cca61391
+# ╠═0988e5aa-09b0-4c10-b23c-86d613e1401c
