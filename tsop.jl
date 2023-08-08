@@ -55,8 +55,11 @@ function generate_graph(nb_nodes::Int; survival_model=:random)
 
 	# assign rewards
 	for v in vertices(g)
-		set_prop!(g, v, :r, rand())
+		set_prop!(g, v, :r, 0.1 + rand()) # reward too small, heuristic won't take it there.
 	end
+	
+	# for base node
+	# set_prop!(g, 1, :r, 0.001)
 	return g
 end
 
@@ -81,6 +84,9 @@ begin
 	
 	Robot() = Robot([1], false)
 end
+
+# ╔═╡ 43292bcd-8830-49f1-9db4-fb94e5847ed9
+get_prop(top.g, 1, 1, :ω)
 
 # ╔═╡ f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 md"## viz setup"
@@ -187,6 +193,9 @@ end
 
 # ╔═╡ cdb0e3ec-426a-48f2-800f-f70cfc20492a
 function π_robot_survives(path::Vector{Int}, top::TOP)
+	if path == [1, 1]
+		return 1.0
+	end
 	# path length, in terms of # edges
 	ℓ = length(path) - 1
 	# product of survival probabilities along the path (gotta survive all)
@@ -299,6 +308,9 @@ combined could be reward per survival.
 # heuristic for hop u -> v
 # score = survival probability of that edge.
 function η_survival(u::Int, v::Int, top::TOP)
+	if u == v == 1
+		return 1.0
+	end
 	return get_prop(top.g, u, v, :ω)
 end
 
@@ -464,7 +476,12 @@ function next_node_candidates(robot::Robot, top::TOP)
 	#    robot could get stuck.
 	#    def gotta allow the base to be re-visisted...
 	#  we always keep the base as an option
-	return [v for v in neighbors(top.g, u)]# if ! (v in robot.path[2:end])]
+	vs = [v for v in neighbors(top.g, u)]# if ! (v in robot.path[2:end])]
+	# give option to never leave base
+	if u == 1
+		push!(vs, 1)
+	end
+	return vs
 end
 
 # ╔═╡ c34fac32-76b4-4051-ba76-9b5a758954f3
@@ -521,6 +538,9 @@ function construct_soln(ant::Ant, pheremone::Pheremone, top::TOP)
 	return Soln(robots, objs)
 end
 
+# ╔═╡ 1fbfb3e1-6211-4ef7-8602-465817ced205
+construct_soln(ants[1], pheremone, top)
+
 # ╔═╡ 553626cc-7b2b-440d-b4e2-66a3c2fccba4
 bogus_solns = [construct_soln(ant, pheremone, top) for ant in ants];
 
@@ -534,7 +554,7 @@ viz_Pareto_front(bogus_solns)
 md"### 🐜"
 
 # ╔═╡ 2c1eb95b-30dd-4185-8fc4-5c8b6cab507a
-function mo_aco(top::TOP; nb_ants::Int=100, nb_iters::Int=100, verbose::Bool=false)
+function mo_aco(top::TOP; nb_ants::Int=100, nb_iters::Int=10, verbose::Bool=false)
 	# initialize ants and pheremone
 	ants = Ants(nb_ants)
 	pheremone = Pheremone(top)
@@ -585,7 +605,7 @@ function mo_aco(top::TOP; nb_ants::Int=100, nb_iters::Int=100, verbose::Bool=fal
 end
 
 # ╔═╡ a8e27a0e-89da-4206-a7e2-94f796cac8b4
-global_nd_solns = mo_aco(top, verbose=true)
+global_nd_solns = mo_aco(top, verbose=false, nb_ants=100, nb_iters=100)
 
 # ╔═╡ 4769582f-6498-4f14-a965-ed109b7f97d1
 viz_Pareto_front(global_nd_solns)
@@ -667,6 +687,9 @@ function viz_soln(
 	fig
 end
 
+# ╔═╡ b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
+viz_soln(global_nd_solns[1], top)
+
 # ╔═╡ 027dd425-2d7d-4f91-9e10-d5ecd90af49c
 viz_soln(global_nd_solns[end], top)
 
@@ -678,6 +701,7 @@ viz_soln(global_nd_solns[end], top)
 # ╠═184af2a6-d5ca-4cbc-8a1a-a172eaae472f
 # ╠═8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
 # ╠═ddfcf601-a6cf-4c52-820d-fcf71bbf3d72
+# ╠═43292bcd-8830-49f1-9db4-fb94e5847ed9
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 # ╠═b7f68115-14ea-4cd4-9e96-0fa63a353fcf
 # ╠═74ce2e45-8c6c-40b8-8b09-80d97f58af2f
@@ -720,6 +744,7 @@ viz_soln(global_nd_solns[end], top)
 # ╠═fb1a2c2f-2651-46b3-9f79-2e983a7baca6
 # ╠═c34fac32-76b4-4051-ba76-9b5a758954f3
 # ╠═92b98a6c-3535-4559-951c-210f0d8a8d63
+# ╠═1fbfb3e1-6211-4ef7-8602-465817ced205
 # ╠═553626cc-7b2b-440d-b4e2-66a3c2fccba4
 # ╠═a53ce432-02d7-45db-ba26-7f182bc26524
 # ╠═33452066-8a35-4bb0-ae58-8bcfb22e2102
@@ -730,4 +755,5 @@ viz_soln(global_nd_solns[end], top)
 # ╠═1a92f1b9-0c76-4dfe-b499-9eb9cca61391
 # ╠═0988e5aa-09b0-4c10-b23c-86d613e1401c
 # ╠═877f63e6-891d-4988-a17d-a6bdb671eaf3
+# ╠═b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
 # ╠═027dd425-2d7d-4f91-9e10-d5ecd90af49c
