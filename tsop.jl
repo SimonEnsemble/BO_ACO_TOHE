@@ -596,6 +596,80 @@ viz_setup(top, robots=global_nd_solns[1].robots)
 # ╔═╡ 0988e5aa-09b0-4c10-b23c-86d613e1401c
 viz_setup(top, robots=global_nd_solns[end].robots)
 
+# ╔═╡ 877f63e6-891d-4988-a17d-a6bdb671eaf3
+function viz_soln(
+	soln::Soln,
+	top::TOP; 
+	nlabels::Bool=true, 
+	robots::Union{Nothing, Vector{Robot}}=nothing,
+	show_robots::Bool=true
+)
+	g = top.g
+	robot_colors = ColorSchemes.Accent_4
+
+	# layout
+	_layout = Spring(; iterations=20)
+	layout = _layout(g)
+	
+	fig = Figure(resolution=(300 * top.nb_robots, 400))
+	axs = [
+		Axis(
+			fig[1, r], 
+			aspect=DataAspect(), 
+			title="robot $r"
+		) 
+		for r = 1:top.nb_robots
+	]
+	for ax in axs
+		hidespines!(ax)
+		hidedecorations!(ax)
+	end
+	for r = 1:top.nb_robots
+		robot = soln.robots[r]
+		
+		# plot graph with nodes and edges colored
+		graphplot!(
+			axs[r],
+			g, 
+			layout=layout,
+			node_size=14, 
+			node_color="gray", 
+			edge_color="lightgray",
+			nlabels=nlabels ? ["$v" for v in vertices(g)] : nothing,
+			nlabels_align=(:center, :center)
+		)
+		# represent path as a graph
+		g_path = SimpleGraph(nv(g))
+		for n = 1:length(robot.path) - 1
+			add_edge!(g_path, robot.path[n], robot.path[n+1])
+		end
+		graphplot!(
+			axs[r],
+			g_path,
+			layout=layout,
+			node_size=0,
+			edge_color=(robot_colors[r], 0.5),
+			edge_width=10
+		)
+		
+		# start node = 1
+		x = layout[1][1]
+		y = layout[1][2]
+		scatter!(axs[r], [x + 0.1], [y + 0.1], 
+			marker='✈',markersize=20, color="black")
+	end
+	Label(
+		fig[2, :], 
+		"𝔼[reward]=$(round(soln.objs.𝔼_reward, digits=3))\n
+		 𝔼[# robots survive]=$(round(soln.objs.𝔼_nb_robots_survive, digits=3))\n
+		"
+	)
+	fig
+end
+
+# ╔═╡ 027dd425-2d7d-4f91-9e10-d5ecd90af49c
+viz_soln(global_nd_solns[end], top)
+
 # ╔═╡ Cell order:
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
 # ╠═e136cdee-f7c1-4add-9024-70351646bf24
@@ -655,3 +729,5 @@ viz_setup(top, robots=global_nd_solns[end].robots)
 # ╠═4769582f-6498-4f14-a965-ed109b7f97d1
 # ╠═1a92f1b9-0c76-4dfe-b499-9eb9cca61391
 # ╠═0988e5aa-09b0-4c10-b23c-86d613e1401c
+# ╠═877f63e6-891d-4988-a17d-a6bdb671eaf3
+# ╠═027dd425-2d7d-4f91-9e10-d5ecd90af49c
