@@ -7,15 +7,28 @@ using InteractiveUtils
 # ╔═╡ d04e8854-3557-11ee-3f0a-2f68a1123873
 begin
 	import Pkg; Pkg.activate()
-	using Graphs, GraphMakie, MetaGraphs, CairoMakie, ColorSchemes, Distributions, NetworkLayout, Random
+	using Graphs, GraphMakie, MetaGraphs, CairoMakie, ColorSchemes, Distributions, NetworkLayout, Random, PlutoUI
 end
 
+# ╔═╡ e136cdee-f7c1-4add-9024-70351646bf24
+TableOfContents()
+
+# ╔═╡ 613ad2a0-abb7-47f5-b477-82351f54894a
+md"# MO-ACO of TSOP
+
+MO-ACO = multi-objective ant colony optimization
+
+TSOP = team survival orienteering problem
+
+## generate problem instance
+"
+
 # ╔═╡ 6e7ce7a6-5c56-48a0-acdd-36ecece95933
-function generate_graph(n::Int; survival_model=:random)
+function generate_graph(nb_nodes::Int; survival_model=:random)
 	@assert survival_model in [:random, :binary]
 	
 	# generate structure of the graph
-	g = erdos_renyi(n, 0.4)
+	g = erdos_renyi(nb_nodes, 0.3)
 	g = MetaGraph(g)
 	
 	# assign survival probabilities
@@ -36,11 +49,28 @@ function generate_graph(n::Int; survival_model=:random)
 	return g
 end
 
-# ╔═╡ 58c9e986-88de-4f62-be7f-7b0b96b74a5c
-g = generate_graph(20, survival_model=:binary)
+# ╔═╡ 184af2a6-d5ca-4cbc-8a1a-a172eaae472f
+struct TOP
+	g::MetaGraph
+	nb_robots::Int
+end
+
+# ╔═╡ 8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
+top = TOP(
+	generate_graph(20, survival_model=:binary),
+	3,         # number of robots
+)
 
 # ╔═╡ b7f68115-14ea-4cd4-9e96-0fa63a353fcf
-function viz_graph(g::MetaGraph; nlabels::Bool=true, paths=[[]])
+function viz_setup(
+	top::TOP; 
+	nlabels::Bool=true, 
+	paths=[[]],
+	robots::Bool=true
+)
+	g = top.g
+	robot_colors = ColorSchemes.Accent_4
+	
 	# assign node color based on rewards
 	reward_color_scheme = ColorSchemes.acton
 	rewards = [get_prop(g, v, :r) for v in vertices(g)]
@@ -48,7 +78,7 @@ function viz_graph(g::MetaGraph; nlabels::Bool=true, paths=[[]])
 	node_color = [get(reward_color_scheme, r, crangescale) for r in rewards]
 
 	# assign edge color based on probability of survival
-	survival_color_scheme = ColorSchemes.bamako
+	survival_color_scheme = reverse(ColorSchemes.solar)
 	edge_surivival_probs = [get_prop(g, ed.src, ed.dst, :ω) for ed in edges(g)]
 	edge_color = [get(survival_color_scheme, p) for p in edge_surivival_probs]
 
@@ -57,11 +87,10 @@ function viz_graph(g::MetaGraph; nlabels::Bool=true, paths=[[]])
 	layout = _layout(g)
 	
 	fig = Figure()
-	ax = Axis(fig[1, 1])
+	ax = Axis(fig[1, 1], aspect=DataAspect())
 	hidespines!(ax)
 	hidedecorations!(ax)
 	# plot paths as highlighted edges
-	path_colors = ColorSchemes.Accent_4
 	for (p, path) in enumerate(paths)
 		# represent path as a graph
 		g_path = SimpleGraph(nv(g))
@@ -72,7 +101,7 @@ function viz_graph(g::MetaGraph; nlabels::Bool=true, paths=[[]])
 			g_path,
 			layout=layout,
 			node_size=0,
-			edge_color=(path_colors[p], 0.5),
+			edge_color=(robot_colors[p], 0.5),
 			edge_width=10
 		)
 	end
@@ -86,6 +115,17 @@ function viz_graph(g::MetaGraph; nlabels::Bool=true, paths=[[]])
 		nlabels=nlabels ? ["$v" for v in vertices(g)] : nothing,
 		nlabels_align=(:center, :center)
 	)
+	if robots
+		# start node = 1
+		x = layout[1][1]
+		y = layout[1][2]
+		r = 0.15
+		for i = 1:top.nb_robots
+			θ = π/2 * (i - 1)
+			scatter!([x + r*cos(θ)], [y + r*sin(θ)], 
+				marker='✈',markersize=20, color=robot_colors[i])
+		end
+	end
 	Colorbar(
 		fig[0, 1], 
 		colormap=reward_color_scheme, 
@@ -105,112 +145,154 @@ function viz_graph(g::MetaGraph; nlabels::Bool=true, paths=[[]])
 end
 
 # ╔═╡ 74ce2e45-8c6c-40b8-8b09-80d97f58af2f
-viz_graph(g)
+viz_setup(top)
+
+# ╔═╡ e501d59e-336e-456d-8abb-bc663bd4899e
+md"## computing survival probabilities"
 
 # ╔═╡ 926977f1-a337-4825-bfe4-ccc1a2e4cc93
-function verify_path(path::Vector{Int}, g::MetaGraph)
+function verify_path(path::Vector{Int}, top::TOP)
 	# can follow edges that exist in the graph
 	for n = 1:length(path)-1
-		@assert has_edge(g, path[n], path[n+1])
+		@assert has_edge(top.g, path[n], path[n+1])
 	end
 	# TODO uniqueness of nodes visisted (depends on base situation)
 end
 
 # ╔═╡ cdb0e3ec-426a-48f2-800f-f70cfc20492a
-function π_robot_survives(g::MetaGraph, path::Vector{Int})
+function π_robot_survives(path::Vector{Int}, top::TOP)
 	# path length, in terms of # edges
 	ℓ = length(path) - 1
 	# product of survival probabilities along the path (gotta survive all)
 	return prod(
-		get_prop(g, path[n], path[n+1], :ω)
+		get_prop(top.g, path[n], path[n+1], :ω)
 			for n = 1:ℓ # n := edge along the path.
 	)
 end
 
+# ╔═╡ 2f78b5b8-e996-4b65-b8cc-7b27e45242ec
+function 𝔼_nb_robots_survive(paths::Vector{Vector{Int}}, top::TOP)
+	return sum(π_robot_survives(path, top) for path in paths)
+end
+
 # ╔═╡ 732e023a-048f-4cf4-beba-c14d10fe643f
-function π_robot_visits_node_j(g::MetaGraph, path::Vector{Int}, j::Int)
+function π_robot_visits_node_j(path::Vector{Int}, j::Int, top::TOP)
+	# if the first node in the path is j, survival probability is one.
+	#  b/c survives at the base for sure.
+	if path[1] == j
+		return 1.0
+	end
 	# which node in the path is node j? (possibly not there)
 	id_path_giving_node_j = findfirst(path .== j)
-	if isnothing(id_path_giving_node_j) # not in path
+	if isnothing(id_path_giving_node_j)
+		# case: node j not in path
 		return 0.0
-	elseif id_path_giving_node_j == 1
-		return 1.0 # umm survives at base fo sho
 	else
-		return π_robot_survives(g, path[1:id_path_giving_node_j])
+		# case: node j in path
+		#    then we gotta survive the path up till and including node j.
+		# @assert path[id_path_giving_node_j] == j
+		return π_robot_survives(path[1:id_path_giving_node_j], top)
 	end
 end
 
 # ╔═╡ e7c955d6-ba17-4066-a737-e040c3016280
-function random_path(g::MetaGraph, v_start::Int, n::Int)
+function random_path(n::Int, top::TOP)
 	path = zeros(Int, n+1)
-	path[1] = v_start
+	path[1] = 1
 	for i = 1:n
-		path[i+1] = sample([u for u in neighbors(g, path[i]) if ! (u in path)])
+		next_candidates = [u for u in neighbors(top.g, path[i]) if ! (u in path)]
+		if length(next_candidates) == 0
+			break
+		end
+		path[i+1] = sample(next_candidates)
 	end
 	return path
 end
 
+# ╔═╡ ad1c64f5-94b6-4c51-b66d-7cbe77495b2b
+md"## computing expected reward"
+
 # ╔═╡ ec757c86-2072-4cc2-a399-e4ef347c3c80
-function expected_reward(g::MetaGraph, paths::Vector{Vector{Int}}, j::Int)
-	# how robots are traveling?
+function expected_reward(paths::Vector{Vector{Int}}, j::Int, top::TOP)
+	# how many robots are traveling?
 	nb_robots = length(paths)
+	
 	# wut reward does this node offer?
-	r = get_prop(g, j, :r)
+	r = get_prop(top.g, j, :r)
+
+	# get probability that each robot visits this node
+	π_visits = [π_robot_visits_node_j(path, j, top) for path in paths]
+	
 	# construct Poisson binomial distribution
-	pb = PoissonBinomial(
-		[π_robot_visits_node_j(g, path, j) for path in paths]
-	)
-	# expected reward is (1 - prob(0 robots visit it)) * r
+	#   success prob's given in π_visits. 
+	pb = PoissonBinomial(π_visits)
+	
+	# return expected reward
+	#   = prob. node j visisted once or more * r
+	#  note: either (i) 0 robots visit or (i) one or more robots visit.
+	#   = (1 - prob(0 robots visit the node)) * r
 	return (1 - pdf(pb, 0)) * r
 end
 
 # ╔═╡ a1572e77-2126-443a-8da1-adcf4af01e87
-function expected_reward(g::MetaGraph, paths::Vector{Vector{Int}})
+function expected_reward(paths::Vector{Vector{Int}}, top::TOP)
 	return sum(
-		expected_reward(g, paths, v) for v in vertices(g)
+		expected_reward(paths, v, top) for v in vertices(top.g)
 	)
 end
 
 # ╔═╡ e9fc7773-1078-414d-aac6-0dfd9cee231a
-path = random_path(g, 18, 3)
+path = random_path(4, top)
 
 # ╔═╡ 8da34c11-8598-46d0-af29-bcf78d9d0e4e
-viz_graph(g, paths=[path])
+viz_setup(top, paths=[path])
 
 # ╔═╡ 20f4eb18-3d36-43e0-8e97-ed2bccc13f55
-paths = [random_path(g, 18, 3), random_path(g, 11, 4)]
+paths = [random_path(3, top), random_path(4, top), random_path(2, top)]
 
 # ╔═╡ b2d3e870-c1df-4654-9b0c-9eae00673553
-verify_path(path, g)
+verify_path(path, top)
 
 # ╔═╡ 241eea88-7610-4a54-af23-316b3fdf9780
-π_robot_survives(g, path)
+π_robot_survives(paths[1], top)
 
 # ╔═╡ 67706b5c-ef3f-48df-b2e2-ace159f814e1
-π_robot_visits_node_j(g, path, 14)
+π_robot_visits_node_j(paths[1], 15, top)
 
 # ╔═╡ 12c1ebd2-6b18-4c69-ac04-35639737b5ab
-viz_graph(g, paths=paths)
+viz_setup(top, paths=paths)
 
 # ╔═╡ 80af87b1-6dde-4580-a675-311d8488a082
 paths
 
 # ╔═╡ 2023c03a-9596-4f3f-9a5b-e4c8f55ab185
-pb = expected_reward(g, paths, 18)
+pb = expected_reward(paths, 18, top)
 
 # ╔═╡ 9e6d222b-c585-40b2-82c9-5d7b9f5b4e77
-expected_reward(g, paths)
+expected_reward(paths, top)
+
+# ╔═╡ 1b5cfbae-7010-4e37-b8a8-f91df6577eeb
+𝔼_nb_robots_survive(paths, top)
+
+# ╔═╡ 9d44f37d-8c05-450a-a448-7be50387499c
+
 
 # ╔═╡ Cell order:
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
+# ╠═e136cdee-f7c1-4add-9024-70351646bf24
+# ╟─613ad2a0-abb7-47f5-b477-82351f54894a
 # ╠═6e7ce7a6-5c56-48a0-acdd-36ecece95933
-# ╠═58c9e986-88de-4f62-be7f-7b0b96b74a5c
+# ╠═184af2a6-d5ca-4cbc-8a1a-a172eaae472f
+# ╠═8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
 # ╠═b7f68115-14ea-4cd4-9e96-0fa63a353fcf
 # ╠═74ce2e45-8c6c-40b8-8b09-80d97f58af2f
+# ╟─e501d59e-336e-456d-8abb-bc663bd4899e
 # ╠═926977f1-a337-4825-bfe4-ccc1a2e4cc93
 # ╠═cdb0e3ec-426a-48f2-800f-f70cfc20492a
+# ╠═2f78b5b8-e996-4b65-b8cc-7b27e45242ec
 # ╠═732e023a-048f-4cf4-beba-c14d10fe643f
 # ╠═e7c955d6-ba17-4066-a737-e040c3016280
+# ╟─ad1c64f5-94b6-4c51-b66d-7cbe77495b2b
 # ╠═ec757c86-2072-4cc2-a399-e4ef347c3c80
 # ╠═a1572e77-2126-443a-8da1-adcf4af01e87
 # ╠═e9fc7773-1078-414d-aac6-0dfd9cee231a
@@ -223,3 +305,5 @@ expected_reward(g, paths)
 # ╠═80af87b1-6dde-4580-a675-311d8488a082
 # ╠═2023c03a-9596-4f3f-9a5b-e4c8f55ab185
 # ╠═9e6d222b-c585-40b2-82c9-5d7b9f5b4e77
+# ╠═1b5cfbae-7010-4e37-b8a8-f91df6577eeb
+# ╠═9d44f37d-8c05-450a-a448-7be50387499c
