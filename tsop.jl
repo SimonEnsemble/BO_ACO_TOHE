@@ -39,7 +39,7 @@ function generate_graph(nb_nodes::Int; survival_model=:random)
 	@assert survival_model in [:random, :binary]
 	
 	# generate structure of the graph
-	g = erdos_renyi(nb_nodes, 0.3)
+	g = erdos_renyi(nb_nodes, 0.3, is_directed=false)
 	g = MetaGraph(g)
 	
 	# assign survival probabilities
@@ -65,12 +65,14 @@ end
 
 # ╔═╡ 184af2a6-d5ca-4cbc-8a1a-a172eaae472f
 struct TOP
+	nb_nodes::Int
 	g::MetaGraph
 	nb_robots::Int
 end
 
 # ╔═╡ 8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
 top = TOP(
+	20,
 	generate_graph(20, survival_model=:binary),
 	3,         # number of robots
 )
@@ -79,14 +81,19 @@ top = TOP(
 begin
 	mutable struct Robot
 		path::Vector{Int}
+		edge_visit::Matrix{Bool}
 		done::Bool
 	end
-	
-	Robot() = Robot([1], false)
-end
 
-# ╔═╡ 43292bcd-8830-49f1-9db4-fb94e5847ed9
-get_prop(top.g, 1, 1, :ω)
+	# initialize robot
+	function Robot(top::TOP)
+		return Robot(
+			[1],    # starts at base
+			[false for i = 1:top.nb_nodes, j = 1:top.nb_nodes], # no edges visited
+			false  # path not complete
+		)
+	end
+end
 
 # ╔═╡ f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 md"## viz setup"
@@ -183,11 +190,16 @@ viz_setup(top)
 md"## computing survival probabilities"
 
 # ╔═╡ 926977f1-a337-4825-bfe4-ccc1a2e4cc93
-function verify_path(path::Vector{Int}, top::TOP)
-	# can follow edges that exist in the graph
-	for n = 1:length(path)-1
-		@assert has_edge(top.g, path[n], path[n+1])
+function verify_robot(robot::Robot, top::TOP)
+	# path follows edges that exist in the graph
+	for n = 1:length(robot.path)-1
+		u = robot.path[n]
+		v = robot.path[n+1]
+		@assert has_edge(top.g, u, v)
+		# edge visit status consistent with path
+		@assert robot.edge_visit[u, v]
 	end
+	# edge visit status consistent with path
 	# TODO uniqueness of nodes visisted (depends on base situation)
 end
 
@@ -232,16 +244,20 @@ end
 
 # ╔═╡ e7c955d6-ba17-4066-a737-e040c3016280
 function random_path(n::Int, top::TOP)
-	path = zeros(Int, n+1)
-	path[1] = 1
+	robot = Robot(top)
 	for i = 1:n
-		next_candidates = [u for u in neighbors(top.g, path[i]) if ! (u in path)]
+		u = robot.path[i] # current node
+		next_candidates = [v for v in neighbors(top.g, u) 
+			if ! (robot.edge_visit[u, v])]
 		if length(next_candidates) == 0
 			break
 		end
-		path[i+1] = sample(next_candidates)
+		v = sample(next_candidates)
+		push!(robot.path, v)
+		robot.edge_visit[u, v] = true
 	end
-	return Robot(path, false)
+	verify_robot(robot, top)
+	return robot
 end
 
 # ╔═╡ ad1c64f5-94b6-4c51-b66d-7cbe77495b2b
@@ -338,7 +354,7 @@ begin
 		objs::Objs
 	end
 	Soln(top::TOP) = Soln(
-		[Robot() for k = 1:top.nb_robots], 
+		[Robot(top) for k = 1:top.nb_robots], 
 		Objs(NaN, NaN)
 	)
 end
@@ -377,7 +393,7 @@ end
 
 # ╔═╡ 3526e2f9-1e07-43dc-9067-5656d7c864eb
 function viz_Pareto_front(solns::Vector{Soln})
-	local fig = Figure()
+	local fig = Figure(resolution=the_resolution)
 	local ax = Axis(
 		fig[1, 1],
 		xlabel="𝔼(# robots survive)", 
@@ -476,7 +492,7 @@ function next_node_candidates(robot::Robot, top::TOP)
 	#    robot could get stuck.
 	#    def gotta allow the base to be re-visisted...
 	#  we always keep the base as an option
-	vs = [v for v in neighbors(top.g, u)]# if ! (v in robot.path[2:end])]
+	vs = [v for v in neighbors(top.g, u) if ! (robot.edge_visit[u, v])]
 	# give option to never leave base
 	if u == 1
 		push!(vs, 1)
@@ -519,7 +535,7 @@ end
 # ╔═╡ 92b98a6c-3535-4559-951c-210f0d8a8d63
 function construct_soln(ant::Ant, pheremone::Pheremone, top::TOP)
 	# initialize robots
-	robots = [Robot() for k = 1:top.nb_robots]
+	robots = [Robot(top) for k = 1:top.nb_robots]
 	
 	# ant builds a solution
 	for robot in robots
@@ -605,7 +621,7 @@ function mo_aco(top::TOP; nb_ants::Int=100, nb_iters::Int=10, verbose::Bool=fals
 end
 
 # ╔═╡ a8e27a0e-89da-4206-a7e2-94f796cac8b4
-global_nd_solns = mo_aco(top, verbose=false, nb_ants=100, nb_iters=100)
+global_nd_solns = mo_aco(top, verbose=false, nb_ants=100, nb_iters=500)
 
 # ╔═╡ 4769582f-6498-4f14-a965-ed109b7f97d1
 viz_Pareto_front(global_nd_solns)
@@ -620,7 +636,7 @@ viz_setup(top, robots=global_nd_solns[end].robots)
 function viz_soln(
 	soln::Soln,
 	top::TOP; 
-	nlabels::Bool=true, 
+	nlabels::Bool=false, 
 	robots::Union{Nothing, Vector{Robot}}=nothing,
 	show_robots::Bool=true
 )
@@ -635,8 +651,7 @@ function viz_soln(
 	axs = [
 		Axis(
 			fig[1, r], 
-			aspect=DataAspect(), 
-			title="robot $r"
+			aspect=DataAspect()
 		) 
 		for r = 1:top.nb_robots
 	]
@@ -646,6 +661,10 @@ function viz_soln(
 	end
 	for r = 1:top.nb_robots
 		robot = soln.robots[r]
+
+		# wut is survival prob of this robot?
+		π_survive = π_robot_survives(robot.path, top)
+		axs[r].title = "robot $r\nπ(survive)=$(round(π_survive, digits=5))"
 		
 		# plot graph with nodes and edges colored
 		graphplot!(
@@ -701,7 +720,6 @@ viz_soln(global_nd_solns[end], top)
 # ╠═184af2a6-d5ca-4cbc-8a1a-a172eaae472f
 # ╠═8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
 # ╠═ddfcf601-a6cf-4c52-820d-fcf71bbf3d72
-# ╠═43292bcd-8830-49f1-9db4-fb94e5847ed9
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 # ╠═b7f68115-14ea-4cd4-9e96-0fa63a353fcf
 # ╠═74ce2e45-8c6c-40b8-8b09-80d97f58af2f
