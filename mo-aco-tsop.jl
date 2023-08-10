@@ -70,21 +70,21 @@ struct TOP
 	nb_robots::Int
 end
 
-# ╔═╡ 8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
-top = TOP(
-	20,
-	generate_graph(20, survival_model=:random),
-	2,         # number of robots
-)
-
 # ╔═╡ 47eeb310-04aa-40a6-8459-e3178facc83e
 md"toy TOP problems (deterministic, for testing)"
 
 # ╔═╡ fcf3cd41-beaa-42d5-a0d4-b77ad4334dd8
-function generate_toy_top()
+function generate_toy_star_top(nb_nodes::Int)
 	Random.seed!(1337)
-	nb_nodes = 10
 	g = MetaGraph(star_graph(nb_nodes))
+
+	# add another layer
+	@assert degree(g)[1] == nb_nodes-1 # first node is center
+	for v = 2:nb_nodes
+		add_vertex!(g)
+		add_edge!(g, nb_nodes + v - 1, v)
+		add_edge!(g, v, nb_nodes + v - 1)
+	end
 	
 	# assign survival probabilities
 	for ed in edges(g)
@@ -96,7 +96,7 @@ function generate_toy_top()
 		set_prop!(g, v, :r, 0.1 + rand())
 	end
 	
-	return TOP(nb_nodes, g, 1)
+	return TOP(nv(g), g, 1)
 end
 
 # ╔═╡ f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
@@ -581,8 +581,8 @@ begin
 	function Pheremone(top::TOP)
 		nb_nodes = nv(top.g)
 		return Pheremone(
-			ones(nb_nodes, nb_nodes),
-			ones(nb_nodes, nb_nodes)
+			100.0 * ones(nb_nodes, nb_nodes),
+			100.0 * ones(nb_nodes, nb_nodes)
 		)
 	end
 end
@@ -591,9 +591,9 @@ end
 toy_pheremone = Pheremone(top)
 
 # ╔═╡ 0ed6899e-3343-4973-8b9a-fe7547eca346
-function evaporate!(pheremone::Pheremone, ρ::Float64=0.02)
-	pheremone.τ_s .*= (1 - ρ)
-	pheremone.τ_r .*= (1 - ρ)
+function evaporate!(pheremone::Pheremone, ρ::Float64)
+	pheremone.τ_s .*= ρ
+	pheremone.τ_r .*= ρ
 	return nothing
 end
 
@@ -619,6 +619,54 @@ function lay!(pheremone::Pheremone, nd_solns::Vector{Soln})
 	return nothing
 end
 
+# ╔═╡ 2e3694f5-f5c5-419e-97cf-4e726ba90335
+# see Min/Max AS paper
+function enforce_min_max!(
+	pheremone::Pheremone, 
+	global_pareto_solns::Vector{Soln},
+	ρ::Float64,
+	avg_nb_soln_components::Float64;
+	p_best::Float64=0.1 # prob select best soln at convergence as defined
+)
+	# get best of each objective
+	id_r_max = argmax(soln.objs.r for soln in global_pareto_solns)
+	id_s_max = argmax(soln.objs.s for soln in global_pareto_solns)
+
+	# best objective values
+	r_max = global_pareto_solns[id_r_max].objs.r
+	s_max = global_pareto_solns[id_s_max].objs.s
+
+	# number of solution components in opt trails for the two objs
+	n_r = sum(
+		[length(robot.trail) for robot in global_pareto_solns[id_r_max].robots]
+	)
+	n_s = sum(
+		[length(robot.trail) for robot in global_pareto_solns[id_s_max].robots]
+	)
+
+	# estimate τ_max
+	τ_max_r = r_max / ρ
+	τ_max_s = s_max / ρ
+
+	# compute τ_min
+	ϕ_r = (1 - p_best ^ (1 / n_r)) / ((avg_nb_soln_components - 1) * p_best ^ (1 / n_r))
+	τ_min_r = τ_max_r * ϕ_r
+	ϕ_s = (1 - p_best ^ (1 / n_s)) / ((avg_nb_soln_components - 1) * p_best ^ (1 / n_s))
+	τ_min_s = τ_max_s * ϕ_s
+	@assert ϕ_s < 0.9
+	@assert ϕ_r < 0.9
+
+	# impose limits by clipping
+	nb_nodes = size(pheremone.τ_s)[1]
+	for i = 1:nb_nodes
+		for j = 1:nb_nodes
+			pheremone.τ_s[i, j] = clamp(pheremone.τ_s[i, j], τ_min_s, τ_max_s)
+			pheremone.τ_r[i, j] = clamp(pheremone.τ_r[i, j], τ_min_r, τ_max_r)
+		end
+	end
+	return nothing
+end
+
 # ╔═╡ 244a70b2-25aa-486f-8c9b-2f761c5766d5
 function covert_top_graph_to_digraph(top::TOP)
 	g_d = SimpleDiGraph(top.nb_nodes)
@@ -628,9 +676,6 @@ function covert_top_graph_to_digraph(top::TOP)
 	end
 	return g_d
 end
-
-# ╔═╡ 96f20fc5-cc82-481f-8cb5-5b538190096e
-ColorSchemes.Greens
 
 # ╔═╡ 058baefa-23c4-4a10-831c-a045db7ea382
 function viz(pheremone::Pheremone, top::TOP)
@@ -659,7 +704,6 @@ function viz(pheremone::Pheremone, top::TOP)
 	axs = [Axis(fig[1, i], aspect=DataAspect()) for i = 1:2]
 	axs[1].title = "τᵣ"
 	axs[2].title = "τₛ"
-	
 
 	for i = 1:2
 		graphplot!(axs[i],
@@ -675,7 +719,23 @@ function viz(pheremone::Pheremone, top::TOP)
 		
 	hidespines!.(axs)
 	hidedecorations!.(axs)
-	
+
+	# histograms too
+	axs_hist = [
+		Axis(
+			fig[2, i], 
+			ylabel="# edges"
+		) 
+		for i = 1:2
+	]
+	τ_s = [pheremone.τ_s[ed.src, ed.dst] for ed in edges(g_d)]
+	τ_r = [pheremone.τ_r[ed.src, ed.dst] for ed in edges(g_d)]
+	hist!(axs_hist[1], τ_r, color="green")
+	hist!(axs_hist[2], τ_s, color="red")
+	axs_hist[1].xlabel = "τᵣ"
+	axs_hist[2].xlabel = "τₛ"
+	xlims!(axs_hist[1], 0.0, nothing)
+	xlims!(axs_hist[2], 0.0, nothing)
 	return fig
 end
 
@@ -779,11 +839,14 @@ function mo_aco(
 	nb_ants::Int=100, 
 	nb_iters::Int=10, 
 	verbose::Bool=false,
-	run_checks::Bool=true
+	run_checks::Bool=true,
+	ρ::Float64=0.98 # 1 - evaporation rate
 )
 	# initialize ants and pheremone
 	ants = Ants(nb_ants)
 	pheremone = Pheremone(top)
+	#    for computing τ_min, τ_max
+	avg_nb_soln_components = mean(degree(top.g)) / 2
 	# shared pool of non-dominated solutions
 	global_pareto_solns = Soln[]
 	# track growth of area indicator
@@ -820,21 +883,26 @@ function mo_aco(
 			vcat(global_pareto_solns, iter_pareto_solns)
 		)
 		global_pareto_solns = unique(global_pareto_solns)
+		
+		#=
+		🐜 evaporate, lay, clip pheremone
+		=#
+		evaporate!(pheremone, ρ)
+		if rand() < 0.2
+			lay!(pheremone, global_pareto_solns)
+		else
+			lay!(pheremone, iter_pareto_solns)
+		end
+		enforce_min_max!(pheremone, global_pareto_solns, ρ, avg_nb_soln_components)
 
 		if verbose
 			println("iter $i:")
 			println("\t$(length(iter_pareto_solns)) nd-solns")
 			println("\tglobally $(length(global_pareto_solns)) nd-solns")
-		end
-		
-		#=
-		🐜 lay pheremone
-		=#
-		evaporate!(pheremone)
-		if rand() < 0.2
-			lay!(pheremone, global_pareto_solns)
-		else
-			lay!(pheremone, iter_pareto_solns)
+			println("max τs = ", maximum(pheremone.τ_s))
+			println("min τs = ", minimum(pheremone.τ_s))
+			println("max τr = ", maximum(pheremone.τ_r))
+			println("min τr = ", minimum(pheremone.τ_r))
 		end
 
 		#=
@@ -849,7 +917,7 @@ function mo_aco(
 end
 
 # ╔═╡ a8e27a0e-89da-4206-a7e2-94f796cac8b4
-res = mo_aco(top, verbose=false, nb_ants=100, nb_iters=500)
+res = mo_aco(top, verbose=false, nb_ants=100, nb_iters=200)
 
 # ╔═╡ 270bfe3c-dd71-439c-a2b8-f6cd38c68803
 function viz_progress(res::MO_ACO_run)
@@ -942,11 +1010,27 @@ end
 # ╔═╡ b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
 viz_soln(res.global_pareto_solns[1], top)
 
+# ╔═╡ c55527fa-7097-46d8-882b-7989ffd96a27
+viz_soln(res.global_pareto_solns[2], top)
+
 # ╔═╡ 027dd425-2d7d-4f91-9e10-d5ecd90af49c
 viz_soln(res.global_pareto_solns[end], top)
 
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 viz(res.pheremone, top)
+
+# ╔═╡ a6eacde8-6a89-457c-a3eb-6284e8dd8773
+top = generate_toy_star_top(4)
+
+# ╔═╡ 8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
+# ╠═╡ disabled = true
+#=╠═╡
+top = TOP(
+	20,
+	generate_graph(20, survival_model=:random),
+	2,         # number of robots
+)
+  ╠═╡ =#
 
 # ╔═╡ Cell order:
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
@@ -957,6 +1041,7 @@ viz(res.pheremone, top)
 # ╠═8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
 # ╟─47eeb310-04aa-40a6-8459-e3178facc83e
 # ╠═fcf3cd41-beaa-42d5-a0d4-b77ad4334dd8
+# ╠═a6eacde8-6a89-457c-a3eb-6284e8dd8773
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 # ╠═b7f68115-14ea-4cd4-9e96-0fa63a353fcf
 # ╠═74ce2e45-8c6c-40b8-8b09-80d97f58af2f
@@ -1003,8 +1088,8 @@ viz(res.pheremone, top)
 # ╠═bfd0ec10-4b7e-4a54-b08a-8ecde1f3a97d
 # ╠═0ed6899e-3343-4973-8b9a-fe7547eca346
 # ╠═a52784a1-cd98-45a7-8931-b8488d71ead9
+# ╠═2e3694f5-f5c5-419e-97cf-4e726ba90335
 # ╠═244a70b2-25aa-486f-8c9b-2f761c5766d5
-# ╠═96f20fc5-cc82-481f-8cb5-5b538190096e
 # ╠═058baefa-23c4-4a10-831c-a045db7ea382
 # ╟─9b5a36a0-17a4-403a-9587-9fba3fa1c456
 # ╠═fb1a2c2f-2651-46b3-9f79-2e983a7baca6
@@ -1022,5 +1107,6 @@ viz(res.pheremone, top)
 # ╠═4769582f-6498-4f14-a965-ed109b7f97d1
 # ╠═877f63e6-891d-4988-a17d-a6bdb671eaf3
 # ╠═b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
+# ╠═c55527fa-7097-46d8-882b-7989ffd96a27
 # ╠═027dd425-2d7d-4f91-9e10-d5ecd90af49c
 # ╠═197ea13f-b460-4457-a2ad-ae8d63c5e5ea
