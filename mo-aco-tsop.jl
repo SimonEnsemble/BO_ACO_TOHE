@@ -99,6 +99,44 @@ function generate_toy_star_top(nb_nodes::Int)
 	return TOP(nv(g), g, 1)
 end
 
+# ╔═╡ f309baac-a2c3-4e89-93bd-9a99fb3157cd
+function generate_manual_top()
+	Random.seed!(1337)
+	g = MetaGraph(SimpleGraph(11))
+	lo_risk = 0.95
+	hi_risk = 0.70
+	edge_list = [
+		# branch
+		(1, 9, lo_risk),
+		# branch
+		(1, 10, hi_risk),
+		(10, 11, hi_risk),
+		# cycle
+		(1, 8, lo_risk),
+		(8, 7, lo_risk),
+		(7, 6, hi_risk),
+		(6, 4, hi_risk),
+		(4, 3, hi_risk),
+		(3, 2, lo_risk),
+		(2, 1, lo_risk),
+		# bridge off cycle
+		(4, 5, lo_risk),
+		# shortcut in cycle
+		(7, 3, lo_risk),
+	]
+	reward_dict = Dict(
+		1=>1, 10=>5, 11=>25, 9=>3, 2=>40, 3=>10, 7=>4, 8=>4, 6=>10, 4=>35, 5=>34
+	)
+	for (i, j, p_s) in edge_list
+		add_edge!(g, i, j, :ω, p_s)
+	end
+	for v = 1:nv(g)
+		set_prop!(g, v, :r, 1.0*reward_dict[v])
+	end
+	
+	return TOP(nv(g), g, 2)
+end
+
 # ╔═╡ f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 md"## viz setup"
 
@@ -393,7 +431,7 @@ begin
 end
 
 # ╔═╡ 62751e4b-a109-4304-9fb1-26f8858603e9
-function same_trails(solnᵢ::Soln, solnⱼ::Soln)
+function same_trail_set(solnᵢ::Soln, solnⱼ::Soln)
 	nb_robots = length(solnᵢ.robots)
 	trails_i = Set([robot.trail for robot in solnᵢ.robots])
 	trails_j = Set([robot.trail for robot in solnⱼ.robots])
@@ -412,13 +450,26 @@ function sort_by_r!(solns::Vector{Soln})
 end
 
 # ╔═╡ 0cdb4beb-ba8a-4049-b723-1546aa010a8e
-# in terms 
-function unique(solns::Vector{Soln})
+function unique_trail_set(solns::Vector{Soln})
 	ids_keep = [true for i = 1:length(solns)]
 	for i = 1:length(solns)
 		# turn off if there is one that is the same later.
 		for j = i+1:length(solns)
-			if same_trails(solns[i], solns[j])
+			if same_trail_set(solns[i], solns[j])
+				ids_keep[i] = false
+			end
+		end
+	end
+	return solns[ids_keep]
+end
+
+# ╔═╡ 80d46a06-e039-4673-94e3-2133ceb14c7c
+function unique_objective(solns::Vector{Soln})
+	ids_keep = [true for i = 1:length(solns)]
+	for i = 1:length(solns)
+		# turn off if there is one that is the same later.
+		for j = i+1:length(solns)
+			if solns[i].objs == solns[j].objs
 				ids_keep[i] = false
 			end
 		end
@@ -540,15 +591,17 @@ function area_indicator(pareto_solns::Vector{Soln})
 	@assert length(get_pareto_solns(pareto_solns)) == length(pareto_solns)
 	
 	# sort by first objective, 𝔼[reward].
-	sort_by_r!(pareto_solns)
+	uo_pareto_solns = unique_objective(pareto_solns)
+	sort_by_r!(uo_pareto_solns)
 	
 	# initialize area as area of first box
-	area = pareto_solns[1].objs.s * pareto_solns[1].objs.r
-	for i = 2:length(pareto_solns)-1
-		Δr = pareto_solns[i+1].objs.r - pareto_solns[i].objs.r
+	area = uo_pareto_solns[1].objs.s * uo_pareto_solns[1].objs.r
+	for i = 2:length(uo_pareto_solns)-1 # i = the box
+		Δs = uo_pareto_solns[i+1].objs.s - uo_pareto_solns[i].objs.s
+		Δr = uo_pareto_solns[i+1].objs.r - uo_pareto_solns[i].objs.r
 		@assert Δr > 0
-		@assert pareto_solns[i+1].objs.s < pareto_solns[i].objs.s
-		area += pareto_solns[i+1].objs.s * Δr
+		@assert uo_pareto_solns[i+1].objs.s < uo_pareto_solns[i].objs.s
+		area += uo_pareto_solns[i+1].objs.s * Δr
 	end
 	return area
 end
@@ -625,7 +678,7 @@ function enforce_min_max!(
 	pheremone::Pheremone, 
 	global_pareto_solns::Vector{Soln},
 	ρ::Float64,
-	avg_nb_soln_components::Float64;
+	avg_nb_choices_soln_components::Float64;
 	p_best::Float64=0.1 # prob select best soln at convergence as defined
 )
 	# get best of each objective
@@ -649,12 +702,12 @@ function enforce_min_max!(
 	τ_max_s = s_max / ρ
 
 	# compute τ_min
-	ϕ_r = (1 - p_best ^ (1 / n_r)) / ((avg_nb_soln_components - 1) * p_best ^ (1 / n_r))
+	ϕ_r = (1 - p_best ^ (1 / n_r)) / ((avg_nb_choices_soln_components - 1) * p_best ^ (1 / n_r))
 	τ_min_r = τ_max_r * ϕ_r
-	ϕ_s = (1 - p_best ^ (1 / n_s)) / ((avg_nb_soln_components - 1) * p_best ^ (1 / n_s))
+	ϕ_s = (1 - p_best ^ (1 / n_s)) / ((avg_nb_choices_soln_components - 1) * p_best ^ (1 / n_s))
 	τ_min_s = τ_max_s * ϕ_s
-	@assert ϕ_s < 0.9
-	@assert ϕ_r < 0.9
+	@assert ϕ_s < 1.0
+	@assert ϕ_r < 1.0
 
 	# impose limits by clipping
 	nb_nodes = size(pheremone.τ_s)[1]
@@ -840,13 +893,14 @@ function mo_aco(
 	nb_iters::Int=10, 
 	verbose::Bool=false,
 	run_checks::Bool=true,
-	ρ::Float64=0.98 # 1 - evaporation rate
+	ρ::Float64=0.98, # 1 - evaporation rate
+	min_max::Bool=true
 )
 	# initialize ants and pheremone
 	ants = Ants(nb_ants)
 	pheremone = Pheremone(top)
 	#    for computing τ_min, τ_max
-	avg_nb_soln_components = mean(degree(top.g)) / 2
+	avg_nb_choices_soln_components = mean(degree(top.g)) / 2
 	# shared pool of non-dominated solutions
 	global_pareto_solns = Soln[]
 	# track growth of area indicator
@@ -882,7 +936,7 @@ function mo_aco(
 		global_pareto_solns = get_pareto_solns(
 			vcat(global_pareto_solns, iter_pareto_solns)
 		)
-		global_pareto_solns = unique(global_pareto_solns)
+		global_pareto_solns = unique_trail_set(global_pareto_solns)
 		
 		#=
 		🐜 evaporate, lay, clip pheremone
@@ -893,7 +947,9 @@ function mo_aco(
 		else
 			lay!(pheremone, iter_pareto_solns)
 		end
-		enforce_min_max!(pheremone, global_pareto_solns, ρ, avg_nb_soln_components)
+		if min_max
+			enforce_min_max!(pheremone, global_pareto_solns, ρ, avg_nb_choices_soln_components)
+		end
 
 		if verbose
 			println("iter $i:")
@@ -917,7 +973,7 @@ function mo_aco(
 end
 
 # ╔═╡ a8e27a0e-89da-4206-a7e2-94f796cac8b4
-res = mo_aco(top, verbose=false, nb_ants=100, nb_iters=200)
+res = mo_aco(top, verbose=false, nb_ants=100, nb_iters=200, min_max=false)
 
 # ╔═╡ 270bfe3c-dd71-439c-a2b8-f6cd38c68803
 function viz_progress(res::MO_ACO_run)
@@ -1020,7 +1076,13 @@ viz_soln(res.global_pareto_solns[end], top)
 viz(res.pheremone, top)
 
 # ╔═╡ a6eacde8-6a89-457c-a3eb-6284e8dd8773
+# ╠═╡ disabled = true
+#=╠═╡
 top = generate_toy_star_top(4)
+  ╠═╡ =#
+
+# ╔═╡ 47b497ad-3236-47f9-bbf5-f8ddc64b617a
+top = generate_manual_top()
 
 # ╔═╡ 8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
 # ╠═╡ disabled = true
@@ -1042,6 +1104,8 @@ top = TOP(
 # ╟─47eeb310-04aa-40a6-8459-e3178facc83e
 # ╠═fcf3cd41-beaa-42d5-a0d4-b77ad4334dd8
 # ╠═a6eacde8-6a89-457c-a3eb-6284e8dd8773
+# ╠═f309baac-a2c3-4e89-93bd-9a99fb3157cd
+# ╠═47b497ad-3236-47f9-bbf5-f8ddc64b617a
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 # ╠═b7f68115-14ea-4cd4-9e96-0fa63a353fcf
 # ╠═74ce2e45-8c6c-40b8-8b09-80d97f58af2f
@@ -1072,6 +1136,7 @@ top = TOP(
 # ╠═62751e4b-a109-4304-9fb1-26f8858603e9
 # ╠═2ba6b5ce-0404-4b35-997e-56730203d861
 # ╠═0cdb4beb-ba8a-4049-b723-1546aa010a8e
+# ╠═80d46a06-e039-4673-94e3-2133ceb14c7c
 # ╟─d8591f8d-5ef2-4363-9e81-c084c94dfc4e
 # ╠═d44b2e46-6709-47c6-942a-d9c0e5a7a8bf
 # ╠═aabcc1a3-082b-468c-ad1e-648329f7f0c9
