@@ -4,6 +4,16 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
+
 # ╔═╡ d04e8854-3557-11ee-3f0a-2f68a1123873
 begin
 	import Pkg; Pkg.activate()
@@ -120,7 +130,7 @@ function generate_manual_top()
 		(3, 2, lo_risk),
 		(2, 1, lo_risk),
 		# bridge off cycle
-		(4, 5, lo_risk),
+		(4, 5, 1.0),
 		# shortcut in cycle
 		(7, 3, lo_risk),
 	]
@@ -672,6 +682,9 @@ function lay!(pheremone::Pheremone, nd_solns::Vector{Soln})
 	return nothing
 end
 
+# ╔═╡ b8f68b76-6d1d-49de-acc3-e79e3d414893
+@warn "hack in ϕ_s, ϕ_r ..."
+
 # ╔═╡ 2e3694f5-f5c5-419e-97cf-4e726ba90335
 # see Min/Max AS paper
 function enforce_min_max!(
@@ -679,7 +692,7 @@ function enforce_min_max!(
 	global_pareto_solns::Vector{Soln},
 	ρ::Float64,
 	avg_nb_choices_soln_components::Float64;
-	p_best::Float64=0.1 # prob select best soln at convergence as defined
+	p_best::Float64=0.05 # prob select best soln at convergence as defined
 )
 	# get best of each objective
 	id_r_max = argmax(soln.objs.r for soln in global_pareto_solns)
@@ -706,8 +719,10 @@ function enforce_min_max!(
 	τ_min_r = τ_max_r * ϕ_r
 	ϕ_s = (1 - p_best ^ (1 / n_s)) / ((avg_nb_choices_soln_components - 1) * p_best ^ (1 / n_s))
 	τ_min_s = τ_max_s * ϕ_s
-	@assert ϕ_s < 1.0
-	@assert ϕ_r < 1.0
+	@show n_s
+	@show ϕ_r
+	@assert ϕ_s < 0.4
+	@assert ϕ_r < 0.4
 
 	# impose limits by clipping
 	nb_nodes = size(pheremone.τ_s)[1]
@@ -1063,14 +1078,11 @@ function viz_soln(
 	fig
 end
 
+# ╔═╡ 3d98df3e-ec41-4685-b15d-bd99ec4bd5f7
+@bind soln_id PlutoUI.Slider(1:length(res.global_pareto_solns))
+
 # ╔═╡ b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
-viz_soln(res.global_pareto_solns[1], top)
-
-# ╔═╡ c55527fa-7097-46d8-882b-7989ffd96a27
-viz_soln(res.global_pareto_solns[2], top)
-
-# ╔═╡ 027dd425-2d7d-4f91-9e10-d5ecd90af49c
-viz_soln(res.global_pareto_solns[end], top)
+viz_soln(res.global_pareto_solns[soln_id], top)
 
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 viz(res.pheremone, top)
@@ -1153,6 +1165,7 @@ top = TOP(
 # ╠═bfd0ec10-4b7e-4a54-b08a-8ecde1f3a97d
 # ╠═0ed6899e-3343-4973-8b9a-fe7547eca346
 # ╠═a52784a1-cd98-45a7-8931-b8488d71ead9
+# ╠═b8f68b76-6d1d-49de-acc3-e79e3d414893
 # ╠═2e3694f5-f5c5-419e-97cf-4e726ba90335
 # ╠═244a70b2-25aa-486f-8c9b-2f761c5766d5
 # ╠═058baefa-23c4-4a10-831c-a045db7ea382
@@ -1171,7 +1184,6 @@ top = TOP(
 # ╠═92d564b1-17f1-4fd1-9e76-8ea1b65c127a
 # ╠═4769582f-6498-4f14-a965-ed109b7f97d1
 # ╠═877f63e6-891d-4988-a17d-a6bdb671eaf3
+# ╠═3d98df3e-ec41-4685-b15d-bd99ec4bd5f7
 # ╠═b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
-# ╠═c55527fa-7097-46d8-882b-7989ffd96a27
-# ╠═027dd425-2d7d-4f91-9e10-d5ecd90af49c
 # ╠═197ea13f-b460-4457-a2ad-ae8d63c5e5ea
