@@ -77,6 +77,28 @@ top = TOP(
 	2,         # number of robots
 )
 
+# ╔═╡ 47eeb310-04aa-40a6-8459-e3178facc83e
+md"toy TOP problems (deterministic, for testing)"
+
+# ╔═╡ fcf3cd41-beaa-42d5-a0d4-b77ad4334dd8
+function generate_toy_top()
+	Random.seed!(1337)
+	nb_nodes = 10
+	g = MetaGraph(star_graph(nb_nodes))
+	
+	# assign survival probabilities
+	for ed in edges(g)
+		set_prop!(g, ed, :ω, rand())
+	end
+
+	# assign rewards
+	for v in vertices(g)
+		set_prop!(g, v, :r, 0.1 + rand())
+	end
+	
+	return TOP(nb_nodes, g, 1)
+end
+
 # ╔═╡ f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 md"## viz setup"
 
@@ -438,9 +460,6 @@ function get_pareto_solns(solns::Vector{Soln})
 	return solns[ids_pareto]
 end
 
-# ╔═╡ cedfb390-3cdc-4a89-b9ba-9fd93c779aa8
-@warn "check this unique function. also not sure if routes should be unique too or what"
-
 # ╔═╡ f97e50dc-ce9b-484b-b3cb-1f38e9100d6f
 function _viz_objectives!(ax, solns::Vector{Soln})
 	scatter!(ax,
@@ -600,6 +619,66 @@ function lay!(pheremone::Pheremone, nd_solns::Vector{Soln})
 	return nothing
 end
 
+# ╔═╡ 244a70b2-25aa-486f-8c9b-2f761c5766d5
+function covert_top_graph_to_digraph(top::TOP)
+	g_d = SimpleDiGraph(top.nb_nodes)
+	for ed in edges(top.g)
+		add_edge!(g_d, ed.src, ed.dst)
+		add_edge!(g_d, ed.dst, ed.src)
+	end
+	return g_d
+end
+
+# ╔═╡ 96f20fc5-cc82-481f-8cb5-5b538190096e
+ColorSchemes.Greens
+
+# ╔═╡ 058baefa-23c4-4a10-831c-a045db7ea382
+function viz(pheremone::Pheremone, top::TOP)
+	g_d = covert_top_graph_to_digraph(top)
+
+	# layout
+	_layout = Spring(; iterations=20)
+	layout = _layout(top.g)
+	
+	edge_color = [
+		[get(
+			ColorSchemes.Greens, 
+			pheremone.τ_r[ed.src, ed.dst], 
+			(minimum(pheremone.τ_r), maximum(pheremone.τ_r))
+		)
+			for ed in edges(g_d)],
+		[get(
+			ColorSchemes.Reds, 
+			pheremone.τ_s[ed.src, ed.dst], 
+			(minimum(pheremone.τ_s), maximum(pheremone.τ_s))
+		)
+			for ed in edges(g_d)],
+	]
+	
+	fig = Figure()
+	axs = [Axis(fig[1, i], aspect=DataAspect()) for i = 1:2]
+	axs[1].title = "τᵣ"
+	axs[2].title = "τₛ"
+	
+
+	for i = 1:2
+		graphplot!(axs[i],
+			g_d, 
+			layout=layout,
+			# node_size=35, 
+			node_color="gray",
+			edge_color=edge_color[i]
+			# nlabels=nlabels ? ["$v" for v in vertices(g)] : nothing,
+			# nlabels_align=(:center, :center)
+		)
+	end
+		
+	hidespines!.(axs)
+	hidedecorations!.(axs)
+	
+	return fig
+end
+
 # ╔═╡ 9b5a36a0-17a4-403a-9587-9fba3fa1c456
 md"### building partial solution"
 
@@ -676,9 +755,6 @@ end
 
 # ╔═╡ 553626cc-7b2b-440d-b4e2-66a3c2fccba4
 toy_solns = [construct_soln(ant, toy_pheremone, top) for ant in toy_ants];
-
-# ╔═╡ 523ba36e-2e80-4350-bfe8-82ea85a70c59
-unique(toy_solns)
 
 # ╔═╡ a53ce432-02d7-45db-ba26-7f182bc26524
 viz_setup(top, robots=toy_solns[2].robots)
@@ -869,6 +945,9 @@ viz_soln(res.global_pareto_solns[1], top)
 # ╔═╡ 027dd425-2d7d-4f91-9e10-d5ecd90af49c
 viz_soln(res.global_pareto_solns[end], top)
 
+# ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
+viz(res.pheremone, top)
+
 # ╔═╡ Cell order:
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
 # ╠═e136cdee-f7c1-4add-9024-70351646bf24
@@ -876,6 +955,8 @@ viz_soln(res.global_pareto_solns[end], top)
 # ╠═6e7ce7a6-5c56-48a0-acdd-36ecece95933
 # ╠═184af2a6-d5ca-4cbc-8a1a-a172eaae472f
 # ╠═8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
+# ╟─47eeb310-04aa-40a6-8459-e3178facc83e
+# ╠═fcf3cd41-beaa-42d5-a0d4-b77ad4334dd8
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 # ╠═b7f68115-14ea-4cd4-9e96-0fa63a353fcf
 # ╠═74ce2e45-8c6c-40b8-8b09-80d97f58af2f
@@ -909,8 +990,6 @@ viz_soln(res.global_pareto_solns[end], top)
 # ╟─d8591f8d-5ef2-4363-9e81-c084c94dfc4e
 # ╠═d44b2e46-6709-47c6-942a-d9c0e5a7a8bf
 # ╠═aabcc1a3-082b-468c-ad1e-648329f7f0c9
-# ╠═cedfb390-3cdc-4a89-b9ba-9fd93c779aa8
-# ╠═523ba36e-2e80-4350-bfe8-82ea85a70c59
 # ╠═f97e50dc-ce9b-484b-b3cb-1f38e9100d6f
 # ╠═f2ff035f-1a19-47cd-a79e-f634b7cf8447
 # ╠═3526e2f9-1e07-43dc-9067-5656d7c864eb
@@ -924,6 +1003,9 @@ viz_soln(res.global_pareto_solns[end], top)
 # ╠═bfd0ec10-4b7e-4a54-b08a-8ecde1f3a97d
 # ╠═0ed6899e-3343-4973-8b9a-fe7547eca346
 # ╠═a52784a1-cd98-45a7-8931-b8488d71ead9
+# ╠═244a70b2-25aa-486f-8c9b-2f761c5766d5
+# ╠═96f20fc5-cc82-481f-8cb5-5b538190096e
+# ╠═058baefa-23c4-4a10-831c-a045db7ea382
 # ╟─9b5a36a0-17a4-403a-9587-9fba3fa1c456
 # ╠═fb1a2c2f-2651-46b3-9f79-2e983a7baca6
 # ╠═c34fac32-76b4-4051-ba76-9b5a758954f3
@@ -941,3 +1023,4 @@ viz_soln(res.global_pareto_solns[end], top)
 # ╠═877f63e6-891d-4988-a17d-a6bdb671eaf3
 # ╠═b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
 # ╠═027dd425-2d7d-4f91-9e10-d5ecd90af49c
+# ╠═197ea13f-b460-4457-a2ad-ae8d63c5e5ea
