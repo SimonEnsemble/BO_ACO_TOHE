@@ -1,4 +1,6 @@
 """
+    π_robot_survives(trail, top)
+
 return the probability that a robot survives its trail.
 """
 function π_robot_survives(trail::Vector{Int}, top::TOP)
@@ -10,12 +12,14 @@ function π_robot_survives(trail::Vector{Int}, top::TOP)
 	ℓ = length(trail) - 1
 	# product of survival probabilities along the trail (gotta survive all)
 	return prod(
-		get_prop(top.g, trail[n], trail[n+1], :ω)
+            get_ω(top, trail[n], trail[n+1])
 			for n = 1:ℓ # n := edge along the trail.
 	)
 end
 
 """
+    𝔼_nb_robots_survive(robots, top)
+
 return the expected number of robots that survive the TOP
 """
 function 𝔼_nb_robots_survive(robots::Vector{Robot}, top::TOP)
@@ -23,6 +27,8 @@ function 𝔼_nb_robots_survive(robots::Vector{Robot}, top::TOP)
 end
 
 """
+    π_robot_visits_node_j(robot, j, top)
+
 return the probability that a given robot visits node j
 (it must survive its journey to visit it)
 """
@@ -46,6 +52,9 @@ function π_robot_visits_node_j(robot::Robot, j::Int, top::TOP)
 end
 
 """
+    𝔼_reward(robots, j, top)
+    𝔼_reward(robots, top)
+
 return the expected reward from node j, given robot trails.
 
 or the expected reward from the whole graph.
@@ -55,7 +64,7 @@ function 𝔼_reward(robots::Vector{Robot}, j::Int, top::TOP)
 	nb_robots = length(robots)
 	
 	# wut reward does this node offer?
-	r = get_prop(top.g, j, :r)
+	r = get_r(top, j)
 
 	# get probability that each robot visits this node
 	π_visits = [π_robot_visits_node_j(robot, j, top) for robot in robots]

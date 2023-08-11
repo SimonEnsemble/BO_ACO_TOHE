@@ -17,7 +17,7 @@ end
 # ╔═╡ d04e8854-3557-11ee-3f0a-2f68a1123873
 begin
 	import Pkg; Pkg.activate()
-	using Graphs, GraphMakie, MetaGraphs, CairoMakie, ColorSchemes, Distributions, NetworkLayout, Random, PlutoUI, StatsBase
+	using Revise, Graphs, GraphMakie, MetaGraphs, CairoMakie, ColorSchemes, Distributions, NetworkLayout, Random, PlutoUI, StatsBase
 
 	import AlgebraOfGraphics: set_aog_theme!, firasans
 	set_aog_theme!(fonts=[firasans("Light"), firasans("Light")])
@@ -29,6 +29,9 @@ begin
 		titlefont=firasans("Light"),
 		# resolution=the_resolution
 	)
+
+	push!(LOAD_PATH, "src")
+	using MOACOTOP
 end
 
 # ╔═╡ e136cdee-f7c1-4add-9024-70351646bf24
@@ -73,12 +76,15 @@ function generate_graph(nb_nodes::Int; survival_model=:random)
 	return g
 end
 
-# ╔═╡ 184af2a6-d5ca-4cbc-8a1a-a172eaae472f
-struct TOP
-	nb_nodes::Int
-	g::MetaGraph
-	nb_robots::Int
-end
+# ╔═╡ 8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
+# ╠═╡ disabled = true
+#=╠═╡
+top = TOP(
+	20,
+	generate_graph(20, survival_model=:random),
+	2,         # number of robots
+)
+  ╠═╡ =#
 
 # ╔═╡ 47eeb310-04aa-40a6-8459-e3178facc83e
 md"toy TOP problems (deterministic, for testing)"
@@ -108,6 +114,12 @@ function generate_toy_star_top(nb_nodes::Int)
 	
 	return TOP(nv(g), g, 1)
 end
+
+# ╔═╡ a6eacde8-6a89-457c-a3eb-6284e8dd8773
+# ╠═╡ disabled = true
+#=╠═╡
+top = generate_toy_star_top(4)
+  ╠═╡ =#
 
 # ╔═╡ f309baac-a2c3-4e89-93bd-9a99fb3157cd
 function generate_manual_top()
@@ -147,251 +159,14 @@ function generate_manual_top()
 	return TOP(nv(g), g, 2)
 end
 
+# ╔═╡ 47b497ad-3236-47f9-bbf5-f8ddc64b617a
+top = generate_manual_top()
+
 # ╔═╡ f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 md"## viz setup"
 
-# ╔═╡ d0fd5e8b-7b3f-45ec-a132-5b33f599f2c9
-md"## robot
-takes a directed trail (circuit).
-"
-
-# ╔═╡ ddfcf601-a6cf-4c52-820d-fcf71bbf3d72
-begin
-	mutable struct Robot
-		trail::Vector{Int}       # list of vertices
-		edge_visit::Matrix{Bool} # keeps track of edge visitation status (directed)
-		done::Bool               # finished with trail?
-	end
-
-	# initialize robot
-	function Robot(top::TOP)
-		return Robot(
-			[1],    # starts at base
-			[false for i = 1:top.nb_nodes, j = 1:top.nb_nodes], # no edges visited
-			false  # trail not complete
-		)
-	end
-end
-
-# ╔═╡ b7f68115-14ea-4cd4-9e96-0fa63a353fcf
-function viz_setup(
-	top::TOP; 
-	nlabels::Bool=true, 
-	robots::Union{Nothing, Vector{Robot}}=nothing,
-	show_robots::Bool=true
-)
-	g = top.g
-	robot_colors = ColorSchemes.Accent_4
-	
-	# assign node color based on rewards
-	reward_color_scheme = ColorSchemes.acton
-	rewards = [get_prop(g, v, :r) for v in vertices(g)]
-	crangescale = (0.0, maximum(rewards))
-	node_color = [get(reward_color_scheme, r, crangescale) for r in rewards]
-
-	# assign edge color based on probability of survival
-	survival_color_scheme = reverse(ColorSchemes.solar)
-	edge_surivival_probs = [get_prop(g, ed.src, ed.dst, :ω) for ed in edges(g)]
-	edge_color = [get(survival_color_scheme, p) for p in edge_surivival_probs]
-
-	# layout
-	_layout = Spring(; iterations=20)
-	layout = _layout(g)
-	
-	fig = Figure()
-	ax = Axis(fig[1, 1], aspect=DataAspect())
-	hidespines!(ax)
-	hidedecorations!(ax)
-	# plot trails as highlighted edges
-	if ! isnothing(robots)
-		for (r, robot) in enumerate(robots)
-			# represent trail as a graph
-			g_trail = SimpleGraph(nv(g))
-			for n = 1:length(robot.trail) - 1
-				add_edge!(g_trail, robot.trail[n], robot.trail[n+1])
-			end
-			graphplot!(
-				g_trail,
-				layout=layout,
-				node_size=0,
-				edge_color=(robot_colors[r], 0.5),
-				edge_width=10
-			)
-		end
-	end
-	# plot graph with nodes and edges colored
-	graphplot!(
-		g, 
-		layout=layout,
-		node_size=35, 
-		node_color=node_color, 
-		edge_color=edge_color,
-		nlabels=nlabels ? ["$v" for v in vertices(g)] : nothing,
-		nlabels_align=(:center, :center)
-	)
-	if show_robots
-		# start node = 1
-		x = layout[1][1]
-		y = layout[1][2]
-		r = 0.15
-		for i = 1:top.nb_robots
-			θ = π/2 * (i - 1)
-			scatter!([x + r*cos(θ)], [y + r*sin(θ)], 
-				marker='✈',markersize=20, color=robot_colors[i])
-		end
-	end
-	Colorbar(
-		fig[0, 1], 
-		colormap=reward_color_scheme, 
-		vertical=false, 
-		label="reward", 
-		ticks=[0.0, round(crangescale[2], digits=1)]
-	)
-	Colorbar(
-		fig[-1, 1], 
-		colormap=survival_color_scheme, 
-		vertical=false, 
-		label="survival probability", 
-		ticks=[0.0, 1.0]
-	)
-
-	fig
-end
-
 # ╔═╡ 74ce2e45-8c6c-40b8-8b09-80d97f58af2f
 viz_setup(top)
-
-# ╔═╡ 926977f1-a337-4825-bfe4-ccc1a2e4cc93
-function verify_robot(robot::Robot, top::TOP)
-	nb_edges = length(robot.trail)-1
-	# trail follows edges that exist in the graph
-	for n = 1:nb_edges # loop over edges u -> v
-		u = robot.trail[n]
-		v = robot.trail[n+1]
-		if ! (u == v == 1)
-			@assert has_edge(top.g, u, v)
-		end
-		# edge visit status consistent with trail
-		@assert robot.edge_visit[u, v]
-	end
-	# edges visisted unique
-	@assert sum(robot.edge_visit) == nb_edges
-	# edge visit status consistent with trail
-	# TODO uniqueness of nodes visisted (depends on base situation)
-end
-
-# ╔═╡ e501d59e-336e-456d-8abb-bc663bd4899e
-md"## computing survival probabilities"
-
-# ╔═╡ cdb0e3ec-426a-48f2-800f-f70cfc20492a
-function π_robot_survives(trail::Vector{Int}, top::TOP)
-	if trail == [1, 1]
-		return 1.0
-	end
-	# trail length, in terms of # edges
-	ℓ = length(trail) - 1
-	# product of survival probabilities along the trail (gotta survive all)
-	return prod(
-		get_prop(top.g, trail[n], trail[n+1], :ω)
-			for n = 1:ℓ # n := edge along the trail.
-	)
-end
-
-# ╔═╡ 2f78b5b8-e996-4b65-b8cc-7b27e45242ec
-function 𝔼_nb_robots_survive(robots::Vector{Robot}, top::TOP)
-	return sum(π_robot_survives(robot.trail, top) for robot in robots)
-end
-
-# ╔═╡ 732e023a-048f-4cf4-beba-c14d10fe643f
-function π_robot_visits_node_j(robot::Robot, j::Int, top::TOP)
-	# if the first node in the trail is j, survival probability is one.
-	#  b/c survives at the base for sure.
-	if robot.trail[1] == j
-		return 1.0
-	end
-	# which node in the trail is node j? (possibly not there)
-	id_trail_giving_node_j = findfirst(robot.trail .== j)
-	if isnothing(id_trail_giving_node_j)
-		# case: node j not in trail
-		return 0.0
-	else
-		# case: node j in trail
-		#    then we gotta survive the trail up till and including node j.
-		# @assert trail[id_trail_giving_node_j] == j
-		return π_robot_survives(robot.trail[1:id_trail_giving_node_j], top)
-	end
-end
-
-# ╔═╡ e7c955d6-ba17-4066-a737-e040c3016280
-function random_trail(n::Int, top::TOP)
-	robot = Robot(top)
-	for i = 1:n
-		u = robot.trail[i] # current node
-		next_candidates = [v for v in neighbors(top.g, u) 
-			if ! (robot.edge_visit[u, v])]
-		if length(next_candidates) == 0
-			break
-		end
-		v = sample(next_candidates)
-		push!(robot.trail, v)
-		robot.edge_visit[u, v] = true
-	end
-	verify_robot(robot, top)
-	return robot
-end
-
-# ╔═╡ ad1c64f5-94b6-4c51-b66d-7cbe77495b2b
-md"## computing expected reward"
-
-# ╔═╡ ec757c86-2072-4cc2-a399-e4ef347c3c80
-function 𝔼_reward(robots::Vector{Robot}, j::Int, top::TOP)
-	# how many robots are traveling?
-	nb_robots = length(robots)
-	
-	# wut reward does this node offer?
-	r = get_prop(top.g, j, :r)
-
-	# get probability that each robot visits this node
-	π_visits = [π_robot_visits_node_j(robot, j, top) for robot in robots]
-	
-	# construct Poisson binomial distribution
-	#   success prob's given in π_visits. 
-	pb = PoissonBinomial(π_visits)
-	
-	# return expected reward
-	#   = prob. node j visisted once or more * r
-	#  note: either (i) 0 robots visit or (i) one or more robots visit.
-	#   = (1 - prob(0 robots visit the node)) * r
-	return (1 - pdf(pb, 0)) * r
-end
-
-# ╔═╡ a1572e77-2126-443a-8da1-adcf4af01e87
-function 𝔼_reward(robots::Vector{Robot}, top::TOP)
-	return sum(
-		𝔼_reward(robots, v, top) for v in vertices(top.g)
-	)
-end
-
-# ╔═╡ 20f4eb18-3d36-43e0-8e97-ed2bccc13f55
-robots = [random_trail(3, top), random_trail(4, top), random_trail(2, top)]
-
-# ╔═╡ 241eea88-7610-4a54-af23-316b3fdf9780
-π_robot_survives(robots[1].trail, top)
-
-# ╔═╡ 67706b5c-ef3f-48df-b2e2-ace159f814e1
-π_robot_visits_node_j(robots[1], 15, top)
-
-# ╔═╡ 12c1ebd2-6b18-4c69-ac04-35639737b5ab
-viz_setup(top, robots=robots)
-
-# ╔═╡ 9e6d222b-c585-40b2-82c9-5d7b9f5b4e77
-𝔼_reward(robots, top)
-
-# ╔═╡ 1b5cfbae-7010-4e37-b8a8-f91df6577eeb
-𝔼_nb_robots_survive(robots, top)
-
-# ╔═╡ 0c5d0bbd-d278-4caa-ab1c-a886c2f4aaaa
-π_robot_survives(robots[3].trail, top)
 
 # ╔═╡ 9d44f37d-8c05-450a-a448-7be50387499c
 md"## MO-ACO
@@ -419,26 +194,6 @@ end
 
 # ╔═╡ 84b0295b-6869-4040-8440-41d6a47a7ba4
 md"### storing solutions"
-
-# ╔═╡ f1c49f3b-eaeb-4950-8e78-b00849682756
-# objectives
-struct Objs
-	r::Float64 # 𝔼(reward)
-	s::Float64 # 𝔼(# robots survive)
-end
-
-# ╔═╡ 6d1a6ce7-3944-4fbd-ac22-e678d31d9a9b
-begin
-	struct Soln
-		robots::Vector{Robot}
-		objs::Objs
-	end
-	
-	Soln(top::TOP) = Soln(
-		[Robot(top) for k = 1:top.nb_robots], 
-		Objs(NaN, NaN)
-	)
-end
 
 # ╔═╡ 62751e4b-a109-4304-9fb1-26f8858603e9
 function same_trail_set(solnᵢ::Soln, solnⱼ::Soln)
@@ -715,12 +470,11 @@ function enforce_min_max!(
 	τ_max_s = s_max / ρ
 
 	# compute τ_min
-	ϕ_r = (1 - p_best ^ (1 / n_r)) / ((avg_nb_choices_soln_components - 1) * p_best ^ (1 / n_r))
+	#   warning: I manually set this because it is too large otherwise.
+	ϕ_r = 0.05 # (1 - p_best ^ (1 / n_r)) / ((avg_nb_choices_soln_components - 1) * p_best ^ (1 / n_r))
 	τ_min_r = τ_max_r * ϕ_r
-	ϕ_s = (1 - p_best ^ (1 / n_s)) / ((avg_nb_choices_soln_components - 1) * p_best ^ (1 / n_s))
+	ϕ_s = 0.05 # (1 - p_best ^ (1 / n_s)) / ((avg_nb_choices_soln_components - 1) * p_best ^ (1 / n_s))
 	τ_min_s = τ_max_s * ϕ_s
-	@show n_s
-	@show ϕ_r
 	@assert ϕ_s < 0.4
 	@assert ϕ_r < 0.4
 
@@ -750,7 +504,7 @@ function viz(pheremone::Pheremone, top::TOP)
 	g_d = covert_top_graph_to_digraph(top)
 
 	# layout
-	_layout = Spring(; iterations=20)
+	_layout = Spring(; iterations=50)
 	layout = _layout(top.g)
 	
 	edge_color = [
@@ -934,7 +688,7 @@ function mo_aco(
 		if run_checks
 			for soln in solns
 				for robot in soln.robots
-					verify_robot(robot, top)
+					verify(robot, top)
 				end
 			end
 		end
@@ -1073,7 +827,8 @@ function viz_soln(
 		fig[2, :], 
 		"𝔼[reward]=$(round(soln.objs.r, digits=3))\n
 		 𝔼[# robots survive]=$(round(soln.objs.s, digits=3))\n
-		"
+		",
+		font=firasans("Light")
 	)
 	fig
 end
@@ -1087,31 +842,11 @@ viz_soln(res.global_pareto_solns[soln_id], top)
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 viz(res.pheremone, top)
 
-# ╔═╡ a6eacde8-6a89-457c-a3eb-6284e8dd8773
-# ╠═╡ disabled = true
-#=╠═╡
-top = generate_toy_star_top(4)
-  ╠═╡ =#
-
-# ╔═╡ 47b497ad-3236-47f9-bbf5-f8ddc64b617a
-top = generate_manual_top()
-
-# ╔═╡ 8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
-# ╠═╡ disabled = true
-#=╠═╡
-top = TOP(
-	20,
-	generate_graph(20, survival_model=:random),
-	2,         # number of robots
-)
-  ╠═╡ =#
-
 # ╔═╡ Cell order:
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
 # ╠═e136cdee-f7c1-4add-9024-70351646bf24
 # ╟─613ad2a0-abb7-47f5-b477-82351f54894a
 # ╠═6e7ce7a6-5c56-48a0-acdd-36ecece95933
-# ╠═184af2a6-d5ca-4cbc-8a1a-a172eaae472f
 # ╠═8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
 # ╟─47eeb310-04aa-40a6-8459-e3178facc83e
 # ╠═fcf3cd41-beaa-42d5-a0d4-b77ad4334dd8
@@ -1119,32 +854,11 @@ top = TOP(
 # ╠═f309baac-a2c3-4e89-93bd-9a99fb3157cd
 # ╠═47b497ad-3236-47f9-bbf5-f8ddc64b617a
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
-# ╠═b7f68115-14ea-4cd4-9e96-0fa63a353fcf
 # ╠═74ce2e45-8c6c-40b8-8b09-80d97f58af2f
-# ╟─d0fd5e8b-7b3f-45ec-a132-5b33f599f2c9
-# ╠═ddfcf601-a6cf-4c52-820d-fcf71bbf3d72
-# ╠═926977f1-a337-4825-bfe4-ccc1a2e4cc93
-# ╟─e501d59e-336e-456d-8abb-bc663bd4899e
-# ╠═cdb0e3ec-426a-48f2-800f-f70cfc20492a
-# ╠═2f78b5b8-e996-4b65-b8cc-7b27e45242ec
-# ╠═732e023a-048f-4cf4-beba-c14d10fe643f
-# ╠═e7c955d6-ba17-4066-a737-e040c3016280
-# ╟─ad1c64f5-94b6-4c51-b66d-7cbe77495b2b
-# ╠═ec757c86-2072-4cc2-a399-e4ef347c3c80
-# ╠═a1572e77-2126-443a-8da1-adcf4af01e87
-# ╠═20f4eb18-3d36-43e0-8e97-ed2bccc13f55
-# ╠═241eea88-7610-4a54-af23-316b3fdf9780
-# ╠═67706b5c-ef3f-48df-b2e2-ace159f814e1
-# ╠═12c1ebd2-6b18-4c69-ac04-35639737b5ab
-# ╠═9e6d222b-c585-40b2-82c9-5d7b9f5b4e77
-# ╠═1b5cfbae-7010-4e37-b8a8-f91df6577eeb
-# ╠═0c5d0bbd-d278-4caa-ab1c-a886c2f4aaaa
 # ╟─9d44f37d-8c05-450a-a448-7be50387499c
 # ╠═2ac621ac-1a44-401e-bdb2-97cbb29d3508
 # ╠═974a1e40-50e0-4dc1-9bc9-6ea5ea687ae8
 # ╟─84b0295b-6869-4040-8440-41d6a47a7ba4
-# ╠═f1c49f3b-eaeb-4950-8e78-b00849682756
-# ╠═6d1a6ce7-3944-4fbd-ac22-e678d31d9a9b
 # ╠═62751e4b-a109-4304-9fb1-26f8858603e9
 # ╠═2ba6b5ce-0404-4b35-997e-56730203d861
 # ╠═0cdb4beb-ba8a-4049-b723-1546aa010a8e
