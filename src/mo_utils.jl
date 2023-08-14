@@ -88,19 +88,25 @@ function unique_solns(solns::Vector{Soln}, by::Symbol)
 end
 
 """
-    get_pareto_solns(solns)
+    get_pareto_solns(solns, keep_duplicates)
 
 get the nondominated solutions from a list of solutions.
 uses algo from here:
 https://en.wikipedia.org/wiki/Maxima_of_a_point_set
-but we keep repeats cuz they may correspond to different paths.
 """
-function get_pareto_solns(solns::Vector{Soln})
+function get_pareto_solns(solns::Vector{Soln}, keep_duplicates::Bool)
     sorted_solns = sort_by_r(solns, rev=true) # highest to lowest
 	largest_s_seen = -Inf
 	ids_pareto = Int[]
 	for i = 1:length(sorted_solns)
-		if sorted_solns[i].objs.s ≥ largest_s_seen
+        if keep_duplicates
+            # is this a duplicate?
+            if (i > 1) && (sorted_solns[i].objs == sorted_solns[ids_pareto[end]].objs)
+                push!(ids_pareto, i)
+                continue
+            end
+        end
+		if sorted_solns[i].objs.s > largest_s_seen
 			largest_s_seen = sorted_solns[i].objs.s
 			push!(ids_pareto, i)
 		end
@@ -128,6 +134,32 @@ function nondominated(soln::Soln, solns::Vector{Soln})
         end
     end
     return true
+end
+
+"""
+    area_indicator(pareto_solns)
+
+compute area indicator, with reference point = the origin, characterizing the quality of a pareto set of solutions.
+"""
+function area_indicator(pareto_solns::Vector{Soln})
+    @assert all([nondominated(p, pareto_solns) for p in pareto_solns])
+
+	# important to only have the unique ones to avoid inflating the area.
+    pareto_solns = unique_solns(pareto_solns, :objs)
+	 # sort by first objective, 𝔼[reward].
+    sort_by_r!(pareto_solns)
+
+	# imagine r on the x-axis and s on the y-axis.
+    # initialize area as area of first box
+    area = pareto_solns[1].objs.s * pareto_solns[1].objs.r
+    # i = index of the box.
+    for i = 2:length(pareto_solns) # i = the box
+        Δr = pareto_solns[i].objs.r - pareto_solns[i-1].objs.r
+        area += pareto_solns[i].objs.s * Δr
+        @assert Δr > 0
+        @assert pareto_solns[i].objs.s < pareto_solns[i-1].objs.s
+    end
+    return area
 end
 
 #=
@@ -199,7 +231,7 @@ function viz_Pareto_front(solns::Vector{Soln})
 	xlims!(0, nothing)
 	ylims!(0, nothing)
 	_viz_objectives!(ax, solns)
-	pareto_solns = get_pareto_solns(solns)
+	pareto_solns = get_pareto_solns(solns, false)
 	_viz_area_indicator!(ax, pareto_solns)
 	_viz_objectives!(ax, pareto_solns)
 	fig

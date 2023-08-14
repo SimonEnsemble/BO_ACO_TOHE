@@ -264,7 +264,58 @@ pareto_solns = get_pareto_solns(many_solns)
 @test sum([nondominated(s, many_solns) for s in many_solns]) == length(pareto_solns)
 
 # ╔═╡ b41cf77e-1db2-4806-ac93-e3c931d887e8
+md"test some edge cases"
+
+# ╔═╡ 3c227603-3d54-41ae-a8b0-719bd704f1fb
+edge_cases = shuffle(
+	[
+		Soln([robot], Objs(0.3, 0.7)), # repeat
+		Soln([robot], Objs(0.1, 0.9)),
+		Soln([robot], Objs(0.3, 0.7)),
+		Soln([robot], Objs(0.2, 0.9)),
+		Soln([robot], Objs(0.2, 0.7)),
+		Soln([robot], Objs(0.3, 0.7))
+	]
+)
+
+# ╔═╡ 6c0a3207-a34e-4cbd-88bd-d351af524f6b
+viz_Pareto_front(edge_cases)
+
+# ╔═╡ bdfac6f3-5290-43e7-a254-8a01dfb57cd8
+@test length(get_pareto_solns(edge_cases, false)) == 2
+
+# ╔═╡ c5caf994-f84c-42b4-a658-3eae4adaed55
+@test length(get_pareto_solns(edge_cases, true)) == 4
+
+# ╔═╡ 1139b683-6d99-4bad-b15a-993596c38d89
 md"area indicator"
+
+# ╔═╡ a8403660-c62f-4e2e-a3f9-909c47b1c86a
+# when a single solution, jsut a rectangle
+@test area_indicator([Soln([robot], Objs(0.3, 0.7))]) ≈ 0.3 * 0.7
+
+# ╔═╡ a3a90171-369d-4cd4-b254-bd751daec913
+# a few rectangles. included redundancies
+some_pareto_solns = shuffle(
+	[
+		Soln([robot], Objs(0.2, 0.8)),
+		Soln([robot], Objs(0.4, 0.6)),
+		Soln([robot], Objs(0.4, 0.6)), # repeat
+		Soln([robot], Objs(0.8, 0.2)),
+	]
+)
+
+# ╔═╡ 5057ec09-7c22-4b5a-b08b-080c981bd24a
+@test length(unique_solns(some_pareto_solns, :objs)) == 3
+
+# ╔═╡ 68ad3b54-6068-4bf5-a61a-aa76f3884c13
+viz_Pareto_front(some_pareto_solns)
+
+# ╔═╡ 25d43ad5-9e98-4216-a718-29401d9ebc26
+area_indicator(some_pareto_solns)
+
+# ╔═╡ 0fe1cf66-476c-442e-bb9e-185e48c214b5
+@test area_indicator(some_pareto_solns) ≈ 0.2 * 0.8 + 0.2 * 0.6 + 0.4 * 0.2
 
 # ╔═╡ Cell order:
 # ╠═d493a41c-3879-11ee-32aa-052ae56d5240
@@ -298,3 +349,14 @@ md"area indicator"
 # ╠═abdf7715-2c3b-4482-84b5-fc54865fe7f8
 # ╠═db2d3a19-ef53-4f50-8407-e333dd69f7e5
 # ╟─b41cf77e-1db2-4806-ac93-e3c931d887e8
+# ╠═3c227603-3d54-41ae-a8b0-719bd704f1fb
+# ╠═6c0a3207-a34e-4cbd-88bd-d351af524f6b
+# ╠═bdfac6f3-5290-43e7-a254-8a01dfb57cd8
+# ╠═c5caf994-f84c-42b4-a658-3eae4adaed55
+# ╟─1139b683-6d99-4bad-b15a-993596c38d89
+# ╠═a8403660-c62f-4e2e-a3f9-909c47b1c86a
+# ╠═a3a90171-369d-4cd4-b254-bd751daec913
+# ╠═5057ec09-7c22-4b5a-b08b-080c981bd24a
+# ╠═68ad3b54-6068-4bf5-a61a-aa76f3884c13
+# ╠═25d43ad5-9e98-4216-a718-29401d9ebc26
+# ╠═0fe1cf66-476c-442e-bb9e-185e48c214b5
