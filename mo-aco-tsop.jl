@@ -582,6 +582,7 @@ end
 
 # ╔═╡ c34fac32-76b4-4051-ba76-9b5a758954f3
 function extend_trail!(robot::Robot, ant::Ant, pheremone::Pheremone, top::TOP)
+	@assert ! robot.done
 	# current vertex
 	u = robot.trail[end]
 	
@@ -602,14 +603,13 @@ function extend_trail!(robot::Robot, ant::Ant, pheremone::Pheremone, top::TOP)
 		)
 	)
 
-	# if base node, robot is done
-	if v == 1
-		robot.done = true
-	end
+	# if base node, robot is done TODO: figure out how to get rid of this.
+	# if (v == 1)
+	# 	robot.done = true
+	# end
 	
 	# push to robot's trail and update edge visitation status
-	push!(robot.trail, v)
-	robot.edge_visit[u, v] = true
+	hop_to!(robot, v, top)
 	return v
 end
 

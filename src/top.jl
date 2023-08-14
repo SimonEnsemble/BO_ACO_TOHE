@@ -25,7 +25,13 @@ end
 
 compute survival probability of traveling node i -> j.
 """
-get_ω(top::TOP, i::Int, j::Int) = get_prop(top.g, i, j, :ω)
+function get_ω(top::TOP, i::Int, j::Int)
+    if (i == 1) && (j == 1)
+        return 1.0 # survives staying at base for sure
+    else
+        return get_prop(top.g, i, j, :ω)
+    end
+end
 
 """
     get_r(top, v)
@@ -67,8 +73,14 @@ have robot hop to node v next.
 """
 function hop_to!(robot::Robot, v::Int, top::TOP)
     u = robot.trail[end]  # current node
+    # if start, end at base node, we done!
+    if ((u == 1) && (v == 1)) 
+        robot.done = true
+        # (no self-loops in graph so can't assert edge there.)
+    else
+        @assert has_edge(top.g, u, v)
+    end
     @assert ! robot.edge_visit[u, v]
-    @assert has_edge(top.g, u, v)
     push!(robot.trail, v) # extend trail
     robot.edge_visit[u, v] = true # update edge visitation status
     return nothing
