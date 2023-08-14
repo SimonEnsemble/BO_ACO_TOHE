@@ -204,6 +204,10 @@ begin
 	sort_by_r!(my_solns)
 	@test Int.([soln.objs.r for soln in my_solns]) == [1, 2, 3, 4, 6, 6]
 	@test Int.([soln.objs.s for soln in my_solns]) == [4, 5, 3, 1, 2, 2]
+	
+	sort_by_r!(my_solns, rev=true)
+	@test Int.([soln.objs.r for soln in my_solns]) == reverse([1, 2, 3, 4, 6, 6])
+	@test Int.([soln.objs.s for soln in my_solns]) == reverse([4, 5, 3, 1, 2, 2])
 end
 
 # ╔═╡ 37cb7378-d2f4-4bce-ba66-421f88a006f7
@@ -229,11 +233,38 @@ begin
 	@test length(unique_solns(my_solns, :robot_trails)) == 3
 end
 
-# ╔═╡ d6f646d9-af23-4f3f-90c5-c27736e7645b
-my_solns
+# ╔═╡ 0a61eae8-f448-4dde-ae5c-1ce83c47e1ea
+md"pareto front"
 
-# ╔═╡ 9977a6c0-8030-4307-b8ce-e18f64bbcb8d
-@test length(unique_solns(my_solns, :objs)) == 5
+# ╔═╡ 0fe292d4-dfd4-4172-93bb-33041085ea66
+function rand_obj()
+	x = rand(2)
+	if x[2] < 1 - x[1]^2
+		return x
+	else 
+		return rand_obj()
+	end
+end	
+
+# ╔═╡ feb5a1fe-c2e5-4add-86cd-e971ab43b4df
+many_solns = [Soln([robot], Objs(rand_obj()...)) for i = 1:100]
+
+# ╔═╡ 9a44572b-52ed-41fa-b799-637632e6ee30
+viz_Pareto_front(many_solns)
+
+# ╔═╡ 9aff0981-9d33-4939-bc47-17bb19a21107
+pareto_solns = get_pareto_solns(many_solns)
+
+# ╔═╡ abdf7715-2c3b-4482-84b5-fc54865fe7f8
+# no Pareto solns dominated
+@test all([nondominated(p, many_solns) for p in pareto_solns])
+
+# ╔═╡ db2d3a19-ef53-4f50-8407-e333dd69f7e5
+# no others nondominated
+@test sum([nondominated(s, many_solns) for s in many_solns]) == length(pareto_solns)
+
+# ╔═╡ b41cf77e-1db2-4806-ac93-e3c931d887e8
+md"area indicator"
 
 # ╔═╡ Cell order:
 # ╠═d493a41c-3879-11ee-32aa-052ae56d5240
@@ -259,5 +290,11 @@ my_solns
 # ╠═819c1fac-1bde-48b5-9943-02690a144ed1
 # ╟─37cb7378-d2f4-4bce-ba66-421f88a006f7
 # ╠═b21f5afe-f033-4489-b0fb-1ca5db0ff106
-# ╠═d6f646d9-af23-4f3f-90c5-c27736e7645b
-# ╠═9977a6c0-8030-4307-b8ce-e18f64bbcb8d
+# ╟─0a61eae8-f448-4dde-ae5c-1ce83c47e1ea
+# ╠═0fe292d4-dfd4-4172-93bb-33041085ea66
+# ╠═feb5a1fe-c2e5-4add-86cd-e971ab43b4df
+# ╠═9a44572b-52ed-41fa-b799-637632e6ee30
+# ╠═9aff0981-9d33-4939-bc47-17bb19a21107
+# ╠═abdf7715-2c3b-4482-84b5-fc54865fe7f8
+# ╠═db2d3a19-ef53-4f50-8407-e333dd69f7e5
+# ╟─b41cf77e-1db2-4806-ac93-e3c931d887e8
