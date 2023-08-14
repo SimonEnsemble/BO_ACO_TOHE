@@ -39,28 +39,6 @@ function same_trail_set(robotsᵢ::Vector{Robot}, robotsⱼ::Vector{Robot})
 end
 
 """
-    sort_by_r!(solns, rev=false)
-    sort_by_r(solns, rev=false)
-
-sort list of solutions by the objective 𝔼[team reward].
-needed to sort according to solutions on the Pareto front.
-"""
-function sort_by_r!(solns::Vector{Soln}; rev::Bool=false)
-	# get list of first objective values
-	rs = [soln.objs.r for soln in solns]
-	# find out how to sort them
-	ids = sortperm(rs, rev=rev)
-	# do the sorting. the dot is important for modifying it !
-	solns .= solns[ids]
-end
-
-function sort_by_r(solns::Vector{Soln}; rev::Bool=false)
-    _solns = deepcopy(solns)
-    sort_by_r!(_solns, rev=rev)
-    return _solns
-end
-
-"""
     unique(solns, :objs)
     unique(solns, :robot_trails)
 
@@ -95,7 +73,9 @@ uses algo from here:
 https://en.wikipedia.org/wiki/Maxima_of_a_point_set
 """
 function get_pareto_solns(solns::Vector{Soln}, keep_duplicates::Bool)
-    sorted_solns = sort_by_r(solns, rev=true) # highest to lowest
+    # sort by r, from hi to low.
+    #  for ties in r, important to sort by s too, next.
+    sorted_solns = sort(solns, by=s -> (s.objs.r, s.objs.s), rev=true)
 	largest_s_seen = -Inf
 	ids_pareto = Int[]
 	for i = 1:length(sorted_solns)
@@ -119,7 +99,7 @@ end
 
 a point p in a finite set of points S is said to be non-dominated if there is no other point q in S whose coordinates are all greater than or equal to the corresponding coordinates of p. 
 
-BUT we modify so that we consider that solutions with equal objectives are nondominated.
+BUT we modify so that we consider that solutions with equal objectives cannot dominate each other.
 """
 function nondominated(soln::Soln, solns::Vector{Soln})
     for other_soln in solns
@@ -147,7 +127,7 @@ function area_indicator(pareto_solns::Vector{Soln})
 	# important to only have the unique ones to avoid inflating the area.
     pareto_solns = unique_solns(pareto_solns, :objs)
 	 # sort by first objective, 𝔼[reward].
-    sort_by_r!(pareto_solns)
+    sort!(pareto_solns, by=s -> s.objs.r)
 
 	# imagine r on the x-axis and s on the y-axis.
     # initialize area as area of first box
@@ -173,7 +153,7 @@ function _viz_objectives!(ax, solns::Vector{Soln})
 end
 
 function _viz_area_indicator!(ax, _pareto_solns::Vector{Soln})
-    pareto_solns = sort_by_r(_pareto_solns)
+    pareto_solns = sort(_pareto_solns, by=s -> s.objs.r)
 	linecolor = "gray"
 	shadecolor = ("yellow", 0.2)
 	for i = 1:length(pareto_solns)-1
