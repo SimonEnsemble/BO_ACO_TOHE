@@ -192,161 +192,8 @@ function η_s(u::Int, v::Int, top::TOP)
 	return get_prop(top.g, u, v, :ω)
 end
 
-# ╔═╡ 84b0295b-6869-4040-8440-41d6a47a7ba4
-md"### storing solutions"
-
-# ╔═╡ 62751e4b-a109-4304-9fb1-26f8858603e9
-function same_trail_set(solnᵢ::Soln, solnⱼ::Soln)
-	nb_robots = length(solnᵢ.robots)
-	trails_i = Set([robot.trail for robot in solnᵢ.robots])
-	trails_j = Set([robot.trail for robot in solnⱼ.robots])
-	return trails_i == trails_j
-end
-
-# ╔═╡ 2ba6b5ce-0404-4b35-997e-56730203d861
-# sort solutions by first objective
-function sort_by_r!(solns::Vector{Soln})
-	# get list of first objective values
-	rs = [soln.objs.r for soln in solns]
-	# find out how to sort them
-	ids = sortperm(rs)
-	# do the sorting. the dot is important for modifying it !
-	solns .= solns[ids]
-end
-
-# ╔═╡ 0cdb4beb-ba8a-4049-b723-1546aa010a8e
-function unique_trail_set(solns::Vector{Soln})
-	ids_keep = [true for i = 1:length(solns)]
-	for i = 1:length(solns)
-		# turn off if there is one that is the same later.
-		for j = i+1:length(solns)
-			if same_trail_set(solns[i], solns[j])
-				ids_keep[i] = false
-			end
-		end
-	end
-	return solns[ids_keep]
-end
-
-# ╔═╡ 80d46a06-e039-4673-94e3-2133ceb14c7c
-function unique_objective(solns::Vector{Soln})
-	ids_keep = [true for i = 1:length(solns)]
-	for i = 1:length(solns)
-		# turn off if there is one that is the same later.
-		for j = i+1:length(solns)
-			if solns[i].objs == solns[j].objs
-				ids_keep[i] = false
-			end
-		end
-	end
-	return solns[ids_keep]
-end
-
 # ╔═╡ d8591f8d-5ef2-4363-9e81-c084c94dfc4e
 md"### Pareto set"
-
-# ╔═╡ d44b2e46-6709-47c6-942a-d9c0e5a7a8bf
-function sol_strictly_dominates_sol(soln₁::Soln, soln₂::Soln)
-	Δ_r = soln₁.objs.r - soln₂.objs.r
-	Δ_s = soln₁.objs.s - soln₂.objs.s
-	# if they give the same objective values...
-	if (Δ_r == 0.0) && (Δ_s == 0.0)
-		return false
-	end
-	# better or equal in terms of both objectives.
-	return (Δ_r >= 0.0) && (Δ_s >= 0.0)
-end
-
-# ╔═╡ aabcc1a3-082b-468c-ad1e-648329f7f0c9
-function get_pareto_solns(solns::Vector{Soln})
-	ids_pareto = [true for i = 1:length(solns)]
-	# look at each solution.
-	for i = 1:length(solns)
-		# if this solution is dominated by some other solution, we don't include it.
-		for j = 1:length(solns)
-			if i == j
-				continue
-			end
-			if sol_strictly_dominates_sol(solns[j], solns[i])
-				ids_pareto[i] = false
-				break
-			end
-		end
-	end
-	return solns[ids_pareto]
-end
-
-# ╔═╡ f97e50dc-ce9b-484b-b3cb-1f38e9100d6f
-function _viz_objectives!(ax, solns::Vector{Soln})
-	scatter!(ax,
-		[soln.objs.r for soln in solns],
-		[soln.objs.s for soln in solns]
-	)
-end
-
-# ╔═╡ f2ff035f-1a19-47cd-a79e-f634b7cf8447
-function _viz_area_indicator!(ax, pareto_solns::Vector{Soln})
-	linecolor = "gray"
-	shadecolor = ("yellow", 0.2)
-	for i = 1:length(pareto_solns)-1
-		# vertical line
-		lines!(ax, 
-			[pareto_solns[i].objs.r, pareto_solns[i].objs.r],
-			[pareto_solns[i].objs.s, pareto_solns[i+1].objs.s],
-			color=linecolor
-		)
-		# horizontal line
-		lines!(ax, 
-			[pareto_solns[i].objs.r, pareto_solns[i+1].objs.r],
-			[pareto_solns[i+1].objs.s, pareto_solns[i+1].objs.s],
-			color=linecolor
-		)
-		# shade
-		fill_between!(ax, 
-			[pareto_solns[i].objs.r, pareto_solns[i+1].objs.r],
-			zeros(2),
-			[pareto_solns[i+1].objs.s, pareto_solns[i+1].objs.s],
-			color=shadecolor
-		)
-	end
-	# first horizontal line
-	lines!(ax, 
-		[0, pareto_solns[1].objs.r],
-		[pareto_solns[1].objs.s, pareto_solns[1].objs.s],
-		color=linecolor
-	)
-	# first shade
-	fill_between!(ax, 
-		[0, pareto_solns[1].objs.r],
-		zeros(2),
-		[pareto_solns[1].objs.s, pareto_solns[1].objs.s],
-		color=shadecolor
-	)
-	# last vertical line
-	lines!(ax, 
-		[pareto_solns[end].objs.r, pareto_solns[end].objs.r],
-		[pareto_solns[end].objs.s, 0.0],
-		color=linecolor
-	)
-end
-
-# ╔═╡ 3526e2f9-1e07-43dc-9067-5656d7c864eb
-function viz_Pareto_front(solns::Vector{Soln})
-	local fig = Figure(resolution=the_resolution)
-	local ax = Axis(
-		fig[1, 1],
-		xlabel="𝔼(rewards)", 
-		ylabel="𝔼(# robots survive)"
-	)
-	xlims!(0, nothing)
-	ylims!(0, nothing)
-	_viz_objectives!(ax, solns)
-	pareto_solns = get_pareto_solns(solns)
-	sort_by_r!(pareto_solns)
-	_viz_area_indicator!(ax, pareto_solns)
-	_viz_objectives!(ax, pareto_solns)
-	fig
-end
 
 # ╔═╡ 2e6d6c29-0cc9-4c6b-9a68-23b93caff78d
 # reference pt = origin.
@@ -356,7 +203,7 @@ function area_indicator(pareto_solns::Vector{Soln})
 	@assert length(get_pareto_solns(pareto_solns)) == length(pareto_solns)
 	
 	# sort by first objective, 𝔼[reward].
-	uo_pareto_solns = unique_objective(pareto_solns)
+	uo_pareto_solns = unique_solns(pareto_solns, :objs)
 	sort_by_r!(uo_pareto_solns)
 	
 	# initialize area as area of first box
@@ -364,8 +211,8 @@ function area_indicator(pareto_solns::Vector{Soln})
 	for i = 2:length(uo_pareto_solns)-1 # i = the box
 		Δs = uo_pareto_solns[i+1].objs.s - uo_pareto_solns[i].objs.s
 		Δr = uo_pareto_solns[i+1].objs.r - uo_pareto_solns[i].objs.r
-		@assert Δr > 0
-		@assert uo_pareto_solns[i+1].objs.s < uo_pareto_solns[i].objs.s
+		# @assert Δr >= 0
+		# @assert uo_pareto_solns[i+1].objs.s <= uo_pareto_solns[i].objs.s
 		area += uo_pareto_solns[i+1].objs.s * Δr
 	end
 	return area
@@ -705,7 +552,7 @@ function mo_aco(
 		global_pareto_solns = get_pareto_solns(
 			vcat(global_pareto_solns, iter_pareto_solns)
 		)
-		global_pareto_solns = unique_trail_set(global_pareto_solns)
+		global_pareto_solns = unique_solns(global_pareto_solns, :robot_trails)
 		
 		#=
 		🐜 evaporate, lay, clip pheremone
@@ -858,17 +705,7 @@ viz(res.pheremone, top)
 # ╟─9d44f37d-8c05-450a-a448-7be50387499c
 # ╠═2ac621ac-1a44-401e-bdb2-97cbb29d3508
 # ╠═974a1e40-50e0-4dc1-9bc9-6ea5ea687ae8
-# ╟─84b0295b-6869-4040-8440-41d6a47a7ba4
-# ╠═62751e4b-a109-4304-9fb1-26f8858603e9
-# ╠═2ba6b5ce-0404-4b35-997e-56730203d861
-# ╠═0cdb4beb-ba8a-4049-b723-1546aa010a8e
-# ╠═80d46a06-e039-4673-94e3-2133ceb14c7c
 # ╟─d8591f8d-5ef2-4363-9e81-c084c94dfc4e
-# ╠═d44b2e46-6709-47c6-942a-d9c0e5a7a8bf
-# ╠═aabcc1a3-082b-468c-ad1e-648329f7f0c9
-# ╠═f97e50dc-ce9b-484b-b3cb-1f38e9100d6f
-# ╠═f2ff035f-1a19-47cd-a79e-f634b7cf8447
-# ╠═3526e2f9-1e07-43dc-9067-5656d7c864eb
 # ╠═2e6d6c29-0cc9-4c6b-9a68-23b93caff78d
 # ╟─4c60da94-d66f-461b-9e48-2a3c5343b80e
 # ╠═4ea8f171-8834-41d2-ac0e-d3101e63cdc0

@@ -39,18 +39,25 @@ function same_trail_set(robotsᵢ::Vector{Robot}, robotsⱼ::Vector{Robot})
 end
 
 """
-    sort_by_r!(solns)
+    sort_by_r!(solns, rev=false)
+    sort_by_r(solns, rev=false)
 
 sort list of solutions by the objective 𝔼[team reward].
 needed to sort according to solutions on the Pareto front.
 """
-function sort_by_r!(solns::Vector{Soln})
+function sort_by_r!(solns::Vector{Soln}; rev::Bool=false)
 	# get list of first objective values
 	rs = [soln.objs.r for soln in solns]
 	# find out how to sort them
-	ids = sortperm(rs)
+	ids = sortperm(rs, rev=rev)
 	# do the sorting. the dot is important for modifying it !
 	solns .= solns[ids]
+end
+
+function sort_by_r(solns::Vector{Soln}; rev::Bool=false)
+    _solns = deepcopy(solns)
+    sort_by_r!(_solns, rev=rev)
+    return _solns
 end
 
 """
@@ -78,4 +85,122 @@ function unique_solns(solns::Vector{Soln}, by::Symbol)
 		end
 	end
 	return solns[ids_keep]
+end
+
+"""
+    get_pareto_solns(solns)
+
+get the nondominated solutions from a list of solutions.
+uses algo from here:
+https://en.wikipedia.org/wiki/Maxima_of_a_point_set
+but we keep repeats cuz they may correspond to different paths.
+"""
+function get_pareto_solns(solns::Vector{Soln})
+    sorted_solns = sort_by_r(solns, rev=true) # highest to lowest
+	largest_s_seen = -Inf
+	ids_pareto = Int[]
+	for i = 1:length(sorted_solns)
+		if sorted_solns[i].objs.s ≥ largest_s_seen
+			largest_s_seen = sorted_solns[i].objs.s
+			push!(ids_pareto, i)
+		end
+	end
+	return sorted_solns[ids_pareto]
+end
+
+"""
+	nondominated(soln, solns) # true or false
+
+a point p in a finite set of points S is said to be non-dominated if there is no other point q in S whose coordinates are all greater than or equal to the corresponding coordinates of p. 
+
+BUT we modify so that we consider that solutions with equal objectives are nondominated.
+"""
+function nondominated(soln::Soln, solns::Vector{Soln})
+    for other_soln in solns
+		# if they are the same, don't compare.
+		if other_soln.objs == soln.objs
+			continue
+		end
+        Δr = other_soln.objs.r - soln.objs.r
+        Δs = other_soln.objs.s - soln.objs.s
+        if (Δr ≥ 0.0) && (Δs ≥ 0.0)
+            return false
+        end
+    end
+    return true
+end
+
+#=
+visualization of the Pareto set
+=#
+function _viz_objectives!(ax, solns::Vector{Soln})
+	scatter!(ax,
+		[soln.objs.r for soln in solns],
+		[soln.objs.s for soln in solns]
+	)
+end
+
+function _viz_area_indicator!(ax, _pareto_solns::Vector{Soln})
+    pareto_solns = sort_by_r(_pareto_solns)
+	linecolor = "gray"
+	shadecolor = ("yellow", 0.2)
+	for i = 1:length(pareto_solns)-1
+		# vertical line
+		lines!(ax,
+			[pareto_solns[i].objs.r, pareto_solns[i].objs.r],
+			[pareto_solns[i].objs.s, pareto_solns[i+1].objs.s],
+			color=linecolor
+		)
+		# horizontal line
+		lines!(ax,
+			[pareto_solns[i].objs.r, pareto_solns[i+1].objs.r],
+			[pareto_solns[i+1].objs.s, pareto_solns[i+1].objs.s],
+			color=linecolor
+		)
+		# shade
+		fill_between!(ax,
+			[pareto_solns[i].objs.r, pareto_solns[i+1].objs.r],
+			zeros(2),
+			[pareto_solns[i+1].objs.s, pareto_solns[i+1].objs.s],
+			color=shadecolor
+		)
+	end
+	# first horizontal line
+	lines!(ax,
+		[0, pareto_solns[1].objs.r],
+		[pareto_solns[1].objs.s, pareto_solns[1].objs.s],
+		color=linecolor
+	)
+	# first shade
+	fill_between!(ax,
+		[0, pareto_solns[1].objs.r],
+		zeros(2),
+		[pareto_solns[1].objs.s, pareto_solns[1].objs.s],
+		color=shadecolor
+	)
+	# last vertical line
+	lines!(ax,
+		[pareto_solns[end].objs.r, pareto_solns[end].objs.r],
+		[pareto_solns[end].objs.s, 0.0],
+		color=linecolor
+	)
+end
+
+"""
+    viz_Pareto_front(solns)
+"""
+function viz_Pareto_front(solns::Vector{Soln})
+	fig = Figure(resolution=the_resolution)
+	ax = Axis(
+		fig[1, 1],
+		xlabel="𝔼(rewards)",
+		ylabel="𝔼(# robots survive)"
+	)
+	xlims!(0, nothing)
+	ylims!(0, nothing)
+	_viz_objectives!(ax, solns)
+	pareto_solns = get_pareto_solns(solns)
+	_viz_area_indicator!(ax, pareto_solns)
+	_viz_objectives!(ax, pareto_solns)
+	fig
 end
