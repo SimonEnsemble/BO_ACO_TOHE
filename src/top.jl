@@ -1,5 +1,5 @@
 """
-    TOP(nb_nodes, g, nb_robots)
+    TOP(nb_nodes, g, nb_robots, max_reward_among_nodes)
 
 team-orienteering problem instance
 
@@ -18,6 +18,8 @@ struct TOP
 	g::MetaGraph
     # number of robots comprising the team
 	nb_robots::Int
+    # max reward offered by a node
+    max_reward_among_nodes::Float64
 end
 
 """
@@ -123,97 +125,18 @@ function verify(robot::Robot, top::TOP)
     @assert robot.trail[1] == 1
     # ends at base node
     if robot.done
-        @assert robot.trail[end] == 1
+        @assert robot.trail[end-1:end] == [1, 1]
+    end
+    if robot.trail[end-1:end] == [1, 1]
+        @assert robot.done
     end
 end
 
-"""
-viz setup of the TOP.
-"""
-function viz_setup(
-	top::TOP;
-	nlabels::Bool=true,
-	robots::Union{Nothing, Vector{Robot}}=nothing,
-	show_robots::Bool=true
-)
-	g = top.g
-	robot_colors = ColorSchemes.Accent_4
-
-	# assign node color based on rewards
-	reward_color_scheme = ColorSchemes.acton
-    rewards = [get_r(top, v) for v in vertices(g)]
-	crangescale = (0.0, round(maximum(rewards), digits=1))
-	node_color = [get(reward_color_scheme, r, crangescale) for r in rewards]
-
-	# assign edge color based on probability of survival
-	survival_color_scheme = reverse(ColorSchemes.solar)
-	edge_surivival_probs = [get_ω(top, ed.src, ed.dst) for ed in edges(g)]
-	edge_color = [get(survival_color_scheme, p) for p in edge_surivival_probs]
-
-	# layout
-	_layout = Spring(
-        iterations=150,
-        pin=haskey(props(top.g), :pin) ? get_prop(top.g, :pin) : []
-    )
-	layout = _layout(g)
-
-	fig = Figure()
-	ax = Axis(fig[1, 1], aspect=DataAspect())
-	hidespines!(ax)
-	hidedecorations!(ax)
-	# plot trails as highlighted edges
-	if ! isnothing(robots)
-		for (r, robot) in enumerate(robots)
-			# represent trail as a graph
-			g_trail = SimpleGraph(nv(g))
-			for n = 1:length(robot.trail) - 1
-				add_edge!(g_trail, robot.trail[n], robot.trail[n+1])
-			end
-			graphplot!(
-				g_trail,
-				layout=layout,
-				node_size=0,
-				edge_color=(robot_colors[r], 0.5),
-				edge_width=10
-			)
-		end
+function _covert_top_graph_to_digraph(g::MetaGraph)
+    g_d = SimpleDiGraph(nv(g))
+	for ed in edges(g)
+		add_edge!(g_d, ed.src, ed.dst)
+		add_edge!(g_d, ed.dst, ed.src)
 	end
-	# plot graph with nodes and edges colored
-	graphplot!(
-		g,
-		layout=layout,
-		node_size=35,
-		node_color=node_color,
-		edge_color=edge_color,
-		nlabels=nlabels ? ["$v" for v in vertices(g)] : nothing,
-		nlabels_align=(:center, :center)
-	)
-	if show_robots
-		# start node = 1
-		x = layout[1][1]
-		y = layout[1][2]
-		r = 0.15
-		for i = 1:top.nb_robots
-			θ = π/2 * (i - 1)
-			scatter!([x + r*cos(θ)], [y + r*sin(θ)],
-				marker='✈',markersize=20, color=robot_colors[i])
-		end
-	end
-	Colorbar(
-		fig[0, 1],
-		colormap=reward_color_scheme,
-		vertical=false,
-		label="reward",
-		limits=crangescale,
-		ticks=[0.0, crangescale[2]]
-	)
-	Colorbar(
-		fig[-1, 1],
-		colormap=survival_color_scheme,
-		vertical=false,
-		label="survival probability",
-		ticks=[0.0, 1.0]
-	)
-
-	fig
+	return g_d
 end

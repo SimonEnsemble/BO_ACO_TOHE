@@ -399,6 +399,36 @@ begin
 	viz_setup(top, robots=[robot])
 end
 
+# ╔═╡ d90314e5-b918-480a-825d-a0f55d730cc0
+begin
+	# lay a super powerful pheremone trail. then gotta go there.
+	strong_pheremone = Pheremone(
+		zeros(top.nb_nodes, top.nb_nodes),
+		zeros(top.nb_nodes, top.nb_nodes)
+	)
+	# strong_pheremone
+	strong_pheremone.τ_r[1, 2] = 1000.0
+	strong_pheremone.τ_r[2, 3] = 1000.0
+	strong_pheremone.τ_r[3, 7] = 1000.0
+	strong_pheremone.τ_r[7, 8] = 1000.0
+	strong_pheremone.τ_r[8, 1] = 1000.0
+	r_soln = construct_soln(Ant(0.0), strong_pheremone, top)
+	@assert r_soln.robots[1].trail == [1, 2, 3, 7, 8, 1, 1]
+
+	strong_pheremone.τ_s[1, 10] = 1000.0
+	strong_pheremone.τ_s[10, 11] = 1000.0
+	s_soln = construct_soln(Ant(1.0), strong_pheremone, top)
+	@assert s_soln.robots[1].trail[1:3] == [1, 10, 11]
+	
+	viz_soln(r_soln, top, nlabels=true)
+end
+
+# ╔═╡ 85435fc3-4304-4b37-9309-d9cd8595d643
+res = mo_aco(top, verbose=true, nb_ants=100, nb_iters=100, min_max=false)
+
+# ╔═╡ 6edc6d72-895e-4db9-9bac-0d83146f3e70
+viz_progress(res)
+
 # ╔═╡ Cell order:
 # ╠═d493a41c-3879-11ee-32aa-052ae56d5240
 # ╟─2d6e9814-74e5-4e07-9980-b3f6c06863e9
@@ -449,3 +479,6 @@ end
 # ╠═8b7f40ac-4897-408f-82db-738e30dd6a21
 # ╟─27416841-058a-4f75-96df-1a280211d7b8
 # ╠═2b732d95-6f41-4587-b13b-dcabd27b8978
+# ╠═d90314e5-b918-480a-825d-a0f55d730cc0
+# ╠═85435fc3-4304-4b37-9309-d9cd8595d643
+# ╠═6edc6d72-895e-4db9-9bac-0d83146f3e70

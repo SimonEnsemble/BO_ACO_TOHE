@@ -53,3 +53,30 @@ function extend_trail!(robot::Robot, ant::Ant, pheremone::Pheremone, top::TOP)
 	hop_to!(robot, v, top)
 	return v
 end
+
+"""
+    construct_soln(ant, pheremone, top)
+
+based on current pheremone levels, use an ant to construct a solution to the TOP. compute the value of the objectives for this solution.
+
+one robot at-a-time (they are independent anyway).
+"""
+function construct_soln(ant::Ant, pheremone::Pheremone, top::TOP)
+	# initialize robots
+	robots = [Robot(top) for k = 1:top.nb_robots]
+
+	# ant builds a solution
+	for robot in robots
+		while ! robot.done
+			extend_trail!(robot, ant, pheremone, top)
+		end
+	end
+
+	# compute objective values of solution
+	objs = Objs(
+		𝔼_reward(robots, top),
+		𝔼_nb_robots_survive(robots, top)
+	)
+
+	return Soln(robots, objs)
+end

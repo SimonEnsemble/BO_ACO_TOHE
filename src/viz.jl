@@ -315,3 +315,15 @@ function viz_pheremone(
 	xlims!(axs_hist[2], 0.0, nothing)
 	return fig
 end
+
+"""
+    viz_progress(aco_res)
+
+view area indicator vs iteration.
+"""
+function viz_progress(res::MO_ACO_run)
+	fig = Figure(resolution=the_resolution)
+	ax  = Axis(fig[1, 1], xlabel="iteration", ylabel="area indicator")
+	lines!(1:res.nb_iters, res.areas)
+	fig
+end
