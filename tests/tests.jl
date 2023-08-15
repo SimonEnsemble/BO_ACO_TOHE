@@ -10,7 +10,18 @@ begin
 	push!(LOAD_PATH, joinpath("..", "src"))
 
 	using Revise
-	using MOACOTOP, Graphs, MetaGraphs, Random, Test
+	using MOACOTOP, Graphs, MetaGraphs, Random, Test, CairoMakie
+
+	import AlgebraOfGraphics: set_aog_theme!, firasans
+	set_aog_theme!(fonts=[firasans("Light"), firasans("Light")])
+	the_resolution = (500, 380)
+	update_theme!(
+		fontsize=20, 
+		linewidth=2,
+		markersize=14,
+		titlefont=firasans("Light"),
+		# resolution=the_resolution
+	)
 end
 
 # ╔═╡ 2d6e9814-74e5-4e07-9980-b3f6c06863e9
@@ -79,7 +90,7 @@ function generate_manual_top(ω, r)
 		set_prop!(g, v, :r, rewards[v])
 	end
 	
-	return TOP(nv(g), g, 2)
+	return TOP(nv(g), g, 2, r["hi"])
 end
 
 # ╔═╡ d1349d2b-4956-4d42-a93f-7f666f2444d2
@@ -189,10 +200,10 @@ begin
 	@test ! same_trail_set(robots, other_robots)
 end
 
-# ╔═╡ 3882dc0f-cadc-4505-870e-85b29fb4944d
-md"sorting the solutions according to their location on the front"
+# ╔═╡ 37cb7378-d2f4-4bce-ba66-421f88a006f7
+md"unique functions"
 
-# ╔═╡ 819c1fac-1bde-48b5-9943-02690a144ed1
+# ╔═╡ b21f5afe-f033-4489-b0fb-1ca5db0ff106
 begin
 	# make list of solutions with unsorted r.
 	r_obj = [4, 6, 3, 1, 2, 6]
@@ -201,20 +212,7 @@ begin
 	for i = 1:6
 		my_solns[i] = Soln([deepcopy(robot)], Objs(r_obj[i], s_obj[i]))
 	end
-	sort_by_r!(my_solns)
-	@test Int.([soln.objs.r for soln in my_solns]) == [1, 2, 3, 4, 6, 6]
-	@test Int.([soln.objs.s for soln in my_solns]) == [4, 5, 3, 1, 2, 2]
 	
-	sort_by_r!(my_solns, rev=true)
-	@test Int.([soln.objs.r for soln in my_solns]) == reverse([1, 2, 3, 4, 6, 6])
-	@test Int.([soln.objs.s for soln in my_solns]) == reverse([4, 5, 3, 1, 2, 2])
-end
-
-# ╔═╡ 37cb7378-d2f4-4bce-ba66-421f88a006f7
-md"unique functions"
-
-# ╔═╡ b21f5afe-f033-4489-b0fb-1ca5db0ff106
-begin
 	# one objective is not unique
 	@test length(unique_solns(my_solns, :objs)) == 5
 
@@ -253,7 +251,7 @@ many_solns = [Soln([robot], Objs(rand_obj()...)) for i = 1:100]
 viz_Pareto_front(many_solns)
 
 # ╔═╡ 9aff0981-9d33-4939-bc47-17bb19a21107
-pareto_solns = get_pareto_solns(many_solns)
+pareto_solns = get_pareto_solns(many_solns, false)
 
 # ╔═╡ abdf7715-2c3b-4482-84b5-fc54865fe7f8
 # no Pareto solns dominated
@@ -269,23 +267,33 @@ md"test some edge cases"
 # ╔═╡ 3c227603-3d54-41ae-a8b0-719bd704f1fb
 edge_cases = shuffle(
 	[
-		Soln([robot], Objs(0.3, 0.7)), # repeat
 		Soln([robot], Objs(0.1, 0.9)),
 		Soln([robot], Objs(0.3, 0.7)),
+		Soln([robot], Objs(0.3, 0.5)), # not Pareto
+		Soln([robot], Objs(0.3, 0.4)), # not Pareto
+		Soln([robot], Objs(0.2, 0.2)), # not Pareto
+		Soln([robot], Objs(0.3, 0.7)), # a repeat
+		Soln([robot], Objs(0.3, 0.7)), # a repeat
 		Soln([robot], Objs(0.2, 0.9)),
 		Soln([robot], Objs(0.2, 0.7)),
-		Soln([robot], Objs(0.3, 0.7))
+		Soln([robot], Objs(1.0, 0.2)),
 	]
 )
 
 # ╔═╡ 6c0a3207-a34e-4cbd-88bd-d351af524f6b
 viz_Pareto_front(edge_cases)
 
+# ╔═╡ c2bae287-434d-4cd0-88c6-48311bd39bdb
+get_pareto_solns(edge_cases, false)
+
+# ╔═╡ 35cbb528-6af9-4c6d-bcb5-42cad2c0d4bc
+sort(edge_cases, by=x -> (x.objs.r, x.objs.s))
+
 # ╔═╡ bdfac6f3-5290-43e7-a254-8a01dfb57cd8
-@test length(get_pareto_solns(edge_cases, false)) == 2
+@test length(get_pareto_solns(edge_cases, false)) == 3
 
 # ╔═╡ c5caf994-f84c-42b4-a658-3eae4adaed55
-@test length(get_pareto_solns(edge_cases, true)) == 4
+@test length(get_pareto_solns(edge_cases, true)) == 5
 
 # ╔═╡ 1139b683-6d99-4bad-b15a-993596c38d89
 md"area indicator"
@@ -299,9 +307,11 @@ md"area indicator"
 some_pareto_solns = shuffle(
 	[
 		Soln([robot], Objs(0.2, 0.8)),
+		Soln([robot], Objs(0.2, 0.8)), # a repeat
+		Soln([robot], Objs(0.2, 0.8)), # a repeat
 		Soln([robot], Objs(0.4, 0.6)),
-		Soln([robot], Objs(0.4, 0.6)), # repeat
 		Soln([robot], Objs(0.8, 0.2)),
+		Soln([robot], Objs(0.8, 0.2)), # a repeat
 	]
 )
 
@@ -311,11 +321,71 @@ some_pareto_solns = shuffle(
 # ╔═╡ 68ad3b54-6068-4bf5-a61a-aa76f3884c13
 viz_Pareto_front(some_pareto_solns)
 
-# ╔═╡ 25d43ad5-9e98-4216-a718-29401d9ebc26
-area_indicator(some_pareto_solns)
-
 # ╔═╡ 0fe1cf66-476c-442e-bb9e-185e48c214b5
 @test area_indicator(some_pareto_solns) ≈ 0.2 * 0.8 + 0.2 * 0.6 + 0.4 * 0.2
+
+# ╔═╡ 5939d13c-8d55-4acb-939c-1aad2273256e
+md"ants"
+
+# ╔═╡ ad619a75-7b11-4e46-89dd-e4bc78891b3f
+toy_ants = Ants(3)
+
+# ╔═╡ 22032a98-1849-49e3-8d38-072bdcbedea3
+@test toy_ants == [Ant(0.0), Ant(0.5), Ant(1.0)]
+
+# ╔═╡ c17a2530-cf3a-437b-a567-40c3ff211efe
+md"pheremone"
+
+# ╔═╡ 0368e00b-7219-4a22-8b82-4d653d5352ab
+begin
+	pheremone = Pheremone(top)
+	τ₀ = pheremone.τ_r[1, 1]
+	ρ = 0.8
+
+	evaporate!(pheremone, ρ)
+	evaporate!(pheremone, ρ)
+	@test all(pheremone.τ_r .≈ ρ ^ 2 * τ₀)
+	@test all(pheremone.τ_s .≈ ρ ^ 2 * τ₀)
+end
+
+# ╔═╡ 8b7f40ac-4897-408f-82db-738e30dd6a21
+begin
+	# construct a bogus solution with bogus objective values, to test lay!
+	local r_obj = 40.0
+	local s_obj = 20.0
+	ℓ = 2
+	solns = [
+		Soln([
+			Robot([1, 10, 11], top),
+			Robot([1, 2, 3], top)
+		],
+			Objs(r_obj, 0.0)
+		)
+		
+		Soln([
+			Robot([1, 2, 3, 7], top),
+			Robot([1, 2, 3, 4, 5], top)
+		],
+			Objs(0.0, s_obj)
+		)
+	]
+
+	# start with zero pheremone
+	other_pheremone = Pheremone(
+		zeros(top.nb_nodes, top.nb_nodes),
+		zeros(top.nb_nodes, top.nb_nodes)
+	)
+	# lay on trails
+	lay!(other_pheremone, solns)
+
+	@test sum(other_pheremone.τ_r) ≈ r_obj / ℓ * 4
+	@test sum(other_pheremone.τ_s) ≈ s_obj / ℓ * 7
+	@test other_pheremone.τ_r[1, 10] ≈ r_obj / ℓ
+	@test other_pheremone.τ_s[3, 7] ≈ s_obj / ℓ
+	@test other_pheremone.τ_s[2, 3] ≈ 2 * s_obj / ℓ
+	
+	viz_pheremone(other_pheremone, top, nlabels=true)
+end
 
 # ╔═╡ Cell order:
 # ╠═d493a41c-3879-11ee-32aa-052ae56d5240
@@ -337,8 +407,6 @@ area_indicator(some_pareto_solns)
 # ╠═a46e2c9a-0d18-4501-89f1-f48cbca6112c
 # ╟─697915c7-ccfb-4d47-ab7f-5e5046ede84a
 # ╠═774f4cba-73d6-4568-ac14-6829439a0a37
-# ╟─3882dc0f-cadc-4505-870e-85b29fb4944d
-# ╠═819c1fac-1bde-48b5-9943-02690a144ed1
 # ╟─37cb7378-d2f4-4bce-ba66-421f88a006f7
 # ╠═b21f5afe-f033-4489-b0fb-1ca5db0ff106
 # ╟─0a61eae8-f448-4dde-ae5c-1ce83c47e1ea
@@ -351,6 +419,8 @@ area_indicator(some_pareto_solns)
 # ╟─b41cf77e-1db2-4806-ac93-e3c931d887e8
 # ╠═3c227603-3d54-41ae-a8b0-719bd704f1fb
 # ╠═6c0a3207-a34e-4cbd-88bd-d351af524f6b
+# ╠═c2bae287-434d-4cd0-88c6-48311bd39bdb
+# ╠═35cbb528-6af9-4c6d-bcb5-42cad2c0d4bc
 # ╠═bdfac6f3-5290-43e7-a254-8a01dfb57cd8
 # ╠═c5caf994-f84c-42b4-a658-3eae4adaed55
 # ╟─1139b683-6d99-4bad-b15a-993596c38d89
@@ -358,5 +428,10 @@ area_indicator(some_pareto_solns)
 # ╠═a3a90171-369d-4cd4-b254-bd751daec913
 # ╠═5057ec09-7c22-4b5a-b08b-080c981bd24a
 # ╠═68ad3b54-6068-4bf5-a61a-aa76f3884c13
-# ╠═25d43ad5-9e98-4216-a718-29401d9ebc26
 # ╠═0fe1cf66-476c-442e-bb9e-185e48c214b5
+# ╟─5939d13c-8d55-4acb-939c-1aad2273256e
+# ╠═ad619a75-7b11-4e46-89dd-e4bc78891b3f
+# ╠═22032a98-1849-49e3-8d38-072bdcbedea3
+# ╟─c17a2530-cf3a-437b-a567-40c3ff211efe
+# ╠═0368e00b-7219-4a22-8b82-4d653d5352ab
+# ╠═8b7f40ac-4897-408f-82db-738e30dd6a21
