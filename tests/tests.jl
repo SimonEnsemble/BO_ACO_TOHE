@@ -363,7 +363,7 @@ begin
 		)
 		
 		Soln([
-			Robot([1, 2, 3, 7], top),
+			Robot([1, 2, 3, 7, 3], top),
 			Robot([1, 2, 3, 4, 5], top)
 		],
 			Objs(0.0, s_obj)
@@ -379,12 +379,24 @@ begin
 	lay!(other_pheremone, solns)
 
 	@test sum(other_pheremone.τ_r) ≈ r_obj / ℓ * 4
-	@test sum(other_pheremone.τ_s) ≈ s_obj / ℓ * 7
+	@test sum(other_pheremone.τ_s) ≈ s_obj / ℓ * 8
 	@test other_pheremone.τ_r[1, 10] ≈ r_obj / ℓ
-	@test other_pheremone.τ_s[3, 7] ≈ s_obj / ℓ
+	@test other_pheremone.τ_s[3, 7] ≈ other_pheremone.τ_s[7, 3] ≈ s_obj / ℓ
 	@test other_pheremone.τ_s[2, 3] ≈ 2 * s_obj / ℓ
 	
 	viz_pheremone(other_pheremone, top, nlabels=true)
+end
+
+# ╔═╡ 27416841-058a-4f75-96df-1a280211d7b8
+md"building a partial solution"
+
+# ╔═╡ 2b732d95-6f41-4587-b13b-dcabd27b8978
+begin
+	@test next_node_candidates(Robot(top), top) == [1, 2, 8, 9, 10]
+	
+	local robot = Robot([1, 2, 3, 7, 3], top)
+	@test next_node_candidates(robot, top) == [2, 4]
+	viz_setup(top, robots=[robot])
 end
 
 # ╔═╡ Cell order:
@@ -435,3 +447,5 @@ end
 # ╟─c17a2530-cf3a-437b-a567-40c3ff211efe
 # ╠═0368e00b-7219-4a22-8b82-4d653d5352ab
 # ╠═8b7f40ac-4897-408f-82db-738e30dd6a21
+# ╟─27416841-058a-4f75-96df-1a280211d7b8
+# ╠═2b732d95-6f41-4587-b13b-dcabd27b8978
