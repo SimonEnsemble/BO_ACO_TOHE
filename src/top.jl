@@ -1,5 +1,5 @@
 """
-    TOP(nb_nodes, g, nb_robots, max_reward_among_nodes)
+    TOP(nb_nodes, g, nb_robots, max_one_hop_𝔼_reward)
 
 team-orienteering problem instance
 
@@ -18,29 +18,33 @@ struct TOP
 	g::MetaGraph
     # number of robots comprising the team
 	nb_robots::Int
-    # max reward offered by a node
-    max_reward_among_nodes::Float64
+    # max one-hop expected reward offered by a node
+    max_one_hop_𝔼_reward::Float64
 end
 
 """
     get_ω(top, i, j)
+    get_ω(g, i, j)
 
 compute survival probability of traveling node i -> j.
 """
-function get_ω(top::TOP, i::Int, j::Int)
+function get_ω(g::MetaGraph, i::Int, j::Int)
     if (i == 1) && (j == 1)
         return 1.0 # survives staying at base for sure
     else
-        return get_prop(top.g, i, j, :ω)
+        return get_prop(g, i, j, :ω)
     end
 end
+get_ω(top::TOP, i::Int, j::Int) = get_ω(top.g, i, j)
 
 """
     get_r(top, v)
+    get_r(g, v)
 
 get reward from visting node v.
 """
-get_r(top::TOP, v::Int) = get_prop(top.g, v, :r)
+get_r(g::MetaGraph, v::Int) = get_prop(g, v, :r)
+get_r(top::TOP, v::Int) = get_r(top.g, v)
 
 """
     Robot(trail, edge_visit, done)

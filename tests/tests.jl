@@ -387,6 +387,30 @@ begin
 	viz_pheremone(other_pheremone, top, nlabels=true)
 end
 
+# ╔═╡ a5eb0b49-1761-4771-b430-a036aef81584
+
+
+# ╔═╡ f11b4ac3-6879-4086-9c82-518b78f7c073
+begin
+	out_of_scale_pheremone = Pheremone(top)
+	out_of_scale_pheremone.τ_r .*= 5.0
+	rescale!(out_of_scale_pheremone)
+	@test maximum(out_of_scale_pheremone.τ_r) ≈ maximum(out_of_scale_pheremone.τ_s)
+	@test all(out_of_scale_pheremone.τ_s .≈ (100+500)/2)
+	@test all(out_of_scale_pheremone.τ_r .≈ (100+500)/2)
+	viz_pheremone(out_of_scale_pheremone, top)
+	out_of_scale_pheremone.τ_s
+end
+
+# ╔═╡ 346c996f-501e-4586-bd4d-db2c482c6d72
+out_of_scale_pheremone.τ_r
+
+# ╔═╡ e084b02a-00a3-48a8-9873-253c6d982c5b
+out_of_scale_pheremone.τ_s
+
+# ╔═╡ e8ee873e-f293-4bfe-a16e-1e2bd94375ff
+Pheremone(top)
+
 # ╔═╡ 27416841-058a-4f75-96df-1a280211d7b8
 md"building a partial solution"
 
@@ -477,6 +501,11 @@ viz_progress(res)
 # ╟─c17a2530-cf3a-437b-a567-40c3ff211efe
 # ╠═0368e00b-7219-4a22-8b82-4d653d5352ab
 # ╠═8b7f40ac-4897-408f-82db-738e30dd6a21
+# ╠═a5eb0b49-1761-4771-b430-a036aef81584
+# ╠═f11b4ac3-6879-4086-9c82-518b78f7c073
+# ╠═346c996f-501e-4586-bd4d-db2c482c6d72
+# ╠═e084b02a-00a3-48a8-9873-253c6d982c5b
+# ╠═e8ee873e-f293-4bfe-a16e-1e2bd94375ff
 # ╟─27416841-058a-4f75-96df-1a280211d7b8
 # ╠═2b732d95-6f41-4587-b13b-dcabd27b8978
 # ╠═d90314e5-b918-480a-825d-a0f55d730cc0

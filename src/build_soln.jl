@@ -1,4 +1,3 @@
-
 """
     next_node_candidates(robot, top)
 
@@ -31,7 +30,14 @@ uses multi-colony ant optimization rule.
 
 returns node to visit next.
 """
-function extend_trail!(robot::Robot, ant::Ant, pheremone::Pheremone, top::TOP)
+function extend_trail!(
+        robot::Robot, 
+        ant::Ant, 
+        pheremone::Pheremone, 
+        top::TOP;
+        use_heuristic::Bool=true,
+        use_pheremone::Bool=true
+)
 	@assert ! robot.done
 	# current vertex
 	u = robot.trail[end]
@@ -41,10 +47,24 @@ function extend_trail!(robot::Robot, ant::Ant, pheremone::Pheremone, top::TOP)
 
 	# build probabilities by combining heuristic and pheremone.
 	#   each ant weighs obj's differently.
-	transition_probs = [
-		(pheremone.τ_s[u, v] * η_s(u, v, top)) ^ ant.λ *
-		(pheremone.τ_r[u, v] * η_r(u, v, top)) ^ (1 - ant.λ)
-		for v in vs]
+    if use_heuristic && use_pheremone
+        transition_probs = [
+            (pheremone.τ_s[u, v] * η_s(u, v, top)) ^ ant.λ *
+            (pheremone.τ_r[u, v] * η_r(u, v, top)) ^ (1 - ant.λ)
+            for v in vs]
+    elseif use_heuristic && (! use_pheremone)
+        transition_probs = [
+            (η_s(u, v, top)) ^ ant.λ *
+            (η_r(u, v, top)) ^ (1 - ant.λ)
+            for v in vs]
+    elseif use_pheremone && (! use_heuristic)
+        transition_probs = [
+            pheremone.τ_s[u, v] ^ ant.λ *
+            pheremone.τ_r[u, v] ^ (1 - ant.λ)
+            for v in vs]
+    elseif (! use_pheremone) && (! use_heuristic)
+        transition_probs = ones(length(vs))
+    end
 
 	# sample a new node
     v = sample(vs, ProbabilityWeights(transition_probs))
@@ -55,20 +75,26 @@ function extend_trail!(robot::Robot, ant::Ant, pheremone::Pheremone, top::TOP)
 end
 
 """
-    construct_soln(ant, pheremone, top)
+    construct_soln(ant, pheremone, top; use_heuristic=true, use_pheremone=true)
 
 based on current pheremone levels, use an ant to construct a solution to the TOP. compute the value of the objectives for this solution.
 
 one robot at-a-time (they are independent anyway).
 """
-function construct_soln(ant::Ant, pheremone::Pheremone, top::TOP)
+function construct_soln(
+        ant::Ant, 
+        pheremone::Pheremone, 
+        top::TOP;
+        use_heuristic::Bool=true,
+        use_pheremone::Bool=true
+)
 	# initialize robots
 	robots = [Robot(top) for k = 1:top.nb_robots]
 
 	# ant builds a solution
 	for robot in robots
 		while ! robot.done
-			extend_trail!(robot, ant, pheremone, top)
+			extend_trail!(robot, ant, pheremone, top, use_pheremone=use_pheremone, use_heuristic=use_heuristic)
 		end
 	end
 

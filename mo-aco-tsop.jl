@@ -48,11 +48,11 @@ TSOP = team survival orienteering problem
 "
 
 # ╔═╡ 6e7ce7a6-5c56-48a0-acdd-36ecece95933
-function generate_graph(nb_nodes::Int; survival_model=:random)
+function generate_graph(nb_nodes::Int; survival_model=:random, p=0.3)
 	@assert survival_model in [:random, :binary]
 	
 	# generate structure of the graph
-	g = erdos_renyi(nb_nodes, 0.3, is_directed=false)
+	g = erdos_renyi(nb_nodes, p, is_directed=false)
 	g = MetaGraph(g)
 	
 	# assign survival probabilities
@@ -76,17 +76,8 @@ function generate_graph(nb_nodes::Int; survival_model=:random)
 	return g
 end
 
-# ╔═╡ 8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
-begin
-	local g = generate_graph(20, survival_model=:random)
-	
-	top = TOP(
-		nv(g),
-		g,
-		2,         # number of robots
-		maximum([get_prop(g, v, :r) for v = 1:nv(g)])
-	)
-end
+# ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
+# top = darpa_urban_environment(1)
 
 # ╔═╡ 47eeb310-04aa-40a6-8459-e3178facc83e
 md"toy TOP problems (deterministic, for testing)"
@@ -152,7 +143,7 @@ function generate_manual_top()
 		set_prop!(g, v, :r, 1.0*reward_dict[v])
 	end
 	
-	return TOP(nv(g), g, 2)
+	return TOP(nv(g), g, 2, maximum([get_prop(g, v, :r) for v = 1:nv(g)]))
 end
 
 # ╔═╡ f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
@@ -168,11 +159,27 @@ md"## MO-ACO
 # ╔═╡ 74459833-f3e5-4b13-b838-380c007c86ed
 md"### 🐜"
 
+# ╔═╡ 9f69fa94-b816-4b78-93e4-cf1986d35c21
+top
+
 # ╔═╡ a8e27a0e-89da-4206-a7e2-94f796cac8b4
-res = mo_aco(top, verbose=false, nb_ants=100, nb_iters=1000, min_max=false)
+res = mo_aco(
+	top, 
+	verbose=false, 
+	nb_ants=100, 
+	nb_iters=1000,
+	scale_pheremone=false,
+	use_heuristic=false,
+	use_pheremone=false,
+	min_max=false
+)
 
 # ╔═╡ 793286fa-ff36-44bb-baaf-e7fd819c5aa4
 res.areas[end]
+# heuristic and pheremone : 2.29
+# no heuristic:  2.03
+# only heuristic: 1.85
+# totally random: 1.59
 
 # ╔═╡ 92d564b1-17f1-4fd1-9e76-8ea1b65c127a
 viz_progress(res)
@@ -189,19 +196,42 @@ viz_soln(res.global_pareto_solns[soln_id], top)
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 viz_pheremone(res.pheremone, top)
 
+# ╔═╡ 1930c1a6-94bd-4cb9-bcb1-872ef8cf5cff
+res.pheremone
+
+# ╔═╡ c3633991-6015-4cde-8aea-62c6ff9a1fdd
+# ╠═╡ disabled = true
+#=╠═╡
+top = generate_manual_top()
+  ╠═╡ =#
+
+# ╔═╡ 8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
+begin
+	local g = generate_graph(35, survival_model=:random, p=0.2)
+	top = TOP(
+		nv(g),
+		g,
+		1,         # number of robots
+		maximum([get_prop(g, v, :r) for v = 1:nv(g)])
+	)
+end
+
 # ╔═╡ Cell order:
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
 # ╠═e136cdee-f7c1-4add-9024-70351646bf24
 # ╟─613ad2a0-abb7-47f5-b477-82351f54894a
 # ╠═6e7ce7a6-5c56-48a0-acdd-36ecece95933
 # ╠═8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
+# ╠═bdb5d550-13f6-4d8d-9a74-14b889efe7a2
 # ╟─47eeb310-04aa-40a6-8459-e3178facc83e
 # ╠═fcf3cd41-beaa-42d5-a0d4-b77ad4334dd8
 # ╠═f309baac-a2c3-4e89-93bd-9a99fb3157cd
+# ╠═c3633991-6015-4cde-8aea-62c6ff9a1fdd
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 # ╠═74ce2e45-8c6c-40b8-8b09-80d97f58af2f
 # ╟─9d44f37d-8c05-450a-a448-7be50387499c
 # ╟─74459833-f3e5-4b13-b838-380c007c86ed
+# ╠═9f69fa94-b816-4b78-93e4-cf1986d35c21
 # ╠═a8e27a0e-89da-4206-a7e2-94f796cac8b4
 # ╠═793286fa-ff36-44bb-baaf-e7fd819c5aa4
 # ╠═92d564b1-17f1-4fd1-9e76-8ea1b65c127a
@@ -209,3 +239,4 @@ viz_pheremone(res.pheremone, top)
 # ╠═3d98df3e-ec41-4685-b15d-bd99ec4bd5f7
 # ╠═b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
 # ╠═197ea13f-b460-4457-a2ad-ae8d63c5e5ea
+# ╠═1930c1a6-94bd-4cb9-bcb1-872ef8cf5cff

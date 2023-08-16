@@ -84,6 +84,23 @@ function lay!(pheremone::Pheremone, pareto_solns::Vector{Soln})
 end
 
 """
+    rescale!(pheremone)
+
+normalize the pheremone by the mean of the maxima.
+we do this because the two objectives have different scales...
+"""
+function rescale!(pheremone::Pheremone)
+    τ_s_max = maximum(pheremone.τ_s)
+    τ_r_max = maximum(pheremone.τ_r)
+
+    mean_max = mean([τ_s_max, τ_r_max]) # new max for both
+
+    pheremone.τ_s .*= mean_max / τ_s_max
+    pheremone.τ_r .*= mean_max / τ_r_max
+    return nothing
+end
+
+"""
     min_max!(pheremone, global_pareto_solns, ρ)
 
 see Min/Max AS paper by Stutzle and Hoos.

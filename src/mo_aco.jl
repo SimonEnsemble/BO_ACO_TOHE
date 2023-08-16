@@ -13,9 +13,15 @@ function mo_aco(
 	run_checks::Bool=true,
 	ρ::Float64=0.98, # trail persistence rate = 1 - evaporation rate
 	min_max::Bool=true,
+    scale_pheremone::Bool=true,
+    use_heuristic::Bool=true,
+    use_pheremone::Bool=true,
 	my_seed::Int=1337
 )
 	Random.seed!(my_seed)
+    if min_max
+        @warn "not figured out min/max yet"
+    end
 
 	# initialize ants and pheremone
 	ants = Ants(nb_ants)
@@ -33,7 +39,9 @@ function mo_aco(
 		#=
 		🐜s construct solutions
 		=#
-        solns = [construct_soln(ant, pheremone, top) for ant in ants]
+        solns = [construct_soln(ant, pheremone, top, 
+                                use_heuristic=use_heuristic, use_pheremone=use_pheremone) 
+                 for ant in ants]
 
 		if run_checks
 			for soln in solns
@@ -75,6 +83,9 @@ function mo_aco(
 		else
 			lay!(pheremone, iter_pareto_solns)
 		end
+        if scale_pheremone
+            rescale!(pheremone)
+        end
 		if min_max
 			min_max!(pheremone, global_pareto_solns, ρ, avg_nb_choices_soln_components)
 		end
