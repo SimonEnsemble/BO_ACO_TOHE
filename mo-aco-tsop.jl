@@ -48,33 +48,60 @@ TSOP = team survival orienteering problem
 "
 
 # ╔═╡ 6e7ce7a6-5c56-48a0-acdd-36ecece95933
-function generate_graph(nb_nodes::Int; survival_model=:random, p=0.3)
+function generate_random_top(
+	nb_nodes::Int, 
+	nb_robots::Int; 
+	survival_model=:random, 
+	p=0.3
+)
 	@assert survival_model in [:random, :binary]
 	
 	# generate structure of the graph
-	g = erdos_renyi(nb_nodes, p, is_directed=false)
-	g = MetaGraph(g)
+	g_er = erdos_renyi(nb_nodes, p, is_directed=false)
+	g = MetaDiGraph(nb_nodes)
 	
-	# assign survival probabilities
-	if survival_model == :random
-		for ed in edges(g)
-			set_prop!(g, ed, :ω, rand())
+	for ed in edges(g_er)
+		add_edge!(g, ed.src, ed.dst)
+		add_edge!(g, ed.dst, ed.src)
+		if survival_model == :random
+			ω = rand()
+		elseif survival_model == :binary
+			ω = rand([0.4, 0.8])
 		end
-	else
-		for ed in edges(g)
-			set_prop!(g, ed, :ω, rand([0.2, 0.8]))
-		end
+		set_prop!(g, ed.src, ed.dst, :ω, ω)
+		set_prop!(g, ed.dst, ed.src, :ω, ω)
 	end
-
+	
 	# assign rewards
 	for v in vertices(g)
 		set_prop!(g, v, :r, 0.1 + rand()) # reward too small, heuristic won't take it there.
 	end
+
+	# compute max one-hop 𝔼[reward]
+    one_hop_𝔼_r = zeros(nv(g))
+    for v = 1:nv(g)
+        us = neighbors(g_er, v)
+        one_hop_𝔼_r[v] = maximum(get_prop(g, u, v, :ω) * get_prop(g, v, :r) for u in us)
+    end
 	
 	# for base node
 	# set_prop!(g, 1, :r, 0.001)
-	return g
+	return TOP(
+		nb_nodes,
+		g,
+		nb_robots,
+		maximum(one_hop_𝔼_r)
+	)
 end
+
+# ╔═╡ 8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
+# ╠═╡ disabled = true
+#=╠═╡
+top = generate_random_top(50, 4)
+  ╠═╡ =#
+
+# ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
+top = darpa_urban_environment(3)
 
 # ╔═╡ 47eeb310-04aa-40a6-8459-e3178facc83e
 md"toy TOP problems (deterministic, for testing)"
@@ -167,23 +194,21 @@ res = mo_aco(
 	top, 
 	verbose=false, 
 	nb_ants=100, 
-	nb_iters=500,
-	scale_pheremone=true,
+	nb_iters=1000,
 	consider_previous_robots=true,
 	use_heuristic=true,
 	use_pheremone=true,
 )
 
 # ╔═╡ 793286fa-ff36-44bb-baaf-e7fd819c5aa4
-res.areas[end]
-# heuristic and pheremone with knowledge of previous robots: 6.61 / 919.84
-# old hueristic without knowledge of previous vehicle: 6.9 / 869.0
+res.areas[end] # 945 no weighting. 938 with..
+#  20.21 without considering previous robots. now: ...
+# heuristic and pheremone with knowledge of previous robots: 7.18 / 919.84
+# rescale pheremone: 7.11 / 918
+# old hueristic without knowledge of previous vehicle: 6.8 / 869.0
 
 # ╔═╡ 92d564b1-17f1-4fd1-9e76-8ea1b65c127a
 viz_progress(res)
-
-# ╔═╡ 4769582f-6498-4f14-a965-ed109b7f97d1
-viz_Pareto_front(res.global_pareto_solns)
 
 # ╔═╡ 3d98df3e-ec41-4685-b15d-bd99ec4bd5f7
 @bind soln_id PlutoUI.Slider(1:length(res.global_pareto_solns))
@@ -191,25 +216,14 @@ viz_Pareto_front(res.global_pareto_solns)
 # ╔═╡ b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
 viz_soln(res.global_pareto_solns[soln_id], top)
 
+# ╔═╡ 4769582f-6498-4f14-a965-ed109b7f97d1
+viz_Pareto_front(res.global_pareto_solns, id_hl=soln_id)
+
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 viz_pheremone(res.pheremone, top)
 
-# ╔═╡ 8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	local g = generate_graph(35, survival_model=:random, p=0.2)
-	top = TOP(
-		nv(g),
-		g,
-		2,         # number of robots
-		maximum([get_prop(g, v, :r) for v = 1:nv(g)])
-	)
-end
-  ╠═╡ =#
-
-# ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
-top = darpa_urban_environment(3)
+# ╔═╡ 219cc060-02d7-4776-9195-b46d513ecff7
+viz_soln(res.global_pareto_solns[end], top, savename="a_soln")
 
 # ╔═╡ Cell order:
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
@@ -229,7 +243,8 @@ top = darpa_urban_environment(3)
 # ╠═a8e27a0e-89da-4206-a7e2-94f796cac8b4
 # ╠═793286fa-ff36-44bb-baaf-e7fd819c5aa4
 # ╠═92d564b1-17f1-4fd1-9e76-8ea1b65c127a
-# ╠═4769582f-6498-4f14-a965-ed109b7f97d1
-# ╠═3d98df3e-ec41-4685-b15d-bd99ec4bd5f7
+# ╟─3d98df3e-ec41-4685-b15d-bd99ec4bd5f7
 # ╠═b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
+# ╠═4769582f-6498-4f14-a965-ed109b7f97d1
 # ╠═197ea13f-b460-4457-a2ad-ae8d63c5e5ea
+# ╠═219cc060-02d7-4776-9195-b46d513ecff7

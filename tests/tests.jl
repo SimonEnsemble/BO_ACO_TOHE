@@ -420,14 +420,15 @@ end
 
 # ╔═╡ f11b4ac3-6879-4086-9c82-518b78f7c073
 begin
-	out_of_scale_pheremone = Pheremone(top)
-	out_of_scale_pheremone.τ_r .*= 5.0
+	out_of_scale_pheremone = Pheremone(10 * rand(100, 100), rand(100, 100))
 	rescale!(out_of_scale_pheremone)
 	@test maximum(out_of_scale_pheremone.τ_r) ≈ maximum(out_of_scale_pheremone.τ_s)
-	@test all(out_of_scale_pheremone.τ_s .≈ (100+500)/2)
-	@test all(out_of_scale_pheremone.τ_r .≈ (100+500)/2)
+	@test minimum(out_of_scale_pheremone.τ_r) ≈ minimum(out_of_scale_pheremone.τ_s)
+
+	# @test all(out_of_scale_pheremone.τ_s .≈ (100+500)/2)
+	# @test all(out_of_scale_pheremone.τ_r .≈ (100+500)/2)
 	viz_pheremone(out_of_scale_pheremone, top)
-	out_of_scale_pheremone.τ_s
+	# out_of_scale_pheremone.τ_s
 end
 
 # ╔═╡ 346c996f-501e-4586-bd4d-db2c482c6d72
@@ -476,10 +477,23 @@ begin
 end
 
 # ╔═╡ 85435fc3-4304-4b37-9309-d9cd8595d643
-res = mo_aco(top, verbose=true, nb_ants=100, nb_iters=100, min_max=false)
+res = mo_aco(top, verbose=true, nb_ants=100, nb_iters=100)
 
 # ╔═╡ 6edc6d72-895e-4db9-9bac-0d83146f3e70
 viz_progress(res)
+
+# ╔═╡ 7656e735-9e8a-4302-892a-39f5257d20f6
+begin
+	x = range(0.0, 5000.0, length=100)
+
+	local fig = Figure()
+	local ax = Axis(fig[1, 1], xlabel="x")
+	for λ in 0.0:0.2:1.0
+		lines!(x, x.^λ, label=rich("x", superscript("$λ")))
+	end
+	axislegend()
+	fig
+end
 
 # ╔═╡ Cell order:
 # ╠═d493a41c-3879-11ee-32aa-052ae56d5240
@@ -541,3 +555,4 @@ viz_progress(res)
 # ╠═d90314e5-b918-480a-825d-a0f55d730cc0
 # ╠═85435fc3-4304-4b37-9309-d9cd8595d643
 # ╠═6edc6d72-895e-4db9-9bac-0d83146f3e70
+# ╠═7656e735-9e8a-4302-892a-39f5257d20f6

@@ -13,7 +13,6 @@ function mo_aco(
     run_checks::Bool=true,
     ρ::Float64=0.98, # trail persistence rate = 1 - evaporation rate
     #min_max::Bool=true,
-    scale_pheremone::Bool=true,
     use_heuristic::Bool=true,
     use_pheremone::Bool=true,
     consider_previous_robots::Bool=true,
@@ -75,15 +74,14 @@ function mo_aco(
         🐜 evaporate, lay, clip pheremone
         alt. between using global- and iteration-best Pareto set.
         =#
-        evaporate!(pheremone, ρ)
-        if rand() < 0.2
-            lay!(pheremone, global_pareto_solns)
-        else
-            lay!(pheremone, iter_pareto_solns)
-        end
-        if scale_pheremone
-            rescale!(pheremone)
-        end
+        if use_pheremone
+            evaporate!(pheremone, ρ)
+            if rand() < 0.2
+                lay!(pheremone, global_pareto_solns)
+            else
+                lay!(pheremone, iter_pareto_solns)
+            end
+         end
 #        if min_max
 #            min_max!(pheremone, global_pareto_solns, ρ, avg_nb_choices_soln_components)
 #        end

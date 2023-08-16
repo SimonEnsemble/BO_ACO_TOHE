@@ -15,7 +15,7 @@ struct TOP
     # number of nodes in the graph
 	nb_nodes::Int
     # the graph abstraction of the environment
-	g::MetaGraph
+	g::MetaDiGraph
     # number of robots comprising the team
 	nb_robots::Int
     # max one-hop expected reward offered by a node
@@ -28,7 +28,7 @@ end
 
 compute survival probability of traveling node i -> j.
 """
-function get_ω(g::MetaGraph, i::Int, j::Int)
+function get_ω(g::MetaDiGraph, i::Int, j::Int)
     if (i == 1) && (j == 1)
         return 1.0 # survives staying at base for sure
     else
@@ -43,7 +43,7 @@ get_ω(top::TOP, i::Int, j::Int) = get_ω(top.g, i, j)
 
 get reward from visting node v.
 """
-get_r(g::MetaGraph, v::Int) = get_prop(g, v, :r)
+get_r(g::MetaDiGraph, v::Int) = get_prop(g, v, :r)
 get_r(top::TOP, v::Int) = get_r(top.g, v)
 
 """
@@ -136,7 +136,7 @@ function verify(robot::Robot, top::TOP)
     end
 end
 
-function _covert_top_graph_to_digraph(g::MetaGraph)
+function _covert_top_graph_to_digraph(g::MetaDiGraph)
     g_d = SimpleDiGraph(nv(g))
 	for ed in edges(g)
 		add_edge!(g_d, ed.src, ed.dst)

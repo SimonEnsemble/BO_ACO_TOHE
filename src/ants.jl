@@ -34,8 +34,8 @@ end
 function Pheremone(top::TOP)
     nb_nodes = nv(top.g)
     return Pheremone(
-        100.0 * ones(nb_nodes, nb_nodes),
-        100.0 * ones(nb_nodes, nb_nodes)
+        1.0 * ones(nb_nodes, nb_nodes),
+        1.0 * ones(nb_nodes, nb_nodes)
     )
 end
 
@@ -81,23 +81,6 @@ function lay!(pheremone::Pheremone, pareto_solns::Vector{Soln})
 		end
 	end
 	return nothing
-end
-
-"""
-    rescale!(pheremone)
-
-normalize the pheremone by the mean of the maxima.
-we do this because the two objectives have different scales...
-"""
-function rescale!(pheremone::Pheremone)
-    τ_s_max = maximum(pheremone.τ_s)
-    τ_r_max = maximum(pheremone.τ_r)
-
-    mean_max = mean([τ_s_max, τ_r_max]) # new max for both
-
-    pheremone.τ_s .*= mean_max / τ_s_max
-    pheremone.τ_r .*= mean_max / τ_r_max
-    return nothing
 end
 
 #"""

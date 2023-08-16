@@ -1,5 +1,5 @@
 function darpa_urban_environment(nb_robots::Int)
-	g = MetaGraph(SimpleGraph(73))
+	g = MetaDiGraph(SimpleDiGraph(73))
 	
 	#=
 	edge list (see drawing)
@@ -202,7 +202,9 @@ function darpa_urban_environment(nb_robots::Int)
 	
 	for (i, j, t) in edge_list
 		add_edge!(g, i, j)
+		add_edge!(g, j, i)
 		set_prop!(g, i, j, :ω, ωs[t])
+		set_prop!(g, j, i, :ω, ωs[t])
 	end
 	
 	artifact_reward = Dict(
