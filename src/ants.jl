@@ -100,67 +100,67 @@ function rescale!(pheremone::Pheremone)
     return nothing
 end
 
-"""
-    min_max!(pheremone, global_pareto_solns, ρ)
-
-see Min/Max AS paper by Stutzle and Hoos.
-"""
-function min_max!(
-	pheremone::Pheremone,
-	global_pareto_solns::Vector{Soln},
-	ρ::Float64,
-    avg_nb_choices_soln_components::Float64;
-	p_best::Float64=0.05, # prob select best soln at convergence as defined
-    verbose::Bool=false
-)
-	# which solution gives the maximum of each objective?
-	id_r_max = argmax(soln.objs.r for soln in global_pareto_solns)
-	id_s_max = argmax(soln.objs.s for soln in global_pareto_solns)
-
-	# max objective values
-	r_max = global_pareto_solns[id_r_max].objs.r
-	s_max = global_pareto_solns[id_s_max].objs.s
-	
-    # estimate τ_max for each objective
-    τ_max_r = r_max / (1 - ρ) # eqn. 7 (we deposit r_max not 1 / r_max)
-    τ_max_s = s_max / (1 - ρ)
-    
-    #=
-    this leads to too-small ϕ's...
-	# number of solution components in opt trails for the two objs
-	n_r = sum(
-		[length(robot.trail) for robot in global_pareto_solns[id_r_max].robots]
-	)
-	n_s = sum(
-		[length(robot.trail) for robot in global_pareto_solns[id_s_max].robots]
-	)
-    
-    # formula for fraction of τ_max that should be τ_min.
-    ϕ_r = (1 - p_best ^ (1 / n_r)) / ((avg_nb_choices_soln_components - 1) * p_best ^ (1 / n_r))
-    ϕ_s = (1 - p_best ^ (1 / n_s)) / ((avg_nb_choices_soln_components - 1) * p_best ^ (1 / n_s))
-	
-    @assert ϕ_s < 0.2
-	@assert ϕ_r < 0.2
-    =#
-
-	# compute τ_min
-	#   warning: I manually set this because it is too large otherwise.
-	ϕ_r = 0.05 
-	ϕ_s = 0.05 
-	τ_min_r = τ_max_r * ϕ_r
-	τ_min_s = τ_max_s * ϕ_s
-    if verbose
-        @show τ_min_r, τ_max_r
-        @show τ_min_s, τ_max_s
-    end
-
-	# impose limits by clipping
-	nb_nodes = size(pheremone.τ_s)[1]
-	for i = 1:nb_nodes
-		for j = 1:nb_nodes
-			pheremone.τ_s[i, j] = clamp(pheremone.τ_s[i, j], τ_min_s, τ_max_s)
-			pheremone.τ_r[i, j] = clamp(pheremone.τ_r[i, j], τ_min_r, τ_max_r)
-		end
-	end
-	return nothing
-end
+#"""
+#    min_max!(pheremone, global_pareto_solns, ρ)
+#
+#see Min/Max AS paper by Stutzle and Hoos.
+#"""
+#function min_max!(
+#	pheremone::Pheremone,
+#	global_pareto_solns::Vector{Soln},
+#	ρ::Float64,
+#    avg_nb_choices_soln_components::Float64;
+#	p_best::Float64=0.05, # prob select best soln at convergence as defined
+#    verbose::Bool=false
+#)
+#	# which solution gives the maximum of each objective?
+#	id_r_max = argmax(soln.objs.r for soln in global_pareto_solns)
+#	id_s_max = argmax(soln.objs.s for soln in global_pareto_solns)
+#
+#	# max objective values
+#	r_max = global_pareto_solns[id_r_max].objs.r
+#	s_max = global_pareto_solns[id_s_max].objs.s
+#	
+#    # estimate τ_max for each objective
+#    τ_max_r = r_max / (1 - ρ) # eqn. 7 (we deposit r_max not 1 / r_max)
+#    τ_max_s = s_max / (1 - ρ)
+#    
+#    #=
+#    this leads to too-small ϕ's...
+#	# number of solution components in opt trails for the two objs
+#	n_r = sum(
+#		[length(robot.trail) for robot in global_pareto_solns[id_r_max].robots]
+#	)
+#	n_s = sum(
+#		[length(robot.trail) for robot in global_pareto_solns[id_s_max].robots]
+#	)
+#    
+#    # formula for fraction of τ_max that should be τ_min.
+#    ϕ_r = (1 - p_best ^ (1 / n_r)) / ((avg_nb_choices_soln_components - 1) * p_best ^ (1 / n_r))
+#    ϕ_s = (1 - p_best ^ (1 / n_s)) / ((avg_nb_choices_soln_components - 1) * p_best ^ (1 / n_s))
+#	
+#    @assert ϕ_s < 0.2
+#	@assert ϕ_r < 0.2
+#    =#
+#
+#	# compute τ_min
+#	#   warning: I manually set this because it is too large otherwise.
+#	ϕ_r = 0.05 
+#	ϕ_s = 0.05 
+#	τ_min_r = τ_max_r * ϕ_r
+#	τ_min_s = τ_max_s * ϕ_s
+#    if verbose
+#        @show τ_min_r, τ_max_r
+#        @show τ_min_s, τ_max_s
+#    end
+#
+#	# impose limits by clipping
+#	nb_nodes = size(pheremone.τ_s)[1]
+#	for i = 1:nb_nodes
+#		for j = 1:nb_nodes
+#			pheremone.τ_s[i, j] = clamp(pheremone.τ_s[i, j], τ_min_s, τ_max_s)
+#			pheremone.τ_r[i, j] = clamp(pheremone.τ_r[i, j], τ_min_r, τ_max_r)
+#		end
+#	end
+#	return nothing
+#end
