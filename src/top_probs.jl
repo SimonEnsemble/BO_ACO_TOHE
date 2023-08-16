@@ -52,6 +52,27 @@ function π_robot_visits_node_j(robot::Robot, j::Int, top::TOP)
 end
 
 """
+    π_some_robot_visits_node_j(robots, j, top)
+
+return the probability that _some_ robot in `robots` visits node `j`.
+i.e. that not zero robots visit node `j`.
+(each robot must survive its journey to visit it)
+"""
+function π_some_robot_visits_node_j(robots::Vector{Robot}, j::Int, top::TOP)
+	# get probability that each robot visits this node
+	π_visits = [π_robot_visits_node_j(robot, j, top) for robot in robots]
+	
+    # construct Poisson binomial distribution
+	#   success prob's given in π_visits. 
+	pb = PoissonBinomial(π_visits)
+	
+	#  note: either (i) 0 robots visit or (i) one or more robots visit.
+    #  so π[some robot visits node j] = 
+	#     (1 - prob(0 robots visit the node))
+	return (1 - pdf(pb, 0))
+end
+
+"""
     𝔼_reward(robots, j, top)
     𝔼_reward(robots, top)
 
@@ -65,19 +86,12 @@ function 𝔼_reward(robots::Vector{Robot}, j::Int, top::TOP)
 	
 	# wut reward does this node offer?
 	r = get_r(top, j)
-
-	# get probability that each robot visits this node
-	π_visits = [π_robot_visits_node_j(robot, j, top) for robot in robots]
 	
-	# construct Poisson binomial distribution
-	#   success prob's given in π_visits. 
-	pb = PoissonBinomial(π_visits)
-	
-	# return expected reward
+    # return expected reward
 	#   = prob. node j visisted once or more * r
 	#  note: either (i) 0 robots visit or (i) one or more robots visit.
 	#   = (1 - prob(0 robots visit the node)) * r
-	return (1 - pdf(pb, 0)) * r
+    return π_some_robot_visits_node_j(robots, j, top) * r
 end
 
 function 𝔼_reward(robots::Vector{Robot}, top::TOP)

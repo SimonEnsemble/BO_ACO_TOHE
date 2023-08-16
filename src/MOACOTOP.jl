@@ -15,7 +15,7 @@ module MOACOTOP
     include("viz.jl")
     include("darpa_example.jl")
     export TOP, Robot, verify, hop_to!, get_ω, get_r, # top.jl
-           π_robot_survives, 𝔼_nb_robots_survive, π_robot_visits_node_j, 𝔼_reward, # top_probs.jl
+           π_robot_survives, 𝔼_nb_robots_survive, π_robot_visits_node_j, 𝔼_reward, π_some_robot_visits_node_j, # top_probs.jl
            Objs, Soln, same_trail_set, unique_solns, get_pareto_solns, nondominated, area_indicator, # mo_utils.jl
            η_s, η_r, # heuristics.jl
            Ant, Ants, Pheremone, lay!, evaporate!, min_max!, rescale!, # ants.jl

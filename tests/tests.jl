@@ -180,6 +180,28 @@ begin
 	end
 end
 
+# ╔═╡ 2048c517-bb28-4a29-a1b2-8dc86bcc940a
+begin
+	local robots = [
+		Robot([1, 2, 3, 4], top)
+	]
+	# node 5 not visisted...
+	@test π_some_robot_visits_node_j(robots, 5, top) == 0.0
+	# just one robot. prob some node visists node 4 is prob this single robot visits
+	#   node 4.
+	π_some_robot_visits_node_4 = π_some_robot_visits_node_j(robots, 4, top)
+	@test π_some_robot_visits_node_4 ≈ π_robot_visits_node_j(robots[1], 4, top)
+
+	# another robot that also visits node 4.
+	local robots = [
+		Robot([1, 2, 3, 4], top),
+		Robot([1, 8, 7, 6, 4], top),
+	]
+	π_some_robot_visits_node_4 = π_some_robot_visits_node_j(robots, 4, top)
+	# 1 - both robots die visiting node 4
+	@test π_some_robot_visits_node_4 ≈ 1.0 - (1 - π_robot_visits_node_j(robots[1], 4, top)) * (1 - π_robot_visits_node_j(robots[2], 4, top))
+end
+
 # ╔═╡ 697915c7-ccfb-4d47-ab7f-5e5046ede84a
 md"## test utils
 
@@ -471,6 +493,7 @@ viz_progress(res)
 # ╠═c5ffab03-7c6f-4da7-b47e-0a8cd1c64fd3
 # ╠═c08a26c8-a11d-4165-b73c-b1916f37e894
 # ╠═a46e2c9a-0d18-4501-89f1-f48cbca6112c
+# ╠═2048c517-bb28-4a29-a1b2-8dc86bcc940a
 # ╟─697915c7-ccfb-4d47-ab7f-5e5046ede84a
 # ╠═774f4cba-73d6-4568-ac14-6829439a0a37
 # ╟─37cb7378-d2f4-4bce-ba66-421f88a006f7
