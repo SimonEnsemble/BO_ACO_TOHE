@@ -55,9 +55,9 @@ function _viz_area_indicator!(ax, _pareto_solns::Vector{Soln})
 end
 
 """
-    viz_Pareto_front(solns)
+    viz_Pareto_front(solns, id_hl=nothing)
 """
-function viz_Pareto_front(solns::Vector{Soln})
+function viz_Pareto_front(solns::Vector{Soln}; id_hl::Union{Nothing, Int}=nothing)
 	fig = Figure(resolution=the_resolution)
 	ax = Axis(
 		fig[1, 1],
@@ -70,6 +70,9 @@ function viz_Pareto_front(solns::Vector{Soln})
 	pareto_solns = get_pareto_solns(solns, false)
 	_viz_area_indicator!(ax, pareto_solns)
 	_viz_objectives!(ax, pareto_solns)
+    if ! isnothing(id_hl)
+        scatter!(ax, [solns[id_hl].objs.r], [solns[id_hl].objs.s])
+    end
 	fig
 end
 
@@ -97,15 +100,16 @@ function viz_setup(
     g = top.g
 
 	# assign node color based on rewards
-	reward_color_scheme = ColorSchemes.acton
+	reward_color_scheme = ColorSchemes.Greens
     rewards = [get_r(top, v) for v in vertices(g)]
-	crangescale = (0.0, round(maximum(rewards), digits=1))
-	node_color = [get(reward_color_scheme, r, crangescale) for r in rewards]
+	crangescale_r = (0.0, round(maximum(rewards), digits=1))
+	node_color = [get(reward_color_scheme, r, crangescale_r) for r in rewards]
 
 	# assign edge color based on probability of survival
 	survival_color_scheme = reverse(ColorSchemes.solar)
 	edge_surivival_probs = [get_ω(top, ed.src, ed.dst) for ed in edges(g)]
-	edge_color = [get(survival_color_scheme, p) for p in edge_surivival_probs]
+    crangescale_s = (minimum(edge_surivival_probs), maximum(edge_surivival_probs))
+	edge_color = [get(survival_color_scheme, p, crangescale_s) for p in edge_surivival_probs]
     
     # graph layout
     layout = _g_layout(top)
@@ -135,8 +139,10 @@ function viz_setup(
 	graphplot!(
 		g,
 		layout=layout,
-		node_size=35,
+		node_size=20,
 		node_color=node_color,
+        node_strokewidth=1,
+        color="black",
 		edge_color=edge_color,
 		nlabels=nlabels ? ["$v" for v in vertices(g)] : nothing,
 		nlabels_align=(:center, :center)
@@ -157,29 +163,31 @@ function viz_setup(
 		colormap=reward_color_scheme,
 		vertical=false,
 		label="reward",
-		limits=crangescale,
-		ticks=[0.0, crangescale[2]]
+		limits=crangescale_r,
+		ticks=[0.0, crangescale_r[2]]
 	)
 	Colorbar(
 		fig[-1, 1],
 		colormap=survival_color_scheme,
 		vertical=false,
 		label="survival probability",
-		ticks=[0.0, 1.0]
+		limits=crangescale_s,
+		ticks=[crangescale_s[1], crangescale_s[2]]
 	)
 
 	fig
 end
 
 """
-    viz_soln(soln, top; nlabels=false)
+    viz_soln(soln, top; nlabels=false, savename=nothing)
 
 viz a proposed solution.
 """
 function viz_soln(
 	soln::Soln,
 	top::TOP; 
-	nlabels::Bool=false
+	nlabels::Bool=false,
+    savename::Union{Nothing, String}=nothing
 )
 	g = top.g
 	robot_colors = ColorSchemes.Accent_4
@@ -249,6 +257,9 @@ function viz_soln(
 		",
 		font=firasans("Light")
 	)
+    if ! isnothing(savename)
+        save(savename * ".pdf", fig)
+    end
 	fig
 end
 
@@ -257,7 +268,7 @@ function viz_pheremone(
     top::TOP;
 	nlabels::Bool=false
 )
-	g_d = _covert_top_graph_to_digraph(top.g)
+	g = top.g
 
 	# layout
 	layout = _g_layout(top)
@@ -268,13 +279,13 @@ function viz_pheremone(
 			pheremone.τ_r[ed.src, ed.dst],
 			(minimum(pheremone.τ_r), maximum(pheremone.τ_r))
 		)
-			for ed in edges(g_d)],
+			for ed in edges(g)],
 		[get(
 			ColorSchemes.Reds,
 			pheremone.τ_s[ed.src, ed.dst],
 			(minimum(pheremone.τ_s), maximum(pheremone.τ_s))
 		)
-			for ed in edges(g_d)],
+			for ed in edges(g)],
 	]
 
 	fig = Figure()
@@ -284,12 +295,12 @@ function viz_pheremone(
 
 	for i = 1:2
 		graphplot!(axs[i],
-			g_d,
+			g,
 			layout=layout,
 			# node_size=35,
 			node_color="gray",
 			edge_color=edge_color[i],
-			nlabels=nlabels ? ["$v" for v in vertices(g_d)] : nothing,
+			nlabels=nlabels ? ["$v" for v in vertices(g)] : nothing,
 			nlabels_align=(:center, :center)
 		)
 	end
@@ -305,8 +316,8 @@ function viz_pheremone(
 		)
 		for i = 1:2
 	]
-	τ_s = [pheremone.τ_s[ed.src, ed.dst] for ed in edges(g_d)]
-	τ_r = [pheremone.τ_r[ed.src, ed.dst] for ed in edges(g_d)]
+	τ_s = [pheremone.τ_s[ed.src, ed.dst] for ed in edges(g)]
+	τ_r = [pheremone.τ_r[ed.src, ed.dst] for ed in edges(g)]
 	hist!(axs_hist[1], τ_r, color="green")
 	hist!(axs_hist[2], τ_s, color="red")
 	axs_hist[1].xlabel = "τᵣ"

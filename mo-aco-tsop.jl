@@ -101,7 +101,7 @@ top = generate_random_top(50, 4)
   ╠═╡ =#
 
 # ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
-top = darpa_urban_environment(3)
+top = darpa_urban_environment(4)
 
 # ╔═╡ 47eeb310-04aa-40a6-8459-e3178facc83e
 md"toy TOP problems (deterministic, for testing)"
@@ -222,9 +222,6 @@ viz_Pareto_front(res.global_pareto_solns, id_hl=soln_id)
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 viz_pheremone(res.pheremone, top)
 
-# ╔═╡ 219cc060-02d7-4776-9195-b46d513ecff7
-viz_soln(res.global_pareto_solns[end], top, savename="a_soln")
-
 # ╔═╡ Cell order:
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
 # ╠═e136cdee-f7c1-4add-9024-70351646bf24
@@ -247,4 +244,3 @@ viz_soln(res.global_pareto_solns[end], top, savename="a_soln")
 # ╠═b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
 # ╠═4769582f-6498-4f14-a965-ed109b7f97d1
 # ╠═197ea13f-b460-4457-a2ad-ae8d63c5e5ea
-# ╠═219cc060-02d7-4776-9195-b46d513ecff7

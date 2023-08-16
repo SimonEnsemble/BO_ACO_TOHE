@@ -15,18 +15,17 @@ score = 𝔼[reward of node v | previous robots already deployed] / (max reward 
 this robot can only get the reward if none of the previous robots successfully visit this node.
 """
 function η_r(u::Int, v::Int, top::TOP)
-    ϵ = 0.01 # to avoid it being zero...
+    ϵ = 0.05 # to avoid it being zero...
     return ϵ + get_ω(top, u, v) * get_r(top, v) / top.max_one_hop_𝔼_reward
 end
 
 function η_r(u::Int, v::Int, top::TOP, previous_robots::Vector{Robot})
     # only get expected one-hop reward if none of the previous robots visisted.
     # special case if v = 1. then we don't use this rule, since it would never be selected.
-    ϵ = 0.01 # to avoid it being zero...
     if v == 1
         return η_r(u, v, top)
     else
-        return ϵ + η_r(u, v, top) * (1.0 - π_some_robot_visits_node_j(previous_robots, v, top))
+        return η_r(u, v, top) * (1.0 - π_some_robot_visits_node_j(previous_robots, v, top))
     end
 end
 

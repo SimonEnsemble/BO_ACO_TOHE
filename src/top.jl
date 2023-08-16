@@ -135,12 +135,3 @@ function verify(robot::Robot, top::TOP)
         @assert robot.done
     end
 end
-
-function _covert_top_graph_to_digraph(g::MetaDiGraph)
-    g_d = SimpleDiGraph(nv(g))
-	for ed in edges(g)
-		add_edge!(g_d, ed.src, ed.dst)
-		add_edge!(g_d, ed.dst, ed.src)
-	end
-	return g_d
-end
