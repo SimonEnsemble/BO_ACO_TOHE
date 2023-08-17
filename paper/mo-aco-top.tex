@@ -1,0 +1,116 @@
+\documentclass[11pt, oneside]{article}  
+% \documentclass[fleqn,10pt]{wlpeerj}
+
+
+\usepackage{geometry}  
+%\usepackage{nunito}
+\usepackage{cmbright}
+\geometry{letterpaper}   
+%\usepackage{cite}
+\usepackage{graphicx}				% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
+								% TeX will automatically convert eps --> pdf in pdflatex	
+\usepackage{tcolorbox}
+\usepackage{amssymb}
+\usepackage{longtable}
+\usepackage{amsmath}
+\usepackage{booktabs}
+% \usepackage{emoji}
+\usepackage{url}
+\usepackage{color}
+\definecolor{c1}{rgb}{0.12, 0.56, 1.0}
+%SetFonts
+\usepackage{xspace}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{authblk} 
+
+\usepackage{sectsty} 
+\definecolor{cool_blue}{RGB}{24, 132, 193}
+\sectionfont{\color{c1}\selectfont}
+\subsectionfont{\color{c1}\selectfont}
+\subsubsectionfont{\color{c1}\selectfont}
+% \paragraphfont{\color{gray}\selectfont}
+\subparagraphfont{\color{gray}\selectfont}
+
+\definecolor{fruitpushorange}{RGB}{255, 127, 0}
+\newcommand{\data}{$(s_1, ..., s_k)$\xspace}
+
+\usepackage{soul}
+\DeclareRobustCommand{\cms}[1]{ {\begingroup\sethlcolor{fruitpushorange}\hl{(cms:) #1}\endgroup} }
+%SetFonts
+
+
+\title{Bi-objective ant colony optimization of the risky team orienteering problem}
+\author[1]{Cory M. Simon}
+\author[2]{Jeffrey Richley}
+\author[2]{Lucas Overbey}
+\author[2]{Darleen Perez-Lavin}
+\affil[1]{School of Chemical, Biological, and Environmental Engineering. Oregon State University. Corvallis, OR. USA.}
+% \affil[]{\texttt{cory.simon@oregonstate.edu}}
+\affil[2]{Naval Information Warfare Center Atlantic. Charleston, SC. USA.}
+% \corrauthor[1]{Cory M. Simon}{cory.simon@oregonstate.edu}
+
+% \keywords{Keyword1, Keyword2, Keyword3}
+
+
+
+%\flushbottom
+% \maketitle
+%\thispagestyle{empty}
+
+
+%\affil[*]{}
+% \date{}							% Activate to display a given date or no date
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+In many applications, a team of mobile robots coordinate their paths in some environment to cooperatively achieve some shared objective. Some environments pose risks of robot failures owing to dangerous conditions or adversaries capable of attacking robots. Then, path-planning must consider these risks so the team performance is resilient to failures of robots.
+
+Herein, we tackle a bi-objective risky team orienteering problem with ant colony optimization. The environment is abstracted as a graph (nodes: locations, edges: paths between locations). Each node offers a reward when visited by a robot, but the traversal of each edge imposes an independent risk of robot failure/destruction. Our goal is to plan the paths of multiple robots to maximize two objectives: (i) the expected team reward collected by the robots and (ii) the expected number of robots that survive the mission. Owing to the competing nature of these two objectives, we employ a heterogenous colony of artificial ants (weighing both objectives differently) to obtain an approximation to the nondominated set of solutions. This allows the downstream decision-maker to choose the robot paths that strike the appropriate balance between the expected reward collected and the survival of the robots. We illustrate using a graph representing a nuclear power plant.
+\end{abstract}
+
+\clearpage
+
+\section{Introduction}
+Mobile robots---aerial, ground, and aquatic---equipped with sensors and/or cargo have applications in agriculture \cite{santos2020path}, commerce \cite{bogue2016growth}, the delivery of goods \cite{coelho2014thirty}, search-and-rescue \cite{queralta2020collaborative}, chemical, biological, radiological, or nuclear incident response \cite{murphy2012projected}, environmental monitoring \cite{dunbabin2012robots}, industrial chemical plant safety monitoring \cite{soldan2014towards}, forest fire monitoring and fighting \cite{merino2012unmanned}, and military surveillance and reconnaissance. 
+Deployment of a \emph{team} of robots can increase spatial coverage and decrease the time to achieve the mission. 
+In such cases, a team of mobile robots may coordinate their paths in the environment to cooperatively achieve some shared objective \cite{parker2007distributed}.
+
+In some applications, the team of mobile robots must locomote in an environment that poses risks of robot failures, due to inherently dangerous terrain, harsh weather, the presence of heat, radiation, or corrosive chemicals, or an adversary with the capability to attack robots. Then, the robots may coordinate their paths in consideration of these risks, so that achievement of the team objective is resilient to robot failures \cite{zhou2021multi}. A \emph{resilient} team of robots can (i) withstand failures/attacks with minimal concession of the objective and/or (ii) adapt to attacks/failures of robots on the team to maximize achievement of the objective. 
+
+Several algorithms have been developed for multiple robots to coordinatively plan their paths in risky environments abstracted as graphs (nodes: locations; edges: paths between locations) \cite{jorgensen2018team,shi2023robust,zhou2022distributed}. 
+For example, in the Team Surviving Orienteers (TSO) problem \cite{jorgensen2018team}, each node of the graph offers a reward to the team when visited by a robot, but each edge traversal by a robot poses a risk of failure. The objective in the [offline] TOP is to plan the paths of the robots (between two specified nodes) to maximize the expected team reward under the constraint that each robot survives the mission with a probability above a certain threshold. 
+Relatedly, the Foraging Route with the Maximum Expected Utility problem \cite{di2022foraging} considers a single robot foraging in an adversarial environment like in the TOP, but the rewards collected by the robot are not accumulated until/unless the robot returns to the home station safely.
+In the [offline] Robust Multiple-path Orienteering Problem \cite{shi2023robust}, nodes offer rewards if visited by a robot and that robot returns from the mission; the paths of the $N$ robots are planned to maximize the team reward under the worst-case attacks of $\alpha<N$ of the robots. The optimal path plans must trade off (i) redundancy in the nodes visited to endow robustness against worst-case attacks and (ii) coverage of many nodes to collect many rewards.
+
+
+
+\section{The bi-objective risky team orienteering problem (BO-RTOP)}
+\subsection{Abstraction of the environment}
+
+\subsection{Mathematical model}
+
+\paragraph{Survival model}
+
+\paragraph{Rewards collected}
+
+\subsection{The bi-objective optimization problem}
+
+\section{Bi-objective ant colony optimization}
+stigmergy
+
+\section{Results}
+
+
+\section{Discussion}
+
+Future work.
+
+
+\bibliography{refs}
+\bibliographystyle{unsrt}
+
+\end{document}  
