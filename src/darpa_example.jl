@@ -218,16 +218,9 @@ function darpa_urban_environment(nb_robots::Int)
 		r = (v in keys(artifact_type)) ? artifact_reward[artifact_type[v]] : 0.0
 		set_prop!(g, v, :r, r)
 	end
-    # compute max one-hop 𝔼[reward]
-    one_hop_𝔼_r = zeros(nv(g))
-    for v = 1:nv(g)
-        us = neighbors(g, v)
-        one_hop_𝔼_r[v] = maximum(get_ω(g, u, v) * get_r(g, v) for u in us)
-    end
 	return TOP(
                nv(g),
                g,
-               nb_robots,
-               maximum(one_hop_𝔼_r)
+               nb_robots
              )
 end

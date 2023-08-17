@@ -1,5 +1,5 @@
 """
-    TOP(nb_nodes, g, nb_robots, max_one_hop_𝔼_reward)
+    TOP(nb_nodes, g, nb_robots)
 
 team-orienteering problem instance
 
@@ -18,8 +18,6 @@ struct TOP
 	g::MetaDiGraph
     # number of robots comprising the team
 	nb_robots::Int
-    # max one-hop expected reward offered by a node
-    max_one_hop_𝔼_reward::Float64
 end
 
 """
