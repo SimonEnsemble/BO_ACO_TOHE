@@ -69,7 +69,7 @@
 \begin{abstract}
 In many applications, a team of mobile robots coordinate their paths in some environment to cooperatively achieve some shared objective. Some environments pose risks of robot failures owing to dangerous conditions or adversaries capable of attacking robots. Then, path-planning must consider these risks so the team performance is resilient to failures of robots.
 
-Herein, we tackle a bi-objective risky team orienteering problem with ant colony optimization. The environment is abstracted as a graph (nodes: locations, edges: paths between locations). Each node offers a reward when visited by a robot, but the traversal of each edge imposes an independent risk of robot failure/destruction. Our goal is to plan the paths of multiple robots to maximize two objectives: (i) the expected team reward collected by the robots and (ii) the expected number of robots that survive the mission. Owing to the competing nature of these two objectives, we employ a heterogenous colony of artificial ants (weighing both objectives differently) to obtain an approximation to the nondominated set of solutions. This allows the downstream decision-maker to choose the robot paths that strike the appropriate balance between the expected reward collected and the survival of the robots. We illustrate using a graph representing a nuclear power plant.
+Herein, we tackle a bi-objective risky team orienteering problem with ant colony optimization. The environment is abstracted as a graph (nodes: locations, edges: paths between locations). Each node offers a reward when visited by a robot, but the traversal of each edge imposes an independent risk of robot failure/destruction. Our goal is to plan the paths of multiple robots to maximize two objectives: (i) the expected team reward collected by the robots and (ii) the expected number of robots that survive the mission. Owing to the competing nature of these two objectives, we employ a heterogenous colony of artificial ants (weighing both objectives differently) to obtain an approximation to the nondominated set of solutions. This allows the downstream decision-maker to choose the robot paths that strike the balance between the expected reward collected and the survival of the robots. We illustrate using a graph representing a nuclear power plant.
 \end{abstract}
 
 \clearpage
@@ -89,23 +89,74 @@ In the [offline] Robust Multiple-path Orienteering Problem \cite{shi2023robust},
 
 
 \section{The bi-objective risky team orienteering problem (BO-RTOP)}
-\subsection{Abstraction of the environment}
+In the risky team orienteering problem, a team of mobile robots must coordinatively plan closed trails on a directed graph in order to harvest rewards offered by its nodes, but each edge-traversal by a robot imposes a risk of failure or being destroyed. 
+We wish to find the set of Pareto-optimal trail plans for the robot team that maximize (i) the number of robots that survive the mission and (ii) the expected rewards collected by the team.
 
-\subsection{Mathematical model}
+\subsection{Mathematical model of a team of mobile robots in the environment}
+\paragraph{Spatial abstraction of the environment.}
+We abstract the environment as a directed graph $G=(\mathcal{V}, \mathcal{E})$. Each node $v\in \mathcal{V}$ represents a location. Each edge $(v, v^\prime) \in \mathcal{E}$ represents the best (e.g., shortest or safest) path (in Euclidean space) for a mobile robot to take from node $v$ to node $v^\prime$. 
+Note, we do not assume the graph is complete; i.e., not every pair of distinct nodes $\{v, v^\prime\}$ is joined by two edges $(v, v^\prime)$ and $(v^\prime, v)$\footnote{E.g., consider one node as the entrance to a hallway and another node as a small room down the hallway. Visiting the room necessitates entering the hallway.}.
 
-\paragraph{Survival model}
+\paragraph{Reward structure.}
+Each node $v\in \mathcal{V}$ in the graph $G$ offers a reward to be harvested from it. 
+The reward function $r: \mathcal{V} \rightarrow \mathbb{R}_{\geq 0}$ scores each node according to the utility the team of robots gains by harvesting its reward. The utility $r(v)$ is irrevokably accumulated by the team of robots if a robot from the team visits node $v$ during the mission.
+Once the reward of a node is harvested by a visiting robot, the node does not offer any further reward to the robot team.
 
-\paragraph{Rewards collected}
+\paragraph{The team of robots.} 
+We have a team of $K$ homogenous, mobile robots for the purpose of harvesting the rewards at the nodes. 
+Each robot plans to take a closed, directed trail $\rho$ on the graph $G$ starting and ending at the base node $v_b \in \mathcal{V}$. 
+% Once a robot visits some node $v$, (1) if node $v$ has not been visited by a robot before, the robot harvests the reward and accumulates its utility $r(v)$ for the team and (2) if that
+
+\subparagraph{A directed trail.} A directed trail is a sequence of nodes $\rho=(\rho(0), \rho(1), ..., \rho(\ell))$ such that 
+(i) for each node in the sequence except the last, an edge is directed from that node to the next node, i.e., $(\rho(i-1), \rho(i))\in\mathcal{E}$ for $i \in \{1, ..., \ell\}$
+and 
+(ii) the multiset of $\ell =\lvert \rho \rvert$ edges $\{(\rho(i-1), \rho(i))\}_{i=1}^{\ell}$ traversed in the trail are distinct.
+That the trail is closed means $\rho(0)=\rho(\ell)$, which, here, $=v_b$.
+The nodes in the trail need not be distinct.
+ 
+\subparagraph{Trail plans.} The \emph{trail plans} are the set of closed, directed trails $\{\rho_1, ..., \rho_K\}$ the team of robots plans to take. These are ``plans'' because any robot may fail or be destroyed at some node or edge along its planned trail; in that case, the robot cannot visit the remainder of nodes in its planned path.
+The high-level goal of this paper is to determine the optimal trail plans for the robots in terms of (i) the expected team reward and (ii) the survivability of the robots. 
+
+\subparagraph{The static/offline setting.} During the mission, the robots cannot communicate with each other, and we cannot send communications to the robots. Therefore, the path plans are determined at the beginning of the mission, then executed by the robots without change, adaptation, or updates during the mission (which would be an online setting).
+
+\paragraph{Risky edge-traversal and node-visiting by the robots.}
+Each robot incurs a risk of failure/destruction while traversing edges on the graph and visiting nodes. 
+Starting at some node $v$, a robot survives the lumped process of (i) traversing edge $(v, v^\prime) \in \mathcal{E}$ and (ii) visiting node $v^\prime$ with probability $\omega(v, v^\prime)$. 
+We assume (i) each outcome (success or failure) of an edge traversal followed by a node visit by a robot is independent and (ii) risks are static over the course of the mission. 
+I.e., the robot survival probability function $\omega: \mathcal{E} \rightarrow [0, 1]$ that assigns edges their survival probability characterizes (1) the survival probabilities of the $K$ robots that plan to execute the trails $\{\rho_1, ..., \rho_K\}$ on the graph $G$ and (2) the expected utility of the rewards harvested by the robots along their paths, which we write next. 
+
+Note, we do not assume $\omega$ is symmetric, i.e., that $\omega(v, v^\prime) = \omega(v^\prime, v)$. The traversal from node $v$ to $v^\prime$ may be more or less dangerous than the traversal from $v^\prime$ to $v$ owing to e.g., the directionality of air or water currents or sensors at one of the nodes that may alert the adversary to intercept the robot later in its journey. More, even if edge traversal risks are symmetric, the action of visiting a node could impose a risk, and node $v$ may be more or less dangerous than node $v^\prime$, breaking symmetry. 
+% harvest risk different from visit risk. once harvested, then no longer risk for other robots to visit that node.
+
+
+\paragraph{Expected number of robots that survive the mission.}
+
+\paragraph{Expected team rewards.}
 
 \subsection{The bi-objective optimization problem}
 
 \section{Bi-objective ant colony optimization}
 stigmergy
 
+\paragraph{Heuristic}
+
+\paragraph{Pheremone}
+
+\paragraph{Constructing partial solutions}
+
+\paragraph{Laying pheremone}
+
 \section{Results}
 
+\paragraph{DARPA power plant}
+
+\paragraph{Solutions with different numbers of robots}
+
+\paragraph{Adding adversary with guard}
 
 \section{Discussion}
+
+Fuel constraints.
 
 Future work.
 
