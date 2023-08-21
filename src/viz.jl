@@ -76,15 +76,15 @@ function viz_Pareto_front(solns::Vector{Soln}; id_hl::Union{Nothing, Int}=nothin
 	fig
 end
 
-function _g_layout(top::TOP)
-	_layout = Spring(iterations=250)
+function _g_layout(top::TOP; C::Float64=2.0)
+	_layout = Spring(iterations=250, C=C)
 	return _layout(top.g)
 end
 
 #=
 viz of the TOP setup and soln
 =#
-robot_colors = ColorSchemes.Accent_4
+robot_colors = ColorSchemes.Dark2_4
 
 """
     viz_setup(TOP; nlabels=true, robots=nothing, show_robots=true)
@@ -95,24 +95,26 @@ function viz_setup(
 	top::TOP;
 	nlabels::Bool=true,
 	robots::Union{Nothing, Vector{Robot}}=nothing,
-	show_robots::Bool=true
+	show_robots::Bool=true,
+    C::Float64=2.0,
+    r::Float64=1.0
 )   
     g = top.g
 
 	# assign node color based on rewards
-	reward_color_scheme = ColorSchemes.Greens
+	reward_color_scheme = ColorSchemes.viridis
     rewards = [get_r(top, v) for v in vertices(g)]
 	crangescale_r = (0.0, round(maximum(rewards), digits=1))
 	node_color = [get(reward_color_scheme, r, crangescale_r) for r in rewards]
 
 	# assign edge color based on probability of survival
-	survival_color_scheme = reverse(ColorSchemes.solar)
+	survival_color_scheme = reverse(ColorSchemes.thermal)
 	edge_surivival_probs = [get_ω(top, ed.src, ed.dst) for ed in edges(g)]
     crangescale_s = (minimum(edge_surivival_probs), maximum(edge_surivival_probs))
 	edge_color = [get(survival_color_scheme, p, crangescale_s) for p in edge_surivival_probs]
     
     # graph layout
-    layout = _g_layout(top)
+    layout = _g_layout(top, C=C)
 
 	fig = Figure()
 	ax = Axis(fig[1, 1], aspect=DataAspect())
@@ -151,7 +153,6 @@ function viz_setup(
 		# start node = 1
 		x = layout[1][1]
 		y = layout[1][2]
-		r = 0.15
 		for i = 1:top.nb_robots
 			θ = π/2 * (i - 1)
 			scatter!([x + r*cos(θ)], [y + r*sin(θ)],
@@ -190,7 +191,6 @@ function viz_soln(
     savename::Union{Nothing, String}=nothing
 )
 	g = top.g
-	robot_colors = ColorSchemes.Accent_4
 
 	# graph layout
     layout = _g_layout(top)
@@ -227,7 +227,7 @@ function viz_soln(
 			nlabels_align=(:center, :center)
 		)
 		# represent trail as a graph
-		g_trail = SimpleGraph(nv(g))
+		g_trail = SimpleDiGraph(nv(g))
 		for n = 1:length(robot.trail) - 1
 			# only add self-loop if it's just staying.
 			if (robot.trail[n] == robot.trail[n+1] == 1) & (length(robot.trail) > 2)
@@ -241,7 +241,7 @@ function viz_soln(
 			layout=layout,
 			node_size=0,
 			edge_color=(robot_colors[r], 0.5),
-			edge_width=10
+			#edge_width=10
 		)
 		
 		# start node = 1
