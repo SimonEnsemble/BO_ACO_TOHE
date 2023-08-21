@@ -41,7 +41,7 @@
 %SetFonts
 
 
-\title{Bi-objective ant colony optimization of the risky team orienteering problem}
+\title{Bi-objective ant colony optimization of the risky, robot-team orienteering problem}
 \author[1]{Cory M. Simon}
 \author[2]{Jeffrey Richley}
 \author[2]{Lucas Overbey}
@@ -67,9 +67,13 @@
 \maketitle
 
 \begin{abstract}
-In many applications, a team of mobile robots coordinate their paths in some environment to cooperatively achieve some shared objective. Some environments pose risks of robot failures owing to dangerous conditions or adversaries capable of attacking robots. Then, path-planning must consider these risks so the team performance is resilient to failures of robots.
+In many applications e.g., delivery, patrolling, and information-gathering, a team of mobile [aerial, ground, or aquatic] robots must coordinate their trails in some environment to cooperatively achieve some team-level objective. 
+Robots may risk failure/destruction while traversing some environments, owing to dangerous conditions or the presence of adversaries capable of attacking them. 
+Then, robot trail-planning should account for these risks.
 
-Herein, we tackle a bi-objective risky team orienteering problem with ant colony optimization. The environment is abstracted as a graph (nodes: locations, edges: paths between locations). Each node offers a reward when visited by a robot, but the traversal of each edge imposes an independent risk of robot failure/destruction. Our goal is to plan the paths of multiple robots to maximize two objectives: (i) the expected team reward collected by the robots and (ii) the expected number of robots that survive the mission. Owing to the competing nature of these two objectives, we employ a heterogenous colony of artificial ants (weighing both objectives differently) to obtain an approximation to the nondominated set of solutions. This allows the downstream decision-maker to choose the robot paths that strike the balance between the expected reward collected and the survival of the robots. We illustrate using a graph representing a nuclear power plant.
+Herein, we use ant colony optimization to find the [approximate] Pareto-optimal set of robot trail plans for the bi-objective, risky team orienteering problem, where (i) a team of robots are mobile within an environment abstracted as a graph (nodes: locations, edges: paths between locations); (ii) each node offers a reward to the team when visited by a robot; (iii) the traversal of each edge imposes a risk of robot failure/destruction; and (iv) the two [often, competing] team objectives are to maximize the expected (a) team reward and (b) number of robots that survive the mission.
+Presenting the Pareto-optimal set of robot trail plans to the downstream decision-maker allows them to choose the plans that balance, according to their values, the two objectives. 
+As a case study, we illustrate with an information-gathering mission in a nuclear power plant from a Defense Advanced Research Projects Agency (DARPA) robots challenge.
 \end{abstract}
 
 \clearpage
@@ -150,6 +154,8 @@ stigmergy
 
 \paragraph{DARPA power plant}
 
+Defense Advanced Research Projects Agency (DARPA) Subterranean (SubT) Challenge \cite{chung2023into}
+
 \paragraph{Solutions with different numbers of robots}
 
 \paragraph{Adding adversary with guard}
@@ -157,6 +163,8 @@ stigmergy
 \section{Discussion}
 
 Fuel constraints.
+
+other risk metrics \cite{majumdar2020should}.
 
 Future work.
 
