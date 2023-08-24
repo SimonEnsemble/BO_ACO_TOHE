@@ -107,7 +107,7 @@ viz of the TOP setup and soln
 robot_colors = ColorSchemes.Dark2_4
 
 """
-    viz_setup(TOP; nlabels=true, robots=nothing, show_robots=true)
+    viz_setup(TOP; nlabels=true, robots=nothing, show_robots=true, radius=1.0, C=2.0)
 
 viz setup of the TOP.
 """
@@ -117,7 +117,7 @@ function viz_setup(
     robots::Union{Nothing, Vector{Robot}}=nothing,
     show_robots::Bool=true,
     C::Float64=2.0,
-    r::Float64=1.0,
+    radius::Float64=1.0,
     savename::Union{Nothing, String}=nothing,
     depict_ω::Bool=true,
     depict_r::Bool=true
@@ -126,12 +126,13 @@ function viz_setup(
 
     # assign node color based on rewards
     reward_color_scheme = ColorSchemes.viridis
+    reward_color_scheme = ColorSchemes.summer
     rewards = [get_r(top, v) for v in vertices(g)]
     crangescale_r = (0.0, round(maximum(rewards), digits=1))
     if depict_r
         node_color = [get(reward_color_scheme, r, crangescale_r) for r in rewards]
     else
-        node_color = ["black" for r in rewards]
+        node_color = ["white" for r in rewards]
     end
 
     # assign edge color based on probability of survival
@@ -151,21 +152,6 @@ function viz_setup(
     ax = Axis(fig[1, 1], aspect=DataAspect())
     hidespines!(ax)
     hidedecorations!(ax)
-    # plot graph with nodes and edges colored
-    graphplot!(
-        g,
-        layout=layout,
-        node_size=20,
-        node_color=node_color,
-        node_strokewidth=1,
-        color="black",
-        edge_color=edge_color,
-        nlabels=nlabels ? ["$v" for v in vertices(g)] : nothing,
-        nlabels_color=:white,
-        nlabels_fontsize=9,
-        nlabels_align=(:center, :center),
-        arrow_shift=:end
-    )
     # plot trails as highlighted edges
     if ! isnothing(robots)
         for (r, robot) in enumerate(robots)
@@ -174,27 +160,46 @@ function viz_setup(
                 g_trail,
                 layout=layout,
                 node_strokewidth=1,
-                node_size=20,
+                node_size=0,
                 nlabels=nlabels ? ["$v" for v in vertices(g)] : nothing,
-                nlabels_color=:white,
+                nlabels_color=node_color,
                 nlabels_fontsize=9,
                 nlabels_align=(:center, :center),
                 color="black",
-                edge_color=robot_colors[r],
-                edge_width=5,
+                edge_color=(robot_colors[r], 0.5),
+                edge_width=8,
                 curve_distance_usage=true,
                 arrow_shift=:end
             )
         end
     end
+    # plot graph with nodes and edges colored
+    graphplot!(
+        g,
+        layout=layout,
+        node_size=25,
+        node_color=node_color,
+        node_strokewidth=1,
+        color="white",
+        edge_color=edge_color,
+        nlabels=nlabels ? ["$v" for v in vertices(g)] : nothing,
+        nlabels_color=:black,
+        nlabels_fontsize=12,
+        nlabels_align=(:center, :center),
+        arrow_shift=:end
+    )
     if show_robots
         # start node = 1
-        x = layout[1][1]
-        y = layout[1][2]
-        for i = 1:top.nb_robots
-            θ = π/2 * (i - 1)
-            scatter!([x + r*cos(θ)], [y + r*sin(θ)],
-                marker='✈',markersize=30, color=robot_colors[i])
+        for r = 1:top.nb_robots
+            id_node_robots = 1
+            if ! isnothing(robots) && length(robots) == top.nb_robots
+                id_node_robots = robots[r].trail[end]
+            end
+            x = layout[id_node_robots][1]
+            y = layout[id_node_robots][2]
+            θ = π/2 * (r - 1)
+            scatter!([x + radius*cos(θ)], [y + radius*sin(θ)],
+                marker='✈',markersize=30, color=robot_colors[r])
         end
     end
     if depict_r
@@ -225,7 +230,7 @@ function viz_setup(
 end
 
 """
-    viz_soln(soln, top; nlabels=false, savename=nothing)
+    viz_soln(soln, top; nlabels=false, savename=nothing, show_𝔼=true)
 
 viz a proposed solution.
 """
@@ -323,24 +328,28 @@ end
 function viz_pheremone(
     pheremone::Pheremone,
     top::TOP;
-    nlabels::Bool=false
+    nlabels::Bool=false,
+    savename::Union{Nothing, String}=nothing
 )
     g = top.g
 
     # layout
     layout = _g_layout(top)
 
+    τ_rs = [pheremone.τ_r[ed.src, ed.dst] for ed in edges(g)]
+    τ_ss = [pheremone.τ_s[ed.src, ed.dst] for ed in edges(g)]
+
     edge_color = [
         [get(
-            ColorSchemes.Greens,
+            ColorSchemes.algae,
             pheremone.τ_r[ed.src, ed.dst],
-            (minimum(pheremone.τ_r), maximum(pheremone.τ_r))
+            (minimum(τ_rs), maximum(τ_rs))
         )
             for ed in edges(g)],
         [get(
-            ColorSchemes.Reds,
+            ColorSchemes.amp,
             pheremone.τ_s[ed.src, ed.dst],
-            (minimum(pheremone.τ_s), maximum(pheremone.τ_s))
+            (minimum(τ_ss), maximum(τ_ss))
         )
             for ed in edges(g)],
     ]
@@ -381,6 +390,9 @@ function viz_pheremone(
     axs_hist[2].xlabel = "τₛ"
     xlims!(axs_hist[1], 0.0, nothing)
     xlims!(axs_hist[2], 0.0, nothing)
+    if ! isnothing(savename)
+        save(savename * ".pdf", fig)
+    end
     return fig
 end
 
