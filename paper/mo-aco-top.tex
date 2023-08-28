@@ -40,6 +40,7 @@
 \DeclareRobustCommand{\cms}[1]{ {\begingroup\sethlcolor{fruitpushorange}\hl{(cms:) #1}\endgroup} }
 %SetFonts
 
+\sloppy 
 
 \title{Bi-objective ant colony optimization of the risky, robot-team orienteering problem}
 \author[1]{Cory M. Simon}
@@ -79,64 +80,87 @@ As a case study, we illustrate with an information-gathering mission in a nuclea
 \clearpage
 
 \section{Introduction}
-Mobile robots---aerial, ground, and aquatic---equipped with sensors and/or cargo have applications in agriculture \cite{santos2020path}, commerce \cite{bogue2016growth}, the delivery of goods \cite{coelho2014thirty}, search-and-rescue \cite{queralta2020collaborative}, chemical, biological, radiological, or nuclear incident response \cite{murphy2012projected}, environmental monitoring \cite{dunbabin2012robots}, industrial chemical plant safety monitoring \cite{soldan2014towards}, forest fire monitoring and fighting \cite{merino2012unmanned}, and military surveillance and reconnaissance. 
-Deployment of a \emph{team} of robots can increase spatial coverage and decrease the time to achieve the mission. 
-In such cases, a team of mobile robots may coordinate their paths in the environment to cooperatively achieve some shared objective \cite{parker2007distributed}.
+Mobile robots---aerial, ground, or aquatic---equipped with sensors, actuators, and/or cargo have applications in agriculture (eg.
+ planting and harvesting crops, spraying pesticide, monitoring crop health) \cite{santos2020path}, commerce (eg.\ order fulfillment in warehouses) \cite{wurman2008coordinating}, the delivery of goods \cite{coelho2014thirty}, search-and-rescue \cite{queralta2020collaborative}, chemical, biological, radiological, or nuclear incident response (eg.\ safely identifying the location and severity of the incident and the hazardous agents released) \cite{murphy2012projected}, environmental monitoring \cite{dunbabin2012robots}, industrial chemical plant safety monitoring \cite{soldan2014towards}, forest fire monitoring and fighting \cite{merino2012unmanned}, and military surveillance and reconnaissance. 
+In many of these applications, we wish for a \emph{team} of mobile robots to coordinate their paths in the environment to cooperatively achieve a shared objective \cite{parker2007distributed,lesser1999cooperative}.
+Deployment of a team of robots, as opposed to a single robot, can increase spatial coverage and decrease the time to achieve the mission. 
 
-In some applications, the team of mobile robots must locomote in an environment that poses risks of robot failures, due to inherently dangerous terrain, harsh weather, the presence of heat, radiation, or corrosive chemicals, or an adversary with the capability to attack robots. Then, the robots may coordinate their paths in consideration of these risks, so that achievement of the team objective is resilient to robot failures \cite{zhou2021multi}. A \emph{resilient} team of robots can (i) withstand failures/attacks with minimal concession of the objective and/or (ii) adapt to attacks/failures of robots on the team to maximize achievement of the objective. 
+In some applications, the team of mobile robots must locomote in an environment that poses risks of robot failures, due to inherently dangerous terrain, harsh weather, the presence of heat, radiation, or corrosive chemicals, or an adversary with the capability to attack robots. Then, the robots should coordinate their paths in consideration of these risks, so that achievement of the team objective is resilient to robot failures \cite{zhou2021multi}. A \emph{resilient} team of robots can (i) withstand failures/attacks with minimal concession of the objective and/or (ii) adapt to attacks/failures of robots on the team to maximize achievement of the objective. 
 
-Several algorithms have been developed for multiple robots to coordinatively plan their paths in risky environments abstracted as graphs (nodes: locations; edges: paths between locations) \cite{jorgensen2018team,shi2023robust,zhou2022distributed}. 
+Several algorithms have been developed for multiple robots to coordinatively plan their paths in risky environments, abstracted as graphs (nodes: locations; edges: paths between locations) \cite{jorgensen2018team,shi2023robust,zhou2022distributed}. 
 For example, in the Team Surviving Orienteers (TSO) problem \cite{jorgensen2018team}, each node of the graph offers a reward to the team when visited by a robot, but each edge traversal by a robot poses a risk of failure. The objective in the [offline] TOP is to plan the paths of the robots (between two specified nodes) to maximize the expected team reward under the constraint that each robot survives the mission with a probability above a certain threshold. 
 Relatedly, the Foraging Route with the Maximum Expected Utility problem \cite{di2022foraging} considers a single robot foraging in an adversarial environment like in the TOP, but the rewards collected by the robot are not accumulated until/unless the robot returns to the home station safely.
-In the [offline] Robust Multiple-path Orienteering Problem \cite{shi2023robust}, nodes offer rewards if visited by a robot and that robot returns from the mission; the paths of the $N$ robots are planned to maximize the team reward under the worst-case attacks of $\alpha<N$ of the robots. The optimal path plans must trade off (i) redundancy in the nodes visited to endow robustness against worst-case attacks and (ii) coverage of many nodes to collect many rewards.
-
-
+In the [offline] Robust Multiple-path Orienteering Problem \cite{shi2023robust}, nodes offer rewards if visited by a robot that returns safely from the mission; the paths of the $N$ robots are planned to maximize the team reward under the worst-case attacks of $\alpha<N$ of the robots by an adversary. The optimal path plans must trade off (i) redundancy in the nodes visited to endow robustness against worst-case attacks and (ii) coverage of many nodes to collect many rewards.
 
 \section{The bi-objective risky team orienteering problem (BO-RTOP)}
-In the risky team orienteering problem, a team of mobile robots must coordinatively plan closed trails on a directed graph to harvest rewards offered by its nodes, but each edge-traversal by a robot imposes a risk of failure. 
-We wish to find the set of Pareto-optimal trail plans for the robot team that maximize (i) the number of robots that survive the mission and (ii) the expected rewards collected by the team.
-Offline.
+In the risky team orienteering problem (RTOP), our task is to coordinatively plan the trails of a team of mobile robots on a directed graph whose (i) nodes offer rewards that are irrevocably harvested [for the team] by visiting robots and (ii) edges, when traversed by a robot, impose a risk of robot failure/destruction.
+We consider the offline setting, where the trails are set at the beginning of the mission, then followed by the robots without updates during the mission to eg.\ adapt to robot failures. 
+For the bi-objective RTOP (BO-RTOP), we wish to find the set of Pareto-optimal trail plans for the robot team that maximize the expected (i) number of robots that survive the mission and (ii) rewards collected by the team.
 
+The BO-RTOP follows the TSOP setup in Ref.~\cite{jorgensen2018team} but with three changes: we (i) omit the constraints that each robot survives above a threshold probability, (ii) allow robots to follow trails instead of paths (the latter prohibits a robot from visiting a node more than once), and (iii) aim to maximize two objectives instead of one.
 
-Our problem setup follows Ref.\cite{jorgensen2018team}, except we consider two objectives and omit the constraints that each robot survives with a certain probability.
+\subsection{Spatially abstracting the environment as a directed graph}
+We abstract the environment as a directed graph $G=(\mathcal{V}, \mathcal{E})$. Each node $v\in \mathcal{V}$ represents a location. Each edge $(v, v^\prime) \in \mathcal{E}$ represents the best (e.g., shortest or safest) path (in Euclidean space) for a mobile robot to take from the location represented by node $v$ to the location represented by $v^\prime$.
+Note, we do not assume the graph is complete\footnote{Ie., not every pair of distinct nodes $\{v, v^\prime\}$ is joined by two edges $(v, v^\prime)$ and $(v^\prime, v)$. 
+Eg., consider a building with node $v$ representing a room on the first floor, node $v^\prime$ a room on the second floor, and node $u$ as the staircase between the first and second floors. Traveling from node $v$ to node $v^\prime$ necessitates passing through node $u$ first.}.
 
-\subsection{Spatial abstraction of the environment}
-We abstract the environment as a directed graph $G=(\mathcal{V}, \mathcal{E})$. Each node $v\in \mathcal{V}$ represents a location. Each edge $(v, v^\prime) \in \mathcal{E}$ represents the best (e.g., shortest or safest) path (in Euclidean space) for a mobile robot to take from node $v$ to node $v^\prime$.
-Note, we do not assume the graph is complete\footnote{I.e., not every pair of distinct nodes $\{v, v^\prime\}$ is joined by two edges $(v, v^\prime)$ and $(v^\prime, v)$. E.g., consider one node as the entrance to a hallway and another node as a small room down the hallway. Visiting the room necessitates entering the hallway.}.
+\subsection{A team of mobile robots}
+A homogenous team of $K$ robots all begin at the base node $v_b \in \mathcal{V}$ of the graph $G$. The robots are \emph{mobile}, generally meaning they may walk on the graph $G$.
 
-\subsection{Mobile robots following trails in a risky environment}
-\paragraph{A team of mobile robots.} 
-A homogenous team of $K$ mobile robots begin at the base node $v_b \in \mathcal{V}$ of the graph $G$. 
+\subsection{The robot-team trail plans}
+Each robot on the team plans to execute/follow a closed, directed trail $\rho$ on the graph $G$.  
+The set of closed, directed trails $\{\rho_1, ..., \rho_K\}$ the robot-team plans to follow are the \emph{robot-team trail plans} for the mission---``plans'' because robots may fail/get destroyed while following these trails. 
+Of course, any robot that fails before its trail is completed cannot visit the remainder of the nodes in its planned trail.
 
-\paragraph{The robot-team trail plans.}
-Each robot plans to execute/follow a closed, directed trail $\rho$ on the graph $G$.  
-We refer to the set of closed, directed trails $\{\rho_1, ..., \rho_K\}$ the team of robots plans to take as the \emph{robot-team trail plans} for the mission.
-These are only ``plans'' because, during execution of them, each robot may fail/get destroyed at some node or edge along its planned trail. Any robot that fails before its trail is completed cannot visit the remainder of the nodes in its planned trail.
-
-\subparagraph{A directed trail.} A directed trail is a sequence of nodes $\rho=(\rho(0), \rho(1), ..., \rho(\ell))$ (so, $\rho(i) \in \mathcal{V}$) such that 
-(i) for each node in the sequence except the last one, an edge is directed from that node to the next node in the sequence, i.e., $(\rho(i-1), \rho(i))\in\mathcal{E}$ for $i \in \{1, ..., \ell\}$
+\subparagraph{A closed, directed trail.} A directed trail is a sequence of nodes $\rho=(\rho(0), \rho(1), ..., \rho(\lvert \rho \rvert))$ (so, $\rho(i) \in \mathcal{V}$) such that 
+(i) for each node in the sequence except the last one, an edge is directed from that node to the next node in the sequence, ie., $(\rho(i-1), \rho(i))\in\mathcal{E}$ for $i \in \{1, ..., \lvert \rho \rvert \}$,
 and 
-(ii) the edges in the multiset of $\ell =\lvert \rho \rvert$ edges $\{(\rho(i-1), \rho(i))\}_{i=1}^{\ell}$ traversed in the trail are distinct.
-That the trail is closed means $\rho(0)=\rho(\ell)$, which, here, $=v_b$.
+(ii) the edges traversed in the trail are unique, ie. each edge in the multiset $\{(\rho(i-1), \rho(i))\}_{i=1}^{\ell}$ has a multiplicity of one.
+That the trail is closed means the trail begins and ends at the same node, ie. $\rho(0)=\rho(\lvert \rho \rvert)$, which, here, $=v_b$.
 The nodes in the trail need not be distinct.
 
-\subparagraph{The static/offline setting.} During the mission, the robots cannot communicate with each other to be aware of failures, and we cannot send communications to the robots. The robot-team trail plans are set at the beginning of the mission, then followed by the robots without adaptation or updates to the plans during the mission. 
+\subparagraph{The static/offline setting.} 
+The robot-team trail plans are set at the beginning of the mission, then followed by the robots without adaptation or updates during the mission eg. in reaction to realized robot failures. 
+This corresponds to a situation where the robots cannot communicate with each other, nor can the command center send communications to the robots. 
 
-\paragraph{The risks while walking on the graph.}
+\subsection{The model of the risk of robot failure/destruction during trail-following} 
 Each robot incurs a risk of failure/destruction while following its path $\rho$. 
-Specifically, starting in a surviving state at some node $v$, a robot survives the lumped process of (i) traversing edge $(v, v^\prime) \in \mathcal{E}$ and (ii) visiting node $v^\prime$ with probability $\omega((v, v^\prime))$. 
+Specifically, starting (in a surviving state) at some node $v$, a robot survives the lumped process of (i) traversing edge $(v, v^\prime) \in \mathcal{E}$ and (ii) visiting node $v^\prime$ with probability $\omega(v, v^\prime)$. 
 We assume (i) each outcome (success or failure) of an edge traversal followed by a node visit by a robot is an independent event and (ii) survival probabilities are static over the course of the mission. 
-Thus, the robot survival probability function $\omega: \mathcal{E} \rightarrow [0, 1]$ characterizes the survival probabilities of the $K$ robots with trail plans $\{\rho_1, ..., \rho_K\}$ on the graph $G$.% and (2) the expected utility of the rewards harvested by the robots along their paths, which we write next. 
+Thus, the robot survival probability function $\omega: \mathcal{E} \rightarrow [0, 1]$ characterizes the survival probabilities of the $K$ robots following trail plans $\{\rho_1, ..., \rho_K\}$ on the graph $G$.% and (2) the expected utility of the rewards harvested by the robots along their paths, which we write next. 
 
-\subparagraph{Remark on symmetry.} We do not assume $\omega$ is symmetric, i.e., that $\omega((v, v^\prime)) = \omega((v^\prime, v))$. The traversal from node $v$ to $v^\prime$ may be more dangerous than the traversal from $v^\prime$ to $v$ owing to e.g., strong air or water currents in the direction $v^\prime$ to $v$ or a robot sensor at node $v$ that alerts the adversary to attempt to intercept the robot during its outgoing journey. Even if edge traversal risks are symmetric, the action of visiting a node could impose a risk, and node $v$ may be more or less dangerous than node $v^\prime$, breaking symmetry. 
+\subparagraph{Remark on symmetry.} We do not assume $\omega$ is symmetric, ie., that $\omega(v, v^\prime) = \omega(v^\prime, v)$. The traversal from node $v$ to $v^\prime$ may be more dangerous than the traversal from $v^\prime$ to $v$ owing to eg., (i) strong air or water currents in the direction $v^\prime$ to $v$ or (ii) a robot detector at node $v$ that can alert the adversary to attempt to intercept the robot during its outgoing journey. Even if edge traversal risks are symmetric, the action of visiting a node be risky, and node $v$ may be more or less dangerous than node $v^\prime$, breaking symmetry. 
 
-\paragraph{Survival probabilities.} We now write some useful robot survival probabilities based on this risky-traversal model.
-\subparagraph{Survival of an individual robot along its trail.}
+\subparagraph{Interpretation of the robot survival probability function.} We model the survival/failure of a robot traversing an edge as stochastic owing to eg. (i) the unpredictable nature of eg. an aerial robot crashing into an obstacle or a ground robot getting stuck in rocks or mud or (ii) an adversary, present on the edge, with imperfect capability to (a) detect and/or (b) attack robots.
+
+\paragraph{Survival probabilities.} 
+We now derive some useful robot survival probabilities based on the risky-traversal model encoded in the robot survival probability function $\omega$.
+
+\subparagraph{Survival of an individual robot following a trail.}
 Let $S_n(\rho) : \{\text{fail}, \text{survive}\} \rightarrow \{0, 1\} $ be the Bernoulli random variable that is $1$ if a robot following trail $\rho$ survives to visit the $n$th node in this trail, and $0$ if it does not. For the event of survival, the robot must survive its traversal of \emph{all} of the first $n$ edges in its path, so:
 \begin{equation}
-	\pi(S_n(\rho) = 1) = \prod_{i=1}^n \omega((\rho(i-1), \rho(i))) \text{ for } n\in \{0, 1, ..., \lvert \rho \rvert\} \label{eq:pi_S_n}
+	\pi(S_n(\rho) = 1) = \prod_{i=1}^n \omega(\rho(i-1), \rho(i)) \text{ for } n\in \{0, 1, ..., \lvert \rho \rvert\} \label{eq:pi_S_n}
 \end{equation} The factorization owes to the independence of the edge-traversal$+$node-visit events.
 The complement of the event of survival is failure, so $\pi(S_n(\rho) = 0)=1-\pi(S_n(\rho) = 1)$.
+
+\subparagraph{Survival of the team of robots following their trails.}
+Let the random variable $R(\{\rho_1, ..., \rho_K\})$ be the number of robots that survive the mission, where the robot team follows trail plans $\{\rho_1, ..., \rho_K\}$. Owing to the independence of the edge-traversal events, $R$ is the sum of the Bernoulli random variables giving the survival outcomes of each robot over its entire path:
+\begin{equation}
+	R(\{\rho_1, ..., \rho_K\})=\sum_{k=1}^K S_{\lvert \rho_k \rvert}(\rho_k). \label{eq:R_sum}
+\end{equation}
+Thus, $R$ is distributed according to the Poisson-Binomial distribution \cite{tang2023poisson}.
+The probability that $r$ robots survive the mission is:
+\begin{multline}
+	\pi(R=r) = \sum_{\substack{\mathcal{R} \subseteq \{1, ..., K\} :  \\ \lvert \mathcal{R} \rvert = r} } \,
+	\prod_{k \in \mathcal{R}} \pi(S_{\lvert \rho_k \rvert}(\rho_k) = 1)
+	\prod_{k \in \{1, ..., K\} \setminus \mathcal{R}} [1- \pi(S_{\lvert \rho_k \rvert}(\rho_k) = 1)], \\ \text{ for } r \in \{0, ..., K\}
+	\label{eq:R_pb}
+\end{multline} with $ \pi(S_{\lvert \rho_k \rvert}(\rho_k) = 1)$ in eqn.~\ref{eq:pi_S_n}.
+Eqn.~\ref{eq:R_pb} sums over all $\binom{K}{r}$ possible size-$r$ surviving subsets of the $K$ robots; the first product is the probability that all of those robots indeed survive their trails, and the second product is the probability that the other robots indeed fail somewhere along their trails.
+Seen from eqn.~\ref{eq:R_sum}, the expected number of robots that survive the mission is:
+\begin{equation}
+	\mathbb{E}[R(\{\rho_1, ..., \rho_K\})]=\sum_{i=1}^K \mathbb{E}[S_{\lvert \rho_i \rvert}(\rho_i)] = \sum_{i=1}^K  \pi(S_{\lvert \rho_k \rvert}(\rho_k) = 1).
+\end{equation}
 
 \subparagraph{Node visit probabilities.} 
 Let the random variable $Z_v(\rho)$ be the number of times a robot following path $\rho$ visits node $v\in \mathcal{V} \setminus \{v_b\}$. 
@@ -156,23 +180,7 @@ The probability that node $v$ is visited by robot following trail $\rho$ is zero
 	\end{cases} \label{eq:node_visisted}
 \end{equation}
 
-\subparagraph{Survival of the team of robots along their trails.}
-Let the random variable $R(\{\rho_1, ..., \rho_K\})$ be the number of robots that survive the mission when the robot-team trail plans are $\{\rho_1, ..., \rho_K\}$. The image of $R$ is $\text{Im}[R] = \{0, ..., K\}$, and it is the sum of the individual robot survival [Bernoulli] random variables:
-\begin{equation}
-	R(\{\rho_1, ..., \rho_K\})=\sum_{k=1}^K S_{\lvert \rho_k \rvert}(\rho_k). \label{eq:R_sum}
-\end{equation}
-Thus, $R$ is distributed according to the Poisson-Binomial distribution \cite{tang2023poisson}:
-\begin{equation}
-	\pi(R=r) = \sum_{\substack{\mathcal{R} \subseteq \{1, ..., K\} :  \\ \lvert \mathcal{R} \rvert = r} } 
-	\prod_{k \in \mathcal{R}} \pi(S_{\lvert \rho_k \rvert}(\rho_k) = 1)
-	\prod_{k \in \{1, ..., K\} \setminus \mathcal{R}} [1- \pi(S_{\lvert \rho_k \rvert}(\rho_k) = 1)], % \text{ for } r \in \{0, ..., K\}
-	\label{eq:R_pb}
-\end{equation} with $ \pi(S_{\lvert \rho_k \rvert}(\rho_k) = 1)$ in eqn.~\ref{eq:pi_S_n}.
-For a given number of robots that survive $r \in \{0, ..., K\}$, eqn.~\ref{eq:R_pb} sums over all possible $\binom{K}{r}$ combinations of the robots that could have survived the mission; the first product is the probability that all of those robots would survive their trails, and the second product is the probability that the other robots fail somewhere along their trails.
-Seen from eqn.~\ref{eq:R_sum}, the expectation of $R$ is:
-\begin{equation}
-	\mathbb{E}[R(\{\rho_1, ..., \rho_K\})]=\sum_{i=1}^K \mathbb{E}[S_{\lvert \rho_i \rvert}(\rho_i)] = \sum_{i=1}^K  \pi(S_{\lvert \rho_k \rvert}(\rho_k) = 1).
-\end{equation}
+
 
 \subsection{Reward structure}
 Finally, the reason the robots are following their trails on the graph is to collect rewards from the nodes.
