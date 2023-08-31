@@ -107,9 +107,9 @@ Eg., consider a building with node $v$ representing a room on the first floor, n
 \subsection{A team of mobile robots}
 A homogenous team of $K$ robots all begin at the base node $v_b \in \mathcal{V}$ of the graph $G$. The robots are \emph{mobile}, generally meaning they may walk on the graph $G$.
 
-\subsection{The robot-team trail plans}
+\subsection{The robot-team trail plan}
 Each robot on the team plans to execute/follow a closed, directed trail $\rho$ on the graph $G$.  
-The set of closed, directed trails $\{\rho_1, ..., \rho_K\}$ the robot-team plans to follow are the \emph{robot-team trail plans} for the mission---``plans'' because robots may fail/get destroyed while following these trails. 
+The set of closed, directed trails $\{\rho_1, ..., \rho_K\}$ the robot-team plans to follow are the \emph{robot-team trail plan} for the mission---``plans'' because robots may fail/get destroyed while following these trails. 
 Of course, any robot that fails before its trail is completed cannot visit the remainder of the nodes in its planned trail.
 
 \subparagraph{A closed, directed trail.} A directed trail is a sequence of nodes $\rho=(\rho(0), \rho(1), ..., \rho(\lvert \rho \rvert))$ (so, $\rho(i) \in \mathcal{V}$) such that 
@@ -120,14 +120,14 @@ That the trail is closed means the trail begins and ends at the same node, ie. $
 The nodes in the trail need not be distinct.
 
 \subparagraph{The static/offline setting.} 
-The robot-team trail plans are set at the beginning of the mission, then followed by the robots without adaptation or updates during the mission eg. in reaction to realized robot failures. 
+The robot-team trail plan is set at the beginning of the mission, then followed by the robots without adaptation or updates during the mission eg. in reaction to realized robot failures. 
 This corresponds to a situation where the robots cannot communicate with each other, nor can the command center send communications to the robots. 
 
 \subsection{The model of the risk of robot failure/destruction during trail-following} 
 Each robot incurs a risk of failure/destruction while following its path $\rho$. 
 Specifically, starting (in a surviving state) at some node $v$, a robot survives the lumped process of (i) traversing edge $(v, v^\prime) \in \mathcal{E}$ and (ii) visiting node $v^\prime$ with probability $\omega(v, v^\prime)$. 
 We assume (i) each outcome (success or failure) of an edge traversal followed by a node visit by a robot is an independent event and (ii) survival probabilities are static over the course of the mission. 
-Thus, the robot survival probability function $\omega: \mathcal{E} \rightarrow [0, 1]$ characterizes the survival probabilities of the $K$ robots following trail plans $\{\rho_1, ..., \rho_K\}$ on the graph $G$.% and (2) the expected utility of the rewards harvested by the robots along their paths, which we write next. 
+Thus, the robot survival probability function $\omega: \mathcal{E} \rightarrow [0, 1]$ characterizes the survival probabilities of the $K$ robots following trail plan $\{\rho_1, ..., \rho_K\}$ on the graph $G$.% and (2) the expected utility of the rewards harvested by the robots along their paths, which we write next. 
 
 \subparagraph{Remark on symmetry.} We do not assume $\omega$ is symmetric, ie., that $\omega(v, v^\prime) = \omega(v^\prime, v)$. The traversal from node $v$ to $v^\prime$ may be more dangerous than the traversal from $v^\prime$ to $v$ owing to eg., (i) strong air or water currents in the direction $v^\prime$ to $v$ or (ii) a robot detector at node $v$ that can alert the adversary to attempt to intercept the robot during its outgoing journey. Even if edge traversal risks are symmetric, the action of visiting a node be risky, and node $v$ may be more or less dangerous than node $v^\prime$, breaking symmetry. 
 
@@ -146,7 +146,7 @@ The complement of the event of survival is failure, so $\pi(S_n(\rho) = 0)=1-\pi
 Of course, the outcome $S_n(\rho)=0$ implies $S_{n+i}(\rho)=0$ for $i \in \{1, ..., \lvert \rho \rvert - n\}$ since, once a robot fails along its trail, it cannot survive to visit nodes later in the trail.
 
 \subparagraph{Survival of the team of robots following their trails.}
-Let the random variable $R(\{\rho_1, ..., \rho_K\})$ be the number of robots that survive the mission, where the robot team follows trail plans $\{\rho_1, ..., \rho_K\}$. Owing to the independence of the edge-traversal events and thus of robot survival events, $R$ is the sum of the Bernoulli random variables giving the survival outcomes of each robot over its entire path:
+Let the random variable $R(\{\rho_1, ..., \rho_K\})$ be the number of robots that survive the mission, where the robot team follows trail plan $\{\rho_1, ..., \rho_K\}$. Owing to the independence of the edge-traversal events and thus of robot survival events, $R$ is the sum of the Bernoulli random variables giving the survival outcomes of each robot over its entire path:
 \begin{equation}
 	R(\{\rho_1, ..., \rho_K\})=\sum_{k=1}^K S_{\lvert \rho_k \rvert}(\rho_k). \label{eq:R_sum}
 \end{equation}
@@ -207,7 +207,7 @@ with
 \end{align}
 
 \subparagraph{Visitation of a node by the team of robots following their trails.} 
-The number of times node $v$ is visited by \emph{any} robot belonging to the robot team following trail plans $\{\rho_1, ..., \rho_K\}$ is
+The number of times node $v$ is visited by \emph{any} robot belonging to the robot team following trail plan $\{\rho_1, ..., \rho_K\}$ is
 \begin{equation}
 	T_v(\{\rho_1, ..., \rho_K\} ) = \sum_{k=1}^K T_v(\rho_k),
 \end{equation} owing to independence of the robot survival events. 
@@ -232,13 +232,13 @@ the number of visits node $v$ receives by a robot over the course of the mission
  the additive reward accumulated by the team from that node.
 Note, even if the robot fails after leaving a node, it counts as a visit to that node.
 In other words, the reward offered by a node is immediately and irrevocably accumulated by the team after a visit by a robot on the team.
-Then, the total utility collected by the robot-team following trail plans $\{\rho_1, ..., \rho_K\}$ is the random variable:
+Then, the total utility collected by the robot-team following trail plan $\{\rho_1, ..., \rho_K\}$ is the random variable:
 \begin{equation}
 U(\{\rho_1,...,\rho_K\}) = \sum_{v\in\mathcal{V}\setminus \{v_b\}} u_v\left ( T_v(\{\rho_1, ..., \rho_K\}) \right).
 \end{equation}
 (The base node $v_b$ does not offer reward to the team.)
 
-The expectation utility accumulated over the mission by a robot-team following trail plans $\{\rho_1, ..., \rho_K\}$ is:
+The expectation utility accumulated over the mission by a robot-team following trail plan $\{\rho_1, ..., \rho_K\}$ is:
 \begin{equation}
 	\mathbb{E}[U(\{\rho_1,...,\rho_K\})]= \sum_{v\in\mathcal{V}\setminus \{v_b\}} \sum_{t= 0}^{\sum_{k=1}^K \lvert \theta_v(\rho_k) \rvert } t u_v(t) \pi(T_v(\{\rho_1, ..., \rho_K\}) = t)
 \end{equation}
@@ -254,39 +254,50 @@ In the case of single-visit rewards, a node can offer reward to only a single ro
 \end{equation} where $\upsilon_v \in \mathbb{R}_{\geq 0}$ is the reward offered by node $v$. And, the expected team-reward is:
 \begin{align}
 	\mathbb{E}[U(\{\rho_1, ..., \rho_K\}) & = \sum_{v \in \mathcal{V} \setminus \{v_b\}} \upsilon_v \pi(T_v(\{\rho_1, .., \rho_K\}) \geq 1) \\
-		      & = \sum_{v \in \mathcal{V} \setminus \{v_b\}} \upsilon_v \left(1 - \prod_{k=1}^K [1 - \pi(T_v(\rho_k) =0)] \right)
+		      & = \sum_{v \in \mathcal{V} \setminus \{v_b\}} \upsilon_v \left(1 - \prod_{k=1}^K  \pi(T_v(\rho_k) =0) \right)
 \end{align} since the event that node $v$ is visited by one or more robots is the complement of the event that none of the robots on the team visit it.
 
 \subparagraph{Multi-visit rewards.}
 
 \subsection{The bi-objective optimization problem}
-We wish to find the team-robot trail plans $\{\rho_1, ..., \rho_K\}$ that maximize two objectives, (1) the expected team-reward and (2) the expected number of robots that survive the mission:
+We wish to find the team-robot trail plan $\mathcal{P}:=\{\rho_1, ..., \rho_K\}$ that maximizes two objectives, (1) the expected team-reward and (2) the expected number of robots that survive the mission:
 \begin{equation}
-\max_{\{\rho_1, ..., \rho_K\}} [\mathbb{E}[U(\{\rho_1, ..., \rho_K\})], \mathbb{E}[R(\{\rho_1, ..., \rho_K\})]].
+\max_{\mathcal{P}=\{\rho_1, ..., \rho_K\}} [\mathbb{E}[U(\mathcal{P})], \mathbb{E}[R(\mathcal{P})]].
+\label{eq:the_two_objs}
 \end{equation}
-These two objectives may compete, in the sense that the ultimate train-plans chosen for the mission may depend on the tradeoff between the expected team-reward and the expected survivability. Consequently, there may not exist a utopian team trails plan that simultaneously maximizes both objectives, and instead we seek the Pareto-optimal set of team-robot trail plans. Then, we present the Pareto set of solutions to the decision-maker, who ultimately chooses the plans according to his or her values in terms of the importance of team-reward vs. robot survival. 
 
-\paragraph{Pareto-optimal team-robot trail plans.} A team trail plan $\{\rho_1, ..., \rho_K\}$ Pareto-dominates team trail plan  $\{\rho_1^\prime, ..., \rho_K^\prime\}$ if both
+There may not exist a utopian robot-team trail plan that simultaneously maximizes both objectives. 
+That is, these two objectives may compete, implying the ultimate team trail plan selected for the mission may depend on a tradeoff between the expected utility and the expected survival; making this tradeoff requires invoking values held by a (human) decision-maker. Intuitively, valuing survival more than utility will favor trail-plans where robots do not enter dangerous regions of the environment, even if large rewards are contained there, and valuing utility more than survival will instead send robots into these dangerous regions to attempt collection of those rewards. 
+
+Owing to the inherent tradeoff between survivability and collected reward, herein we seek the Pareto-optimal set of team-robot trail plans. Then, we present the Pareto set to the decision-maker, who ultimately selects the team-robot trail-plans according to his or her values in terms of the importance of team-reward vs. robot survival. 
+
+\paragraph{Pareto-optimal team-robot trail plans.} 
+A Pareto-optimal robot-team trail plan $\mathcal{P}:\{\rho_1, ..., \rho_K\}$ cannot be altered to
+(1) increase the survivability objective $E[R(\mathcal{P})]$ without compromising (decreasing) the utility objective $E[U(\mathcal{P})]$
+nor
+(2) increase the utility objective $E[U(\mathcal{P})]$ without compromising (decreasing) the survivability objective $E[R(\mathcal{P})]$.
+Formally, a team trail plan $\mathcal{P}:=\{\rho_1, ..., \rho_K\}$ Pareto-dominates team trail plan  $\mathcal{P}^\prime :=\{\rho_1^\prime, ..., \rho_K^\prime\}$ if both
 \begin{align}
-	\mathbb{E}[U(\{\rho_1, ..., \rho_K\})] & \geq \mathbb{E}[U(\{\rho_1^\prime, ..., \rho_K^\prime\})]  \text{ and} \\
-	\mathbb{E}[R(\{\rho_1, ..., \rho_K\})] & \geq \mathbb{E}[R(\{\rho_1^\prime, ..., \rho_K^\prime\})] 
+	\mathbb{E}[U(\mathcal{P})] \geq \mathbb{E}[U(\mathcal{P}^\prime)] & \text{ and }  \mathbb{E}[R(\mathcal{P})] \geq \mathbb{E}[R(\mathcal{P}^\prime)] \\
+	\mathbb{E}[U(\mathcal{P})] > \mathbb{E}[U(\mathcal{P}^\prime)] & \; \text{ or   } \; \mathbb{E}[R(\mathcal{P})] > \mathbb{E}[R(\mathcal{P}^\prime)].
 \end{align}
-and either
-\begin{align}
-	\mathbb{E}[U(\{\rho_1, ..., \rho_K\})] &> \mathbb{E}[U(\{\rho_1^\prime, ..., \rho_K^\prime\})]  \text{ or} \\
-	\mathbb{E}[R(\{\rho_1, ..., \rho_K\})] & > \mathbb{E}[R(\{\rho_1^\prime, ..., \rho_K^\prime\})] .
-\end{align}
-A team trail plan $\{\rho_1, ..., \rho_K\}$ is Pareto-optimal if no other team trail plan Pareto-dominates it.
+A plan $\mathcal{P}$ belongs to the Pareto-optimal set of plans if no other trail plan $\mathcal{P}^\prime$ Pareto-dominates it.
 
 
 % harvest risk different from visit risk. once harvested, then no longer risk for other robots to visit that node.
 
 \section{Bi-objective ant colony optimization}
-stigmergy
+To find the [approximate] set of Pareto-optimal robot-team trail plans, with respect to the two objectives in eqn.~\ref{eq:the_two_objs}, we resort to bi-objective (BO) ant colony optimization (ACO) \cite{iredi2001bi}. 
+ACO \cite{dorigo2006ant}, a form of swarm intelligence \cite{bonabeau1999swarm} inspired by the ants foraging for food via pheromone trails \cite{bonabeau2000inspiration}, is a meta-heuristic for combinatorial optimization problems particularly naturally-suited for finding optimal paths on graphs. 
+
+% stigmergy
+\paragraph{A heterogeneous colony of artificial ants} 
+We have a colony of $N_{\text{ants}}$ artificial ants that each search for Pareto-optimal team-robot trail plans. Each ant is assigned a parameter $\lambda \in [0, 1]$ that dictates how it will balance the two objectives in its search. Intuitively, each ant will prioritize finding robot-team trail-plans belonging to different regions of the Pareto front. Particularly, $\lambda$ closer to zero (one) implies the ant prioritizes maximizing the expected utility $E[U]$ (expected survivability $E[R]$). The colony is heterogeneous, as ant $i\in\{1, ..., N_{\text{ants}}\}$ in the colony is assigned $\lambda_i := (i-1) / (N_{\text{ants}}-1)$. 
 
 \paragraph{Heuristic}
 
-\paragraph{Pheremone}
+\paragraph{Pheromone} The ants lay two distinct species of artificial pheromone on promising edges of the graph $G$---one species for each objective. Let $\tau_r:\mathcal{E}\rightarrow \mathbb{R}_+$ $\tau_u:\mathcal{E}\rightarrow \mathbb{R}_+$ 
+not static tho.
 
 \paragraph{Constructing partial solutions}
 
@@ -298,13 +309,11 @@ stigmergy
 
 Defense Advanced Research Projects Agency (DARPA) Subterranean (SubT) Challenge \cite{chung2023into}
 
-\paragraph{Solutions with different numbers of robots}
-
-\paragraph{Adding adversary with guard}
 
 \section{Discussion}
 
-Fuel constraints.
+Much future work remains.
+The risky orienteering problem can be extended to account for more real-world complexity, such as (a) fuel/battery constraints for the robots and perhaps nodes that serve as fuel/recharging stations, (b) stochastic rewards
 
 other risk metrics \cite{majumdar2020should}.
 
