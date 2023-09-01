@@ -68,13 +68,9 @@
 \maketitle
 
 \begin{abstract}
-In many applications e.g., delivery, patrolling, and information-gathering, a team of mobile [aerial, ground, or aquatic] robots must coordinate their trails in some environment to cooperatively achieve some team-level objective. 
-Robots may risk failure/destruction while traversing some environments, owing to dangerous conditions or the presence of adversaries capable of attacking them. 
-Then, robot trail-planning should account for these risks.
+In many applications e.g., delivery, patrolling, and information-gathering, a team of mobile [aerial, ground, or aquatic] robots must coordinate their trails in some environment to cooperatively achieve some team-level objective. Robots may risk failure/destruction while traversing some environments, owing to dangerous conditions or the presence of adversaries capable of attacking them. Then, robot trail-planning should account for these risks.
 
-Herein, we use ant colony optimization to find the [approximate] Pareto-optimal set of robot trail plans for the bi-objective, risky team orienteering problem, where (i) a team of robots are mobile within an environment abstracted as a graph (nodes: locations, edges: paths between locations); (ii) each node offers a reward to the team when visited by a robot; (iii) the traversal of each edge imposes a risk of robot failure/destruction; and (iv) the two [often, competing] team objectives are to maximize the expected (a) team reward and (b) number of robots that survive the mission.
-Presenting the Pareto-optimal set of robot trail plans to the downstream decision-maker allows them to choose the plans that balance, according to their values, the two objectives. 
-As a case study, we illustrate with an information-gathering mission in a nuclear power plant from a Defense Advanced Research Projects Agency (DARPA) robots challenge.
+Herein, we use ant colony optimization to find the [approximate] Pareto-optimal set of robot trail plans for the bi-objective, risky team orienteering problem, where (i) a team of robots are mobile within an environment abstracted as a graph (nodes: locations, edges: paths between locations); (ii) each node offers a reward to the team when visited by a robot; (iii) the traversal of each edge imposes a risk of robot failure/destruction; and (iv) the two [often, competing] team objectives are to maximize the expected (a) team reward and (b) number of robots that survive the mission. Presenting the Pareto-optimal set of robot trail plans to the downstream decision-maker allows them to choose the plans that balance, according to their values, the two objectives. As a case study, we illustrate with an information-gathering mission in a nuclear power plant from a Defense Advanced Research Projects Agency (DARPA) robots challenge.
 \end{abstract}
 
 \clearpage
@@ -288,20 +284,49 @@ A plan $\mathcal{P}$ belongs to the Pareto-optimal set of plans if no other trai
 
 \section{Bi-objective ant colony optimization}
 To find the [approximate] set of Pareto-optimal robot-team trail plans, with respect to the two objectives in eqn.~\ref{eq:the_two_objs}, we resort to bi-objective (BO) ant colony optimization (ACO) \cite{iredi2001bi}. 
-ACO \cite{dorigo2006ant}, a form of swarm intelligence \cite{bonabeau1999swarm} inspired by the ants foraging for food via pheromone trails \cite{bonabeau2000inspiration}, is a meta-heuristic for combinatorial optimization problems particularly naturally-suited for finding optimal paths on graphs. 
+ACO \cite{dorigo2006ant}, a form of swarm intelligence \cite{bonabeau1999swarm} inspired by ants foraging for food via pheromone trails \cite{bonabeau2000inspiration}, is a meta-heuristic for combinatorial optimization problems---particularly naturally-suited for finding optimal paths on graphs. 
 
 % stigmergy
-\paragraph{A heterogeneous colony of artificial ants} 
-We have a colony of $N_{\text{ants}}$ artificial ants that each search for Pareto-optimal team-robot trail plans. Each ant is assigned a parameter $\lambda \in [0, 1]$ that dictates how it will balance the two objectives in its search. Intuitively, each ant will prioritize finding robot-team trail-plans belonging to different regions of the Pareto front. Particularly, $\lambda$ closer to zero (one) implies the ant prioritizes maximizing the expected utility $E[U]$ (expected survivability $E[R]$). The colony is heterogeneous, as ant $i\in\{1, ..., N_{\text{ants}}\}$ in the colony is assigned $\lambda_i := (i-1) / (N_{\text{ants}}-1)$. 
+We have a colony of $N_{\text{ants}}$ artificial ants that search for Pareto-optimal team-robot trail plans. 
+ACO proceeds in iterations. 
+At each iteration, each ant in the colony constructs a robot-team trail plan $\{\rho_1, ..., \rho_K\}$. 
+The ants collaborate in the search, in that they maintain a shared, global set of Pareto-optimal team-robot trail plans.
 
-\paragraph{Heuristic}
+The ant colony is heterogeneous; each ant is assigned a parameter $\lambda \in [0, 1]$ that dictates how it will balance the two objectives as it searches for a Pareto-optimal team-robot trail plan. Particularly, ant $i\in\{1, ..., N_{\text{ants}}\}$ in the colony is assigned $\lambda_i := (i-1) / (N_{\text{ants}}-1)$. A $\lambda$ closer to zero (one) implies the ant prioritizes maximizing the expected utility $E[U]$ (expected survivability $E[R]$). The idea of having a heterogeneous colony is that each ant focuses on finding robot-team trail-plans belonging to different regions of the Pareto front. 
 
-\paragraph{Pheromone} The ants lay two distinct species of artificial pheromone on promising edges of the graph $G$---one species for each objective. Let $\tau_r:\mathcal{E}\rightarrow \mathbb{R}_+$ $\tau_u:\mathcal{E}\rightarrow \mathbb{R}_+$ 
-not static tho.
+Each ant constructs a team-robot trail plan $\{\rho_1, ..., \rho_K\}$ sequentially, robot-by-robot; i.e., the ant fully constructs the closed trail for robot 1, $\rho_1$, then $\rho_2$, and so on. And, the construction of a trail by an ant proceeds node-by-node, starting at the base node $v_b$; i.e., the ant follows the trail the robot plans to take. Suppose the ant is constructing the closed trail for robot $k$, $\rho_k$, and currently sits at node $x=\rho_k(i)$, meaning that the ant has chosen the first $i$ nodes of robot $k$'s trail, with the partial trail being $\rho_k^\dagger=(v_b, \rho_k(1), ..., \rho_k(i))$. 
+The next node $y=\rho_k(i+1)$ in the trail is chosen probabilistically among those viable, with probability defined according to (i) the amounts $\tau_u(x, y)$ and $\tau_r(x, y)$ of two species of pheromone on the edge from $x$ to $y$ that pertain to the ants' past experience of traversing this edge with respect to the $\mathbb{E}[U]$ and $\mathbb{E}[R]$ objective, (ii) our heuristics $\eta_u(x, y)$ and $\eta_r(x, y)$  that define the [greedy] appeal of taking the edge $u$ to $v$ with goals of optimizing the $\mathbb{E}[U]$ and $\mathbb{E}[R]$ objective, (iii) the previously constructed robot trails $\{\rho_1, ..., \rho_{k-1}\}$, and (iv) how the ant balances the two objectives, encoded in its $\lambda$:
+\begin{equation}
+	\pi(y \mid x) = 
+	\begin{cases}
+		\dfrac{
+		 \left[\tau_r(x, y) \eta_r(x, y) \right]^\lambda \left[ \tau_u(x, y) \eta_u(x, y; \{\rho_1, ..., \rho_{k-1}\}) \right]^{1-\lambda} }{
+		 \sum_{y^\prime \in \mathcal{V}^\dagger} \left[\tau_r(x, y^\prime) \eta_r(x, y^\prime) \right]^\lambda \left[ \tau_u(x, y^\prime) \eta_u(x, y^\prime; \{\rho_1, ..., \rho_{k-1}\}) \right]^{1-\lambda} 
+		 }
+		 &
+		 y \in \mathcal{V}^\dagger
+		  \\
+		 0, & y \notin \mathcal{V}^\dagger
+	\end{cases} \label{eq:prob_x_y}
+\end{equation} where the set of viable next-nodes in the trail, $y=\rho(i+1)$, are those serving as a sink node for an edge (i) whose source node is $x=\rho(i)$ and (ii) has not already been taken in the partial trail $\rho_k^\dagger$:
+\begin{equation}
+ 	\mathcal{V}^\dagger := \{ y : (x, y) \in \mathcal{E} \land \nexists j \in \{1, ..., i\} : (\rho_k^\dagger(j), \rho_k^\dagger(j+1))= (x, y)  \}.
+\end{equation}
+We next explain the pheromone and the heuristic.
 
-\paragraph{Constructing partial solutions}
+\paragraph{Pheromone.} The ants lay two distinct species of artificial pheromone on the edges of the graph $G$---one species for each objective. Let the functions $\tau_r:\mathcal{E}\rightarrow \mathbb{R}_+$ ($\tau_u:\mathcal{E}\rightarrow \mathbb{R}_+$) give the amount of the pheromone species on the edges of the graph $G$ that represent their promise, learned from the past experience of ants, for belonging to robot trails that maximize the expected number of robots that survive $\mathbb{E}[R]$ (the expected team utility gained by the robots $\mathbb{E}[U]$). Thus, when selecting the next node for a trail, eqn.~\ref{eq:prob_x_y} specifies that ants are more likely to traverse an edge if it has a large amount of pheromone on it; depending on the ant's value of $\lambda$, its decision places more or less emphasis on $\tau_u$ vs. $\tau_r$. Note, the pheromone functions are not static, but change from iteration-to-iteration. 
 
-\paragraph{Laying pheremone}
+
+\paragraph{Heuristic.}
+
+\begin{align}
+\eta_r(x, y) & := \omega(x, y) \\
+\eta_u(x, y, \{\rho_1, ..., \rho_{k-1}\}) & :=  \omega(x, y) \mathbb{E}[u_v(T_v(\{\rho_1, ..., \rho_{k-1}\})+1)]
+\end{align}
+marginal expected reward
+
+
+\paragraph{Laying pheromone.}
 
 \section{Results}
 
