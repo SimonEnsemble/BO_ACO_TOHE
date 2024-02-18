@@ -76,6 +76,7 @@ Presenting the Pareto-optimal set of robot trail plans to the downstream decisio
 
 \clearpage
 
+
 \section{Introduction}
 Mobile [aerial, ground, or aquatic] robots equipped with sensors, actuators, and/or cargo have applications in agriculture (eg. planting and harvesting crops, spraying pesticide, monitoring crop health) \cite{santos2020path}, commerce (eg.\ order fulfillment in warehouses) \cite{wurman2008coordinating}, the delivery of goods \cite{coelho2014thirty}, search-and-rescue \cite{queralta2020collaborative}, chemical, biological, radiological, or nuclear incident response (eg.\ safely localizing the source(s) and assessing the severity of the incident) \cite{murphy2012projected}, environmental monitoring \cite{dunbabin2012robots}, safety monitoring of an industrial chemical plant  \cite{soldan2014towards}, forest fire monitoring and fighting \cite{merino2012unmanned}, and military surveillance and reconnaissance. 
 Deploying a \emph{team} of robots, as opposed to a single robot, can increase spatial coverage, decrease the time to achieve the mission, and give resilience to the failure of a robot.
@@ -88,6 +89,8 @@ A \emph{resilient} team of robots \cite{prorok2021beyond} can handle robot failu
 or
 (ii) adapting/reorganizing in response to realized failures of robots on the team to recoup loss in the objective. 
 %  (i) withstand failures/attacks with minimal concession of the objective and/or (ii) adapt to realized failures/attacks of robots on the team to maximize the objective. 
+
+{\color{red} well below is specific to orienteering. should mention orienteering. risky orienteering, call it that?}
 
 Several models and algorithms have been developed for multiple robots to coordinatively plan their paths in risky environments abstracted as graphs (nodes: locations; edges: paths between locations) \cite{jorgensen2018team,shi2023robust,zhou2022distributed}. 
 For example, in the Team Surviving Orienteers (TSO) problem \cite{jorgensen2018team}, each node of the graph offers a reward to the team when visited by a robot, but each edge traversal by a robot poses a risk of failure. The objective in the [offline] TOP is to plan the paths of the robots (from a source node to a destination node) to maximize the expected team reward under the constraint that each robot survives the mission with a probability above a certain threshold. 
@@ -106,7 +109,7 @@ For the bi-objective RTOP (BO-RTOP), we wish to find the set of Pareto-optimal t
     \centering
     \includegraphics[width=0.6\textwidth]{overview.pdf}
     \caption{
-       General problem setup. A team of robots are mobile on a graph. Each node of the graph offers a reward once visited by a robot. Each edge traversal by a robot imposes a risk of robot failure. Our utopian wish is for both a high collected team-reward and survival of the robots.
+       General problem setup. A team of robots are mobile on a graph. Each node of the graph offers a reward once visited by a robot. Each edge traversal by a robot imposes a risk of robot failure. Our utopian wish is for both a high collected team-reward and survival of the robots. {\color{red} show all possible paths and Pareto-plot? just two robots so easier.}
     }
     \label{fig:overview}
 \end{figure}
@@ -126,12 +129,16 @@ Each robot on the team plans to execute/follow a closed, directed trail $\rho$ o
 The set of closed, directed trails $\{\rho_1, ..., \rho_K\}$ the robot-team plans to follow are the \emph{robot-team trail plan} for the mission---``plans'' because robots may fail/get destroyed while following these trails. 
 Of course, any robot that fails before its trail is completed cannot visit the remainder of the nodes in its planned trail.
 
+{\color{red} the path is a tuple. just use ordered list.}
+
 \subparagraph{A closed, directed trail.} A directed trail is a sequence of nodes $\rho=(\rho(0), \rho(1), ..., \rho(\lvert \rho \rvert))$ (so, $\rho(i) \in \mathcal{V}$) such that 
 (i) for each node in the sequence except the last one, an edge is directed from that node to the next node in the sequence, ie., $(\rho(i-1), \rho(i))\in\mathcal{E}$ for $i \in \{1, ..., \lvert \rho \rvert \}$,
 and 
 (ii) the edges traversed in the trail are unique, ie. each edge in the multiset $\{(\rho(i-1), \rho(i))\}_{i=1}^{\ell}$ has a multiplicity of one.
 That the trail is closed means the trail begins and ends at the same node, ie. $\rho(0)=\rho(\lvert \rho \rvert)$, which, here, $=v_b$.
 The nodes in the trail need not be distinct.
+
+{ \color{red} pretty sure we gotta assume edge $(u,v)$ existence implies edge $(v, u)$ or we'll get stuck when there's a lone node? }
 
 \subparagraph{The static/offline setting.} 
 The robot-team trail plan is set at the beginning of the mission, then followed by the robots without adaptation or updates during the mission eg. in reaction to realized robot failures. 
@@ -179,6 +186,12 @@ Seen from eqn.~\ref{eq:R_sum}, the expected number of robots that survive the mi
 \end{equation}
 
 \subparagraph{Visitation of a node by a robot following its trail.} 
+{\color{red} theta I think is just the indices of the trail that correspond to node j. ordered list builder notation.}
+
+\begin{equation}
+	\theta_v(\rho) = (n : n \in (1, ..., \lvert \rho \rvert) ,  \rho(n) = v)
+\end{equation}
+
 Let the random variable $T_v(\rho)$ be the number of times a robot following trail $\rho$ visits node $v\in \mathcal{V} \setminus \{v_b\}$. 
 % If node $v$ does not belong to the planned trail, of course, $T_v=0$. 
 Equivalently, $T_v(\rho)$ is the number of edge-traversal events along the planned trail $\rho$ that (i) result in survival and (ii) land on node $v$ as the sink node. 
@@ -356,11 +369,18 @@ Defense Advanced Research Projects Agency (DARPA) Subterranean (SubT) Challenge 
 \section{Discussion}
 
 Much future work remains.
-The risky orienteering problem can be extended to account for more real-world complexity, such as (a) fuel/battery constraints for the robots and perhaps nodes that serve as fuel/recharging stations, (b) stochastic rewards
+The risky orienteering problem can be extended to account for more real-world complexity, such as (a) fuel/battery constraints for the robots and perhaps nodes that serve as fuel/recharging stations, (b) stochastic rewards.
+
+
+analytical case? star graph.
 
 other risk metrics \cite{majumdar2020should}.
 
-Future work. online
+non-independent edge hops. eg. adversary in certain area, or not.
+
+Future work. online.
+
+if observed then reward diminished.
 
 
 \bibliography{refs}
