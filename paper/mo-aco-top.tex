@@ -102,6 +102,15 @@ In the risky team orienteering problem (RTOP), our task is to coordinatively pla
 We consider the offline setting, where the trails are set at the beginning of the mission, then followed by the robots without updates during the mission to eg.\ adapt to robot failures. 
 For the bi-objective RTOP (BO-RTOP), we wish to find the set of Pareto-optimal trail plans for the robot team that maximize the expected (i) number of robots that survive the mission and (ii) rewards collected by the team.
 
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{overview.pdf}
+    \caption{
+       General problem setup. A team of robots are mobile on a graph. Each node of the graph offers a reward once visited by a robot. Each edge traversal by a robot imposes a risk of robot failure. Our utopian wish is for both a high collected team-reward and survival of the robots.
+    }
+    \label{fig:overview}
+\end{figure}
+
 The BO-RTOP follows the TSOP setup in Ref.~\cite{jorgensen2018team} but with three changes: we (i) omit the constraints that each robot survives above a threshold probability, (ii) allow robots to follow trails instead of paths (the latter prohibits a robot from visiting a node more than once), and (iii) aim to maximize two objectives instead of one.
 
 \subsection{Spatially abstracting the environment as a directed graph}
