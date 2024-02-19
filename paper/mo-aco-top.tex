@@ -185,7 +185,7 @@ The survival/failure of a robot traversing an edge is stochastic owing to eg. (i
 
 \paragraph{The robot-team trail plans.}
 To collect rewards, each robot on the team will plan to execute/follow a closed, directed trail $\rho$ on the graph $G$.  
-The set of closed, directed trails $\{\rho_1, ..., \rho_K\}$ the robot-team plans to follow are the \emph{robot-team trail plans} for the \emph{mission}. These are only ``plans'' because a robot may fail in the process of following its planned trail and thus not actually visit all nodes in its trail plan.
+The set of closed, directed trails $\mathcal{P}:=\{\rho_1, ..., \rho_K\}$ the robot-team plans to follow constitute the \emph{robot-team trail plans} for the \emph{mission}. These are only ``plans'' because a robot may fail in the process of following its planned trail and thus not actually visit all nodes in its trail plan.
 
 \vspace{-\baselineskip}
 \subparagraph{A closed, directed trail.} 
@@ -203,32 +203,37 @@ A \emph{closed} trail begins and ends at the same node, ie. $\rho [0]=\rho[\lver
 The robot-team trail plan is set at the beginning of the mission, then followed by the robots without adaptation or updates during the mission (e.g., in reaction to realized robot failures). 
 I.e., robots cannot communicate their status to the command center during the mission and/or the command center cannot send updated instructions to the robots after the mission executes.
 
-
-
-
-
-
-Then, the total rewards collected by the robot-team following trail plan $\{\rho_1, ..., \rho_K\}$ is the random variable:
+\paragraph{Bi-objective, risky team orienteering problem.}
+Given the graph $G$ as a spatial abstraction of the environment, the node reward functions $\{u_v : v \in\mathcal{V}\}$, the edge survival probability map $\omega$, and a homogenous team of $K$ mobile robots starting at the base node $v_b$, our goal in the \emph{bi-objective, risky team orienteering problem} is to determine the optimal robot-team [closed] trail plans $\{\rho_1, ..., \rho_K\}$ that maximize two-objectives, (1) the expected team-reward and (2) the expected number of robots that survive the mission:
 \begin{equation}
-U(\{\rho_1,...,\rho_K\}) = \sum_{v\in\mathcal{V}\setminus \{v_b\}} u_v\left ( T_v(\{\rho_1, ..., \rho_K\}) \right).
+\max_{\mathcal{P}=\{\rho_1, ..., \rho_K\}} [\mathbb{E}[U(\mathcal{P})], \mathbb{E}[R(\mathcal{P})]].
+\label{eq:the_two_objs}
 \end{equation}
-(The base node $v_b$ does not offer reward to the team.)
-
-\paragraph{Bi-objective, risky team orienteering problem}
-Given the graph $G$ as a spatial abstraction of the environment, the node reward functions $\{u_v : v \in\mathcal{V}\}$, the edge survival probability map $\omega$, and a homogenous team of $K$ mobile robots, our goal in the \emph{bi-objective, risky team orienteering problem} is to determine the optimal robot-team trail plans $\{\rho_1, ..., \rho_K\}$ that maximize two-objectives:
 
 \vspace{-\baselineskip}
-\subparagraph{Objective \#1: the expected number of robots that survive the mission}
-Let $R(\{\rho_1, ..., \rho_K\})$ be the number of robots, on a robot team with trail plans $\{\rho_1, ..., \rho_K\}$, that survive the mission. Because of the stochastic nature of edge survival, $R$ is a random variable. We wish to maximize the expected number of robots that survive the mission, $\mathbb{E}[R(\{\rho_1, ..., \rho_K\})]$.
+\subparagraph{Objective \#1: the expected team reward collected by the robots.}
+Let $T_v(\mathcal{P}) $ be the number of times node $v$ is visited by robots on a robot team with trail plans $\mathcal{P}$. Because of the stochastic nature of edge survival, and thus stochastic nature of which nodes the robots will survive to visit, $T_v$ is a random variable.
+Then, the total team rewards collected by the robot-team following trail plan $\{\rho_1, ..., \rho_K\}$ is also a random variable:
+\begin{equation}
+U(\mathcal{P}) = \sum_{v\in\mathcal{V}} u_v\left ( T_v(\mathcal{P}) \right).
+\end{equation}
+We wish to maximize the expected team reward, $\mathbb{E}[U(\mathcal{P})]]$.
 
-The number of times node $v$ is visited by \emph{any} robot belonging to the robot team following trail plan $\{\rho_1, ..., \rho_K\}$ is $T_v(\{\rho_1, ..., \rho_K\} ) $
-	
 \vspace{-\baselineskip}
-\paragraph{Objective \#2: expected reward}
+\subparagraph{Objective \#2: the expected number of robots that survive the mission.}
+Let $R(\mathcal{P})$ be the number of robots, on a robot team with trail plans $\mathcal{P}$, that survive the mission. Because of the stochastic nature of edge survival, $R$ is a random variable. We wish to maximize the expected number of robots that survive the mission, $\mathbb{E}[R(\mathcal{P})] \in (0, K]$.
 
-\subparagraph{Constraints lacking.} None on fuel. Not on a single robot like in TSOP. not submodular. reward could be negative!
+\subparagraph{Remarks on lacks of constraints/restrictions.} Note, we do not impose constraints on the survival probability of each individual robot as in the TSO formulation. We accept if one [unmanned] robot bears much more risk of destruction than another during the mission. Nor do we constrain the length of the planned trail of the robots. We assume each robot has sufficient fuel/electrical battery power to traverse the graph. We also do not assume the node reward function $u_v$ is necessarily submodular. E.g. in resource delivery, two deliveries could be required to construct some useful equipment from which utility is gained. {\color{red} right, then not diminishing returns?}
+ It could be negative as well, if there is a penalty to visiting certain nodes.
 
-\subparagraph{tradoffi}
+\paragraph{Seeking the Pareto-optimal set of robot-team trail plans.} In most problem instances, there is a conflict between designing the robot-team trail plans that maximizing the expected reward vs. maximizing the number of robots that survive the mission. 
+In one extreme, the robots safely stay at the base station and do not attempt to collect any rewards no matter the [positive] size of the rewards to be gained. 
+At the other extreme, each robot plans to traverse the entire graph to attempt to collect each [suppose, positive and single-visit] reward no matter the risk.
+In other words, there may not exist a utopian robot-team trail plan that simultaneously maximizes both objectives. 
+
+{\color{red} here's where the simple example would help.}
+
+Consequently, we seek
 
 \subsection{Computing survival probabilities.}
 
@@ -265,6 +270,7 @@ Seen from eqn.~\ref{eq:R_sum}, the expected number of robots that survive the mi
 \end{equation}
 
 \subparagraph{Visitation of a node by a robot following its trail.} 
+
 {\color{red} theta I think is just the indices of the trail that correspond to node j. ordered list builder notation.}
 
 \begin{equation}
@@ -366,11 +372,7 @@ In the case of single-visit rewards, a node can offer reward to only a single ro
 \subparagraph{Multi-visit rewards.}
 
 \subsection{The bi-objective optimization problem}
-We wish to find the team-robot trail plan $\mathcal{P}:=\{\rho_1, ..., \rho_K\}$ that maximizes two objectives, (1) the expected team-reward and (2) the expected number of robots that survive the mission:
-\begin{equation}
-\max_{\mathcal{P}=\{\rho_1, ..., \rho_K\}} [\mathbb{E}[U(\mathcal{P})], \mathbb{E}[R(\mathcal{P})]].
-\label{eq:the_two_objs}
-\end{equation}
+
 
 There may not exist a utopian robot-team trail plan that simultaneously maximizes both objectives. 
 That is, these two objectives may compete, implying the ultimate team trail plan selected for the mission may depend on a tradeoff between the expected utility and the expected survival; making this tradeoff requires invoking values held by a (human) decision-maker. Intuitively, valuing survival more than utility will favor trail-plans where robots do not enter dangerous regions of the environment, even if large rewards are contained there, and valuing utility more than survival will instead send robots into these dangerous regions to attempt collection of those rewards. 
