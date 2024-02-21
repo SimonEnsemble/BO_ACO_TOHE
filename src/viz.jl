@@ -401,9 +401,12 @@ end
 
 view area indicator vs iteration.
 """
-function viz_progress(res::MO_ACO_run)
+function viz_progress(res::MO_ACO_run; savename::String="")
     fig = Figure(resolution=the_resolution)
     ax  = Axis(fig[1, 1], xlabel="iteration", ylabel="area indicator")
     lines!(1:res.nb_iters, res.areas)
+    if savename != ""
+        save(savename * ".pdf", fig)
+    end
     fig
 end

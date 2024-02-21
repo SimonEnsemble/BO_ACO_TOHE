@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.27
+# v0.19.38
 
 using Markdown
 using InteractiveUtils
@@ -197,13 +197,13 @@ robots_failure_example = [
 	]
 
 # ╔═╡ 74ce2e45-8c6c-40b8-8b09-80d97f58af2f
-viz_setup(top, nlabels=true, C=2.0, r=0.5, savename="art_gallery", depict_r=false, depict_ω=false, show_robots=true)
+viz_setup(top, nlabels=true, C=2.0, radius=0.5, savename="art_gallery", depict_r=false, depict_ω=false, show_robots=true)
 
 # ╔═╡ e8598540-a37b-4f52-a6ca-819c50411d13
-viz_setup(top, nlabels=true, C=2.0, r=0.5, savename="art_gallery_trail", depict_r=false, depict_ω=false, robots=[robot_example])
+viz_setup(top, nlabels=true, C=2.0, radius=0.5, savename="art_gallery_trail", depict_r=false, depict_ω=false, robots=[robot_example])
 
 # ╔═╡ 2e468a5c-4400-4da8-b2f5-c978065cf440
-viz_setup(top, nlabels=true, C=2.0, r=0.5, savename="art_gallery_trails", depict_r=false, depict_ω=false, 
+viz_setup(top, nlabels=true, C=2.0, radius=0.5, savename="art_gallery_trails", depict_r=false, depict_ω=false, 
 	robots=robots_example
 )
 
@@ -228,7 +228,7 @@ viz_setup(top, nlabels=true, C=2.0, radius=0.6, savename="art_gallery_plans_b4_f
 	robots=robots_example)
 
 # ╔═╡ a8a194e0-28fe-4016-81ba-d1375ad1852e
-viz_setup(top, nlabels=true, C=2.0, r=0.6, savename="art_gallery_plans_all", depict_r=true, depict_ω=false, 
+viz_setup(top, nlabels=true, C=2.0, radius=0.6, savename="art_gallery_plans_all", depict_r=true, depict_ω=false, 
 	robots=robots_example)
 
 # ╔═╡ 9d44f37d-8c05-450a-a448-7be50387499c
@@ -250,11 +250,7 @@ md"### 🐜"
 )
 
 # ╔═╡ 793286fa-ff36-44bb-baaf-e7fd819c5aa4
-res.areas[end] # 945 no weighting. 938 with..
-#  20.21 without considering previous robots. now: ...
-# heuristic and pheremone with knowledge of previous robots: 7.18 / 919.84
-# rescale pheremone: 7.11 / 918
-# old hueristic without knowledge of previous vehicle: 6.8 / 869.0
+res.areas[end]
 
 # ╔═╡ 92d564b1-17f1-4fd1-9e76-8ea1b65c127a
 viz_progress(res, savename="progress")
@@ -267,9 +263,6 @@ viz_soln(res.global_pareto_solns[soln_id], top, show_𝔼=true, savename="a_soln
 
 # ╔═╡ 4769582f-6498-4f14-a965-ed109b7f97d1
 viz_Pareto_front(res.global_pareto_solns, id_hl=soln_id, savename="pareto_front")#)
-
-# ╔═╡ 5e4b3e42-52d9-4f6f-9cc0-f278c0bb5940
-
 
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 viz_pheremone(res.pheremone, top, savename="pheremone")
@@ -344,7 +337,6 @@ end
 # ╟─3d98df3e-ec41-4685-b15d-bd99ec4bd5f7
 # ╠═b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
 # ╠═4769582f-6498-4f14-a965-ed109b7f97d1
-# ╠═5e4b3e42-52d9-4f6f-9cc0-f278c0bb5940
 # ╠═197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 # ╠═17c48342-f684-4149-b1ea-b626896a4691
 # ╠═67c9334e-1155-4ef3-8d75-030dcfc1e570
