@@ -90,7 +90,9 @@ function construct_soln(
 	# ant builds a solution
     for (k, robot) in enumerate(robots)
 		while ! robot.done
-            extend_trail!(robot, ant, pheremone, robots[1:k], top, use_pheremone=use_pheremone, use_heuristic=use_heuristic, consider_previous_robots=consider_previous_robots)
+            extend_trail!(robot, ant, pheremone, robots[1:k], top, 
+                          use_pheremone=use_pheremone, use_heuristic=use_heuristic, 
+                          consider_previous_robots=consider_previous_robots)
 		end
 	end
 

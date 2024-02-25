@@ -4,13 +4,14 @@
 convert robot trail to a directed graph with same nodes as TOP.
 """
 function trail_to_digraph(robot::Robot, top::TOP)
-    g_trail = SimpleDiGraph(nv(top.g))
+    g_trail = MetaDiGraph(nv(top.g))
     for n = 1:length(robot.trail) - 1
         # only add self-loop if it's just staying.
         if (robot.trail[n] == robot.trail[n+1] == 1) & (length(robot.trail) > 2)
             continue
         end
         add_edge!(g_trail, robot.trail[n], robot.trail[n+1])
+        set_prop!(g_trail, robot.trail[n], robot.trail[n+1], :step, n)
     end
     return g_trail
 end
@@ -72,23 +73,29 @@ function _viz_area_indicator!(ax, _pareto_solns::Vector{Soln})
 end
 
 """
-    viz_Pareto_front(solns, id_hl=nothing)
+    viz_Pareto_front(solns, id_hl=nothing, savename=nothing)
 """
-function viz_Pareto_front(solns::Vector{Soln}; id_hl::Union{Nothing, Int}=nothing, savename::Union{Nothing, String}=nothing)
-    fig = Figure(resolution=the_resolution)
+function viz_Pareto_front(
+        solns::Vector{Soln}; 
+        id_hl::Union{Nothing, Int}=nothing,
+        savename::Union{Nothing, String}=nothing,
+        resolution=the_resolution,
+        upper_xlim=nothing
+    )
+    fig = Figure(resolution=resolution)
     ax = Axis(
         fig[1, 1],
-        xlabel="𝔼(rewards)",
-        ylabel="𝔼(# robots survive)"
+        xlabel="𝔼[team rewards]",
+        ylabel="𝔼[# robots survive]"
     )
-    xlims!(0, nothing)
+    xlims!(0, upper_xlim)
     ylims!(0, nothing)
     _viz_objectives!(ax, solns)
     pareto_solns = get_pareto_solns(solns, false)
     _viz_area_indicator!(ax, pareto_solns)
     _viz_objectives!(ax, pareto_solns)
     if ! isnothing(id_hl)
-        scatter!(ax, [solns[id_hl].objs.r], [solns[id_hl].objs.s])
+        scatter!(ax, [solns[id_hl].objs.r], [solns[id_hl].objs.s], color=Cycled(4))
     end
     if ! isnothing(savename)
         save(savename * ".pdf", fig)
@@ -120,7 +127,8 @@ function viz_setup(
     radius::Float64=1.0,
     savename::Union{Nothing, String}=nothing,
     depict_ω::Bool=true,
-    depict_r::Bool=true
+    depict_r::Bool=true,
+    layout=nothing
 )   
     g = deepcopy(top.g)
 
@@ -146,8 +154,11 @@ function viz_setup(
     end
     
     # graph layout
-    layout = _g_layout(top, C=C)
-
+    if isnothing(layout)
+        layout = _g_layout(top, C=C)
+    end
+    
+    @warn "elabels wrong. edges not preserved order"
     fig = Figure()
     ax = Axis(fig[1, 1], aspect=DataAspect())
     hidespines!(ax)
@@ -159,6 +170,8 @@ function viz_setup(
             graphplot!(
                 g_trail,
                 layout=layout,
+                elabels=["$(get_prop(g_trail, e, :step))" for e in edges(g_trail)],
+                elabels_fontsize=10,
                 node_strokewidth=1,
                 node_size=0,
                 nlabels=nlabels ? ["$v" for v in vertices(g)] : nothing,
@@ -240,7 +253,8 @@ function viz_soln(
     nlabels::Bool=false,
     savename::Union{Nothing, String}=nothing,
     radius::Float64=0.2,
-    show_𝔼::Bool=true
+    show_𝔼::Bool=true,
+    show_robots::Bool=true
 )
     g = top.g
 
@@ -292,6 +306,8 @@ function viz_soln(
             axs[r],
             r_trail, 
             layout=layout,
+            elabels=["$i" for i = 1:ne(r_trail)],
+            elabels_fontsize=10,
             node_size=14, 
             node_color="black", 
             edge_color=robot_colors[r],
@@ -304,11 +320,13 @@ function viz_soln(
             nlabels_align=(:center, :center)
         )
         
-        # start node = 1
-        x = layout[1][1]
-        y = layout[1][2]
-        scatter!(axs[r], [x + radius], [y + radius], 
-            marker='✈',markersize=20, color=robot_colors[r])
+        if show_robots
+            # start node = 1
+            x = layout[1][1]
+            y = layout[1][2]
+            scatter!(axs[r], [x + radius], [y + radius], 
+                marker='✈',markersize=20, color=robot_colors[r])
+        end
     end
     if show_𝔼
         Label(

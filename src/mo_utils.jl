@@ -25,6 +25,16 @@ Soln(top::TOP) = Soln(
     Objs(NaN, NaN)
 )
 
+# compute objective associated with robot trail set
+function Soln(robots::Vector{Robot}, top::TOP)
+	objs = Objs(
+		𝔼_reward(robots, top),
+		𝔼_nb_robots_survive(robots, top)
+	)
+
+    return Soln(robots, objs)
+end
+
 """
     same_trail_set(robots_i, robots_j)
 

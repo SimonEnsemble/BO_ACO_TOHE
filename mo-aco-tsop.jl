@@ -47,59 +47,6 @@ TSOP = team survival orienteering problem
 ## generate problem instance
 "
 
-# ╔═╡ 6e7ce7a6-5c56-48a0-acdd-36ecece95933
-function generate_random_top(
-	nb_nodes::Int, 
-	nb_robots::Int; 
-	survival_model=:random, 
-	p=0.3
-)
-	@assert survival_model in [:random, :binary]
-	
-	# generate structure of the graph
-	g_er = erdos_renyi(nb_nodes, p, is_directed=false)
-	g = MetaDiGraph(nb_nodes)
-	
-	for ed in edges(g_er)
-		add_edge!(g, ed.src, ed.dst)
-		add_edge!(g, ed.dst, ed.src)
-		if survival_model == :random
-			ω = rand()
-		elseif survival_model == :binary
-			ω = rand([0.4, 0.8])
-		end
-		set_prop!(g, ed.src, ed.dst, :ω, ω)
-		set_prop!(g, ed.dst, ed.src, :ω, ω)
-	end
-	
-	# assign rewards
-	for v in vertices(g)
-		set_prop!(g, v, :r, 0.1 + rand()) # reward too small, heuristic won't take it there.
-	end
-
-	# compute max one-hop 𝔼[reward]
-    one_hop_𝔼_r = zeros(nv(g))
-    for v = 1:nv(g)
-        us = neighbors(g_er, v)
-        one_hop_𝔼_r[v] = maximum(get_prop(g, u, v, :ω) * get_prop(g, v, :r) for u in us)
-    end
-	
-	# for base node
-	# set_prop!(g, 1, :r, 0.001)
-	return TOP(
-		nb_nodes,
-		g,
-		nb_robots,
-		maximum(one_hop_𝔼_r)
-	)
-end
-
-# ╔═╡ 8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
-# ╠═╡ disabled = true
-#=╠═╡
-top = generate_random_top(50, 4)
-  ╠═╡ =#
-
 # ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
 top = art_museum(3)
 
@@ -132,49 +79,8 @@ function generate_toy_star_top(nb_nodes::Int)
 	return TOP(nv(g), g, 1)
 end
 
-# ╔═╡ f309baac-a2c3-4e89-93bd-9a99fb3157cd
-function generate_manual_top()
-	Random.seed!(1337)
-	g = MetaGraph(SimpleGraph(11))
-	lo_risk = 0.95
-	hi_risk = 0.70
-	edge_list = [
-		# branch
-		(1, 9, lo_risk),
-		# branch
-		(1, 10, hi_risk),
-		(10, 11, hi_risk),
-		# cycle
-		(1, 8, lo_risk),
-		(8, 7, lo_risk),
-		(7, 6, hi_risk),
-		(6, 4, hi_risk),
-		(4, 3, hi_risk),
-		(3, 2, lo_risk),
-		(2, 1, lo_risk),
-		# bridge off cycle
-		(4, 5, 1.0),
-		# shortcut in cycle
-		(7, 3, lo_risk),
-	]
-	reward_dict = Dict(
-		1=>1, 10=>5, 11=>25, 9=>3, 2=>40, 3=>10, 7=>4, 8=>4, 6=>10, 4=>35, 5=>34
-	)
-	for (i, j, p_s) in edge_list
-		add_edge!(g, i, j, :ω, p_s)
-	end
-	for v = 1:nv(g)
-		set_prop!(g, v, :r, 1.0*reward_dict[v])
-	end
-	
-	return TOP(nv(g), g, 2, maximum([get_prop(g, v, :r) for v = 1:nv(g)]))
-end
+# ╔═╡ bda53ee3-555e-48cc-8e74-578032368650
 
-# ╔═╡ c3633991-6015-4cde-8aea-62c6ff9a1fdd
-# ╠═╡ disabled = true
-#=╠═╡
-top = generate_manual_top()
-  ╠═╡ =#
 
 # ╔═╡ f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 md"## viz setup"
@@ -235,6 +141,9 @@ viz_setup(top, nlabels=true, C=2.0, radius=0.6, savename="art_gallery_plans_all"
 md"## MO-ACO
 "
 
+# ╔═╡ b9a9808e-8631-45e1-9e31-516565c804a3
+nb_iters = 100
+
 # ╔═╡ 74459833-f3e5-4b13-b838-380c007c86ed
 md"### 🐜"
 
@@ -243,7 +152,7 @@ md"### 🐜"
 	top, 
 	verbose=false, 
 	nb_ants=100, 
-	nb_iters=3000,
+	nb_iters=nb_iters,
 	consider_previous_robots=true,
 	use_heuristic=true,
 	use_pheremone=true,
@@ -275,7 +184,7 @@ res_heuristic_only = mo_aco(
 	top, 
 	verbose=false, 
 	nb_ants=100, 
-	nb_iters=3000,
+	nb_iters=nb_iters,
 	consider_previous_robots=true,
 	use_heuristic=true,
 	use_pheremone=false,
@@ -286,7 +195,7 @@ res_pheremone_only = mo_aco(
 	top, 
 	verbose=false, 
 	nb_ants=100, 
-	nb_iters=3000,
+	nb_iters=nb_iters,
 	consider_previous_robots=true,
 	use_heuristic=false,
 	use_pheremone=true,
@@ -304,17 +213,138 @@ begin
 	fig
 end
 
+# ╔═╡ a60a74bc-ce8f-4711-bffc-61b108b97cff
+md"## toy problem"
+
+# ╔═╡ 7ac39f58-729b-45ca-8b7f-9028d3f53810
+toy_top = toy_problem()
+
+# ╔═╡ c25acc19-8475-40fd-bef8-522e848a4ea6
+viz_setup(toy_top)
+
+# ╔═╡ 466457f1-04a1-453b-aa16-1e8f53a3ce5b
+toy_res = mo_aco(
+	toy_top, 
+	verbose=false, 
+	nb_ants=100, 
+	nb_iters=2000,
+	consider_previous_robots=true,
+	use_heuristic=true,
+	use_pheremone=true,
+)
+
+# ╔═╡ 4907dfa8-c40a-41c1-873b-f241b7f6da99
+viz_progress(toy_res)
+
+# ╔═╡ 2df0e4be-c832-4aa8-ba82-036d9262a564
+@bind toy_soln_id PlutoUI.Slider(1:length(toy_res.global_pareto_solns), show_value=true)
+
+# ╔═╡ 157a43e6-3026-4173-9b4f-1b942d1eab0f
+viz_soln(toy_res.global_pareto_solns[toy_soln_id], toy_top, show_𝔼=false)
+
+# ╔═╡ ddb01f12-4d4c-4243-9080-13374f1f5525
+toy_res.global_pareto_solns[toy_soln_id].robots
+
+# ╔═╡ ce7a63a0-bf48-472b-9396-0c510d8320dc
+random_toy_solns = [
+	construct_soln(
+		Ant(rand()), 
+		Pheremone(toy_top), 
+		toy_top
+	) for i = 1:250
+]
+
+# ╔═╡ d8925e73-3fe6-48c5-975e-4a9985c8306d
+sort!(random_toy_solns, by=s -> s.objs.r)
+
+# ╔═╡ 32fb4b0b-67be-44d2-9cc1-9aa9a97a858f
+all_toy_solns = vcat(toy_res.global_pareto_solns, random_toy_solns)
+
+# ╔═╡ 37b0fde6-3b0e-471e-90d2-b7cf2d533d1e
+@bind id_toy_all PlutoUI.Slider(1:length(all_toy_solns), show_value=true)
+
+# ╔═╡ fdc9990c-163d-4fca-bd1f-2b7eba3c741c
+viz_Pareto_front(all_toy_solns, id_hl=id_toy_all)
+
+# ╔═╡ 840bcd72-a885-41bc-9eb7-77ca77e37684
+viz_soln(all_toy_solns[id_toy_all], toy_top, show_𝔼=false, show_robots=false)
+
+# ╔═╡ 6f159833-58b7-4e04-b893-b8ca1b82c9cd
+solns_to_present = [3, 7, 16, 42]
+
+# ╔═╡ dab36455-6614-4f86-aac3-3472c9cade6e
+function select_toy_solutions()
+	# stay put
+	robots = [
+		Robot([1, 1], toy_top), 
+		Robot([1, 1], toy_top)
+	]
+	solns = [Soln(robots, toy_top)]
+	
+	# Pareto-optimal soln #1
+	robots = [
+		Robot([1, 1], toy_top), 
+		Robot([1, 3, 2, 4, 2, 3, 1], toy_top)
+	]
+	push!(solns, Soln(robots, toy_top))
+
+	# Pareto-optimal soln #2
+	robots = [
+		Robot([1, 3, 2, 4, 5, 4, 2, 3, 1], toy_top),
+		Robot([1, 3, 2, 4, 2, 3, 1], toy_top)
+	]
+	push!(solns, Soln(robots, toy_top))
+
+	# non-optimal solution
+	robots = [
+		Robot([1, 2, 1], toy_top), 
+		Robot([1, 2, 3, 4, 2, 1, 1], toy_top)
+	]
+	push!(solns, Soln(robots, toy_top))
+
+	return solns
+end
+
+# ╔═╡ 8341da6a-0756-4b24-aa92-f6c4068cdd42
+toy_solns_to_show = select_toy_solutions()
+
+# ╔═╡ 7b6a097f-8cac-4370-a09d-38f156edfbda
+viz_Pareto_front(toy_solns_to_show, resolution=(300, 300), upper_xlim=10, savename="toy_Pareto_front")
+
+# ╔═╡ 279f2d91-8da2-4cd0-9e0f-e9fcea96ba0e
+begin
+	scale_factor = 100.0
+	toy_layout = Spring(iterations=250, C=2.0, 
+		pin=Dict(
+			1=>[111, -240]./scale_factor,
+			2=>[320, -68]./scale_factor,
+			3=>[320, -352]./scale_factor,
+			4=>[569, -183]./scale_factor,
+			5=>[810, -54]./scale_factor
+		)
+	)(toy_top.g)
+end
+
+# ╔═╡ 53b71307-9bed-487d-b755-d815b1c52ef4
+viz_setup(
+	toy_top, 
+	nlabels=true, 
+	C=2.4, 
+	depict_r=false, 
+	depict_ω=false, 
+	show_robots=false,
+	layout=toy_layout,
+	robots=toy_solns_to_show[2].robots
+)
+
 # ╔═╡ Cell order:
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
 # ╠═e136cdee-f7c1-4add-9024-70351646bf24
 # ╟─613ad2a0-abb7-47f5-b477-82351f54894a
-# ╠═6e7ce7a6-5c56-48a0-acdd-36ecece95933
-# ╠═8bec0537-b3ca-45c8-a8e7-53ed2f0b39ad
 # ╠═bdb5d550-13f6-4d8d-9a74-14b889efe7a2
 # ╟─47eeb310-04aa-40a6-8459-e3178facc83e
 # ╠═fcf3cd41-beaa-42d5-a0d4-b77ad4334dd8
-# ╠═f309baac-a2c3-4e89-93bd-9a99fb3157cd
-# ╠═c3633991-6015-4cde-8aea-62c6ff9a1fdd
+# ╠═bda53ee3-555e-48cc-8e74-578032368650
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 # ╠═54ddc953-ad25-4d77-905e-732a7664e9aa
 # ╠═ab9bf29e-8d06-42a0-ac38-8564af098025
@@ -330,6 +360,7 @@ end
 # ╠═f9ad4452-5927-43cc-b14d-5cd87bf8cf54
 # ╠═a8a194e0-28fe-4016-81ba-d1375ad1852e
 # ╟─9d44f37d-8c05-450a-a448-7be50387499c
+# ╠═b9a9808e-8631-45e1-9e31-516565c804a3
 # ╟─74459833-f3e5-4b13-b838-380c007c86ed
 # ╠═a8e27a0e-89da-4206-a7e2-94f796cac8b4
 # ╠═793286fa-ff36-44bb-baaf-e7fd819c5aa4
@@ -342,3 +373,23 @@ end
 # ╠═67c9334e-1155-4ef3-8d75-030dcfc1e570
 # ╠═3b94a9a8-93c8-4e46-ae23-63374d368b16
 # ╠═0808a99f-1f55-4b0a-81e9-3f511c9f55d5
+# ╟─a60a74bc-ce8f-4711-bffc-61b108b97cff
+# ╠═7ac39f58-729b-45ca-8b7f-9028d3f53810
+# ╠═c25acc19-8475-40fd-bef8-522e848a4ea6
+# ╠═466457f1-04a1-453b-aa16-1e8f53a3ce5b
+# ╠═4907dfa8-c40a-41c1-873b-f241b7f6da99
+# ╟─2df0e4be-c832-4aa8-ba82-036d9262a564
+# ╠═157a43e6-3026-4173-9b4f-1b942d1eab0f
+# ╠═ddb01f12-4d4c-4243-9080-13374f1f5525
+# ╠═ce7a63a0-bf48-472b-9396-0c510d8320dc
+# ╠═d8925e73-3fe6-48c5-975e-4a9985c8306d
+# ╠═32fb4b0b-67be-44d2-9cc1-9aa9a97a858f
+# ╠═37b0fde6-3b0e-471e-90d2-b7cf2d533d1e
+# ╠═fdc9990c-163d-4fca-bd1f-2b7eba3c741c
+# ╠═840bcd72-a885-41bc-9eb7-77ca77e37684
+# ╠═6f159833-58b7-4e04-b893-b8ca1b82c9cd
+# ╠═dab36455-6614-4f86-aac3-3472c9cade6e
+# ╠═8341da6a-0756-4b24-aa92-f6c4068cdd42
+# ╠═7b6a097f-8cac-4370-a09d-38f156edfbda
+# ╠═279f2d91-8da2-4cd0-9e0f-e9fcea96ba0e
+# ╠═53b71307-9bed-487d-b755-d815b1c52ef4

@@ -300,3 +300,123 @@ function art_museum(nb_robots::Int)
                nb_robots
              )
 end
+
+function generate_random_top(
+	nb_nodes::Int,
+	nb_robots::Int;
+	survival_model=:random,
+	p=0.3
+)
+	@assert survival_model in [:random, :binary]
+
+	# generate structure of the graph
+	g_er = erdos_renyi(nb_nodes, p, is_directed=false)
+	g = MetaDiGraph(nb_nodes)
+
+	for ed in edges(g_er)
+		add_edge!(g, ed.src, ed.dst)
+		add_edge!(g, ed.dst, ed.src)
+		if survival_model == :random
+			ω = rand()
+		elseif survival_model == :binary
+			ω = rand([0.4, 0.8])
+		end
+		set_prop!(g, ed.src, ed.dst, :ω, ω)
+		set_prop!(g, ed.dst, ed.src, :ω, ω)
+	end
+
+	# assign rewards
+	for v in vertices(g)
+		set_prop!(g, v, :r, 0.1 + rand()) # reward too small, heuristic won't take it there.
+	end
+
+	# compute max one-hop 𝔼[reward]
+    one_hop_𝔼_r = zeros(nv(g))
+    for v = 1:nv(g)
+        us = neighbors(g_er, v)
+        one_hop_𝔼_r[v] = maximum(get_prop(g, u, v, :ω) * get_prop(g, v, :r) for u in us)
+    end
+
+	# for base node
+	# set_prop!(g, 1, :r, 0.001)
+	return TOP(
+               nv(g),
+               g,
+               nb_robots
+             )
+end
+
+function generate_manual_top(nb_robots::Int)
+	Random.seed!(1337)
+    g = MetaDiGraph(11)
+	lo_risk = 0.95
+	hi_risk = 0.70
+	edge_list = [
+		# branch
+		(1, 9, lo_risk),
+		# branch
+		(1, 10, hi_risk),
+		(10, 11, hi_risk),
+		# cycle
+		(1, 8, lo_risk),
+		(8, 7, lo_risk),
+		(7, 6, hi_risk),
+		(6, 4, hi_risk),
+		(4, 3, hi_risk),
+		(3, 2, lo_risk),
+		(2, 1, lo_risk),
+		# bridge off cycle
+		(4, 5, 1.0),
+		# shortcut in cycle
+		(7, 3, lo_risk),
+	]
+	reward_dict = Dict(
+		1=>1, 10=>5, 11=>25, 9=>3, 2=>40, 3=>10, 7=>4, 8=>4, 6=>10, 4=>35, 5=>34
+	)
+	for (i, j, p_s) in edge_list
+		add_edge!(g, i, j, :ω, p_s)
+		add_edge!(g, j, i, :ω, p_s)
+	end
+	for v = 1:nv(g)
+		set_prop!(g, v, :r, 1.0*reward_dict[v])
+	end
+
+	return TOP(
+               nv(g),
+               g,
+               nb_robots
+             )
+end
+
+function toy_problem()
+	nb_robots = 2
+
+	g = MetaDiGraph(5)
+	rewards = zeros(5)
+	rewards[3] = 1
+	rewards[4] = 4
+	rewards[5] = 5
+	edge_list = [ # node i, node j, # dangers
+		(1, 2, 2),
+		(2, 3, 1),
+		(1, 3, 1),
+		(3, 4, 2),
+		(2, 4, 0),
+		(4, 5, 3)
+	]
+	for (i, j, nb_dangers) in edge_list
+        add_edge!(g, i, j)
+        add_edge!(g, j, i)
+        set_prop!(g, i, j, :ω, 1 - nb_dangers * 0.1)
+        set_prop!(g, j, i, :ω, 1 - nb_dangers * 0.1)
+    end
+	for v = 1:nv(g)
+		set_prop!(g, v, :r, rewards[v])
+	end
+
+	return TOP(
+               nv(g),
+               g,
+               nb_robots
+             )
+end

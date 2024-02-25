@@ -13,7 +13,7 @@ module MOACOTOP
     include("build_soln.jl")
     include("mo_aco.jl")
     include("viz.jl")
-    include("darpa_example.jl")
+    include("examples.jl")
     export TOP, Robot, verify, hop_to!, get_ω, get_r, # top.jl
            π_robot_survives, 𝔼_nb_robots_survive, π_robot_visits_node_j, 𝔼_reward, π_some_robot_visits_node_j, # top_probs.jl
            Objs, Soln, same_trail_set, unique_solns, get_pareto_solns, nondominated, area_indicator, # mo_utils.jl
@@ -22,5 +22,5 @@ module MOACOTOP
            next_node_candidates, extend_trail!, construct_soln, # build_soln.jl
            mo_aco, # mo_aco.jl
            viz_setup, viz_Pareto_front, viz_soln, viz_pheremone, viz_progress, # viz.jl
-           darpa_urban_environment # darpa_example.jl
+           darpa_urban_environment, art_museum, generate_random_top, generate_manual_top, toy_problem # examples.jl
 end
