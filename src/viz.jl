@@ -111,7 +111,7 @@ end
 #=
 viz of the TOP setup and soln
 =#
-robot_colors = ColorSchemes.Dark2_4
+robot_colors = ColorSchemes.Pastel1_4
 
 """
     viz_setup(TOP; nlabels=true, robots=nothing, show_robots=true, radius=1.0, C=2.0)
@@ -128,7 +128,8 @@ function viz_setup(
     savename::Union{Nothing, String}=nothing,
     depict_ω::Bool=true,
     depict_r::Bool=true,
-    layout=nothing
+    layout::Union{Nothing, Vector{Point2{Float64}}}=nothing,
+    pad::Float64=0.0
 )   
     g = deepcopy(top.g)
 
@@ -158,7 +159,6 @@ function viz_setup(
         layout = _g_layout(top, C=C)
     end
     
-    @warn "elabels wrong. edges not preserved order"
     fig = Figure()
     ax = Axis(fig[1, 1], aspect=DataAspect())
     hidespines!(ax)
@@ -236,6 +236,67 @@ function viz_setup(
         )
     end
     
+    pad!(ax, layout, pad=pad)
+
+    if ! isnothing(savename)
+        save(savename * ".pdf", fig)
+    end
+    fig
+end
+
+function pad!(ax, layout; pad=0.00)
+    # add a margin
+    if pad > 0.0
+        x0, x1 = minimum(map(x->x[1], layout)), maximum(map(x->x[1], layout))
+        y0, y1 = minimum(map(x->x[2], layout)), maximum(map(x->x[2], layout))
+        r_x = x1 - x0
+        r_y = y1 - y0
+        xlims!(ax, x0 - pad * r_x, x1 + pad * r_x)
+        ylims!(ax, y0 - pad * r_y, y1 + pad * r_y)
+    end
+end
+
+"""
+    viz_robot_trail(top, robot)
+"""
+function viz_robot_trail(
+    top::TOP,
+    robots::Vector{Robot},
+    robot_id::Int;
+    layout::Union{Nothing, Vector{Point2{Float64}}}=nothing,
+    resolution::Tuple{Int, Int}=the_resolution,
+    pad::Float64=0.1,
+    savename::Union{Nothing, String}=nothing,
+)
+    r_trail = trail_to_digraph(robots[robot_id], top)
+    
+    # graph layout
+    if isnothing(layout)
+        layout = _g_layout(top, C=2.0)
+    end
+
+    fig = Figure(resolution=resolution)
+    ax = Axis(fig[1, 1], aspect=DataAspect())
+    hidespines!(ax)
+    hidedecorations!(ax)
+	graphplot!(
+                r_trail,
+                layout=layout,
+                elabels=["$(get_prop(r_trail, e, :step))" for e in edges(r_trail)],
+                elabels_fontsize=12,
+                node_strokewidth=3,
+                node_size=40,
+                nlabels=["$v" for v in vertices(r_trail)],
+                node_color="white", 
+                nlabels_fontsize=16,
+                nlabels_align=(:center, :center),
+                color="black",
+                edge_color=robot_colors[robot_id],
+                edge_width=3,
+                curve_distance_usage=true,
+                arrow_shift=:end
+            )
+    pad!(ax, layout, pad=pad)
     if ! isnothing(savename)
         save(savename * ".pdf", fig)
     end
@@ -306,7 +367,7 @@ function viz_soln(
             axs[r],
             r_trail, 
             layout=layout,
-            elabels=["$i" for i = 1:ne(r_trail)],
+            elabels=["$(get_prop(r_trail, e, :step))" for e in edges(r_trail)],
             elabels_fontsize=10,
             node_size=14, 
             node_color="black", 

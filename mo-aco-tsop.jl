@@ -214,13 +214,34 @@ begin
 end
 
 # ╔═╡ a60a74bc-ce8f-4711-bffc-61b108b97cff
-md"## toy problem"
+md"## toy problem for Fig. 1
+"
 
 # ╔═╡ 7ac39f58-729b-45ca-8b7f-9028d3f53810
 toy_top = toy_problem()
 
+# ╔═╡ b17cb22b-346c-4328-883e-b7bf3578f229
+md"visualize the problem setup. manual layout to match what I drew in Adobe Illustrator."
+
+# ╔═╡ 279f2d91-8da2-4cd0-9e0f-e9fcea96ba0e
+begin
+	scale_factor = 100.0
+	toy_layout = Spring(iterations=250, C=2.0, 
+		pin=Dict(
+			1=>[111, -240]./scale_factor,
+			2=>[320, -68]./scale_factor,
+			3=>[320, -352]./scale_factor,
+			4=>[569, -183]./scale_factor,
+			5=>[810, -54]./scale_factor
+		)
+	)(toy_top.g)
+end
+
 # ╔═╡ c25acc19-8475-40fd-bef8-522e848a4ea6
-viz_setup(toy_top)
+viz_setup(toy_top, radius=0.3, layout=toy_layout)
+
+# ╔═╡ 84f19f64-bc92-4d08-9d5a-14d5668c34cb
+md"find Pareto-optimal solutions"
 
 # ╔═╡ 466457f1-04a1-453b-aa16-1e8f53a3ce5b
 toy_res = mo_aco(
@@ -242,8 +263,8 @@ viz_progress(toy_res)
 # ╔═╡ 157a43e6-3026-4173-9b4f-1b942d1eab0f
 viz_soln(toy_res.global_pareto_solns[toy_soln_id], toy_top, show_𝔼=false)
 
-# ╔═╡ ddb01f12-4d4c-4243-9080-13374f1f5525
-toy_res.global_pareto_solns[toy_soln_id].robots
+# ╔═╡ 76ea8409-64ca-4e54-b0d8-653cd878929e
+md"would like to see some Pareto-dominated solutions too."
 
 # ╔═╡ ce7a63a0-bf48-472b-9396-0c510d8320dc
 random_toy_solns = [
@@ -268,6 +289,9 @@ viz_Pareto_front(all_toy_solns, id_hl=id_toy_all)
 
 # ╔═╡ 840bcd72-a885-41bc-9eb7-77ca77e37684
 viz_soln(all_toy_solns[id_toy_all], toy_top, show_𝔼=false, show_robots=false)
+
+# ╔═╡ 1cd2f793-f0ff-4ae1-a363-99f4f1e7b934
+md"finally, hand-select some solutions to present for intuition"
 
 # ╔═╡ 6f159833-58b7-4e04-b893-b8ca1b82c9cd
 solns_to_present = [3, 7, 16, 42]
@@ -311,31 +335,23 @@ toy_solns_to_show = select_toy_solutions()
 # ╔═╡ 7b6a097f-8cac-4370-a09d-38f156edfbda
 viz_Pareto_front(toy_solns_to_show, resolution=(300, 300), upper_xlim=10, savename="toy_Pareto_front")
 
-# ╔═╡ 279f2d91-8da2-4cd0-9e0f-e9fcea96ba0e
-begin
-	scale_factor = 100.0
-	toy_layout = Spring(iterations=250, C=2.0, 
-		pin=Dict(
-			1=>[111, -240]./scale_factor,
-			2=>[320, -68]./scale_factor,
-			3=>[320, -352]./scale_factor,
-			4=>[569, -183]./scale_factor,
-			5=>[810, -54]./scale_factor
-		)
-	)(toy_top.g)
+# ╔═╡ 61efbac2-2c41-4adb-8fb3-5e94efc2367d
+md"visualize the robot trails."
+
+# ╔═╡ 67518659-c654-4fea-9878-a9585c77474a
+viz_robot_trail(toy_top, toy_solns_to_show[2].robots, 2, layout=toy_layout)
+
+# ╔═╡ de3274c8-b7f8-43b0-8a90-9e3ef654e95e
+if ! isdir("toy_solns")
+	mkdir("toy_solns")
 end
 
-# ╔═╡ 53b71307-9bed-487d-b755-d815b1c52ef4
-viz_setup(
-	toy_top, 
-	nlabels=true, 
-	C=2.4, 
-	depict_r=false, 
-	depict_ω=false, 
-	show_robots=false,
-	layout=toy_layout,
-	robots=toy_solns_to_show[2].robots
-)
+# ╔═╡ a0faa901-f8ef-4b75-869b-2f3285d79076
+for (i, s) in enumerate(toy_solns_to_show)
+	for r = 1:2
+		viz_robot_trail(toy_top, s.robots, r, layout=toy_layout, savename=joinpath("toy_solns", "soln_$(i)_robot_trail_$(r)"))
+	end
+end
 
 # ╔═╡ Cell order:
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
@@ -375,21 +391,27 @@ viz_setup(
 # ╠═0808a99f-1f55-4b0a-81e9-3f511c9f55d5
 # ╟─a60a74bc-ce8f-4711-bffc-61b108b97cff
 # ╠═7ac39f58-729b-45ca-8b7f-9028d3f53810
+# ╟─b17cb22b-346c-4328-883e-b7bf3578f229
+# ╠═279f2d91-8da2-4cd0-9e0f-e9fcea96ba0e
 # ╠═c25acc19-8475-40fd-bef8-522e848a4ea6
+# ╟─84f19f64-bc92-4d08-9d5a-14d5668c34cb
 # ╠═466457f1-04a1-453b-aa16-1e8f53a3ce5b
 # ╠═4907dfa8-c40a-41c1-873b-f241b7f6da99
 # ╟─2df0e4be-c832-4aa8-ba82-036d9262a564
 # ╠═157a43e6-3026-4173-9b4f-1b942d1eab0f
-# ╠═ddb01f12-4d4c-4243-9080-13374f1f5525
+# ╟─76ea8409-64ca-4e54-b0d8-653cd878929e
 # ╠═ce7a63a0-bf48-472b-9396-0c510d8320dc
 # ╠═d8925e73-3fe6-48c5-975e-4a9985c8306d
 # ╠═32fb4b0b-67be-44d2-9cc1-9aa9a97a858f
 # ╠═37b0fde6-3b0e-471e-90d2-b7cf2d533d1e
 # ╠═fdc9990c-163d-4fca-bd1f-2b7eba3c741c
 # ╠═840bcd72-a885-41bc-9eb7-77ca77e37684
+# ╟─1cd2f793-f0ff-4ae1-a363-99f4f1e7b934
 # ╠═6f159833-58b7-4e04-b893-b8ca1b82c9cd
 # ╠═dab36455-6614-4f86-aac3-3472c9cade6e
 # ╠═8341da6a-0756-4b24-aa92-f6c4068cdd42
 # ╠═7b6a097f-8cac-4370-a09d-38f156edfbda
-# ╠═279f2d91-8da2-4cd0-9e0f-e9fcea96ba0e
-# ╠═53b71307-9bed-487d-b755-d815b1c52ef4
+# ╟─61efbac2-2c41-4adb-8fb3-5e94efc2367d
+# ╠═67518659-c654-4fea-9878-a9585c77474a
+# ╠═de3274c8-b7f8-43b0-8a90-9e3ef654e95e
+# ╠═a0faa901-f8ef-4b75-869b-2f3285d79076
