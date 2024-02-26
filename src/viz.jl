@@ -247,12 +247,11 @@ end
 function pad!(ax, layout; pad=0.00)
     # add a margin
     if pad > 0.0
-        x0, x1 = minimum(map(x->x[1], layout)), maximum(map(x->x[1], layout))
-        y0, y1 = minimum(map(x->x[2], layout)), maximum(map(x->x[2], layout))
-        r_x = x1 - x0
-        r_y = y1 - y0
-        xlims!(ax, x0 - pad * r_x, x1 + pad * r_x)
-        ylims!(ax, y0 - pad * r_y, y1 + pad * r_y)
+        for (i, lims!) in zip(1:2, [xlims!, ylims!])
+            v0, v1 = minimum(map(x->x[i], layout)), maximum(map(x->x[i], layout)) # values
+            r = v1 - v0 # range
+            lims!(ax, v0 - pad * r, v1 + pad * r)
+        end
     end
 end
 
@@ -267,6 +266,7 @@ function viz_robot_trail(
     resolution::Tuple{Int, Int}=the_resolution,
     pad::Float64=0.1,
     savename::Union{Nothing, String}=nothing,
+    underlying_graph::Bool=true
 )
     r_trail = trail_to_digraph(robots[robot_id], top)
     
@@ -279,22 +279,35 @@ function viz_robot_trail(
     ax = Axis(fig[1, 1], aspect=DataAspect())
     hidespines!(ax)
     hidedecorations!(ax)
+    if underlying_graph
+        graphplot!(
+                   top.g,
+                   layout=layout,
+                   node_size=40,
+                   edge_color="black",
+                   edge_width=3,
+                   arrow_size=20,
+                   curve_distance_usage=true,
+        )
+    end
 	graphplot!(
                 r_trail,
                 layout=layout,
                 elabels=["$(get_prop(r_trail, e, :step))" for e in edges(r_trail)],
-                elabels_fontsize=12,
+                elabels_fontsize=14,
+                elabels_distance=12.0,
+                arrow_size=20,
                 node_strokewidth=3,
+                nlabels_color="black",
                 node_size=40,
                 nlabels=["$v" for v in vertices(r_trail)],
                 node_color="white", 
-                nlabels_fontsize=16,
+                nlabels_fontsize=20,
                 nlabels_align=(:center, :center),
                 color="black",
                 edge_color=robot_colors[robot_id],
-                edge_width=3,
+                edge_width=4,
                 curve_distance_usage=true,
-                arrow_shift=:end
             )
     pad!(ax, layout, pad=pad)
     if ! isnothing(savename)

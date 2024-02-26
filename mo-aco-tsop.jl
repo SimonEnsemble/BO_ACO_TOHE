@@ -339,7 +339,13 @@ viz_Pareto_front(toy_solns_to_show, resolution=(300, 300), upper_xlim=10, savena
 md"visualize the robot trails."
 
 # ╔═╡ 67518659-c654-4fea-9878-a9585c77474a
-viz_robot_trail(toy_top, toy_solns_to_show[2].robots, 2, layout=toy_layout)
+viz_robot_trail(toy_top, toy_solns_to_show[4].robots, 1, layout=toy_layout, underlying_graph=true)
+
+# ╔═╡ 25322609-8f3a-4fd6-bd9e-4010718af529
+viz_robot_trail(toy_top, [Robot(toy_top)], 1, layout=toy_layout, underlying_graph=true, savename=joinpath("toy_solns", "underlying_graph"))
+
+# ╔═╡ 0bc62c67-9d8d-4952-94d7-ce95ccfeeaac
+toy_top.g
 
 # ╔═╡ de3274c8-b7f8-43b0-8a90-9e3ef654e95e
 if ! isdir("toy_solns")
@@ -413,5 +419,7 @@ end
 # ╠═7b6a097f-8cac-4370-a09d-38f156edfbda
 # ╟─61efbac2-2c41-4adb-8fb3-5e94efc2367d
 # ╠═67518659-c654-4fea-9878-a9585c77474a
+# ╠═25322609-8f3a-4fd6-bd9e-4010718af529
+# ╠═0bc62c67-9d8d-4952-94d7-ce95ccfeeaac
 # ╠═de3274c8-b7f8-43b0-8a90-9e3ef654e95e
 # ╠═a0faa901-f8ef-4b75-869b-2f3285d79076
