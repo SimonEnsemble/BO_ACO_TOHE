@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.38
+# v0.19.40
 
 using Markdown
 using InteractiveUtils
@@ -359,6 +359,9 @@ for (i, s) in enumerate(toy_solns_to_show)
 	end
 end
 
+# ╔═╡ 0a8dec0e-e107-4c10-a36e-c0a1c922c265
+viz_robot_trail(toy_top, [Robot(toy_top), Robot(toy_top), Robot([1, 3, 4, 2, 3, 1], toy_top)], 3, layout=toy_layout, underlying_graph=true, savename=joinpath("toy_solns", "for_notation"))
+
 # ╔═╡ Cell order:
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
 # ╠═e136cdee-f7c1-4add-9024-70351646bf24
@@ -423,3 +426,4 @@ end
 # ╠═0bc62c67-9d8d-4952-94d7-ce95ccfeeaac
 # ╠═de3274c8-b7f8-43b0-8a90-9e3ef654e95e
 # ╠═a0faa901-f8ef-4b75-869b-2f3285d79076
+# ╠═0a8dec0e-e107-4c10-a36e-c0a1c922c265
