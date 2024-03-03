@@ -90,9 +90,9 @@ function viz_Pareto_front(
     )
     xlims!(0, upper_xlim)
     ylims!(0, nothing)
-    _viz_objectives!(ax, solns)
     pareto_solns = get_pareto_solns(solns, false)
     _viz_area_indicator!(ax, pareto_solns)
+    _viz_objectives!(ax, solns)
     _viz_objectives!(ax, pareto_solns)
     if ! isnothing(id_hl)
         scatter!(ax, [solns[id_hl].objs.r], [solns[id_hl].objs.s], color=Cycled(4))
@@ -129,7 +129,8 @@ function viz_setup(
     depict_ω::Bool=true,
     depict_r::Bool=true,
     layout::Union{Nothing, Vector{Point2{Float64}}}=nothing,
-    pad::Float64=0.0
+    pad::Float64=0.0,
+    node_size::Int=25
 )   
     g = deepcopy(top.g)
 
@@ -190,7 +191,7 @@ function viz_setup(
     graphplot!(
         g,
         layout=layout,
-        node_size=25,
+        node_size=node_size,
         node_color=node_color,
         node_strokewidth=1,
         color="white",
@@ -421,12 +422,15 @@ function viz_pheremone(
     pheremone::Pheremone,
     top::TOP;
     nlabels::Bool=false,
+    layout=nothing,
     savename::Union{Nothing, String}=nothing
 )
     g = top.g
 
     # layout
-    layout = _g_layout(top)
+    if isnothing(layout)
+        layout = _g_layout(top)
+    end
 
     τ_rs = [pheremone.τ_r[ed.src, ed.dst] for ed in edges(g)]
     τ_ss = [pheremone.τ_s[ed.src, ed.dst] for ed in edges(g)]
@@ -448,8 +452,8 @@ function viz_pheremone(
 
     fig = Figure()
     axs = [Axis(fig[1, i], aspect=DataAspect()) for i = 1:2]
-    axs[1].title = "τᵣ"
-    axs[2].title = "τₛ"
+    axs[1].title = rich("τ", subscript("U"))
+    axs[2].title = rich("τ", subscript("R"))
 
     for i = 1:2
         graphplot!(axs[i],
@@ -478,8 +482,8 @@ function viz_pheremone(
     τ_r = [pheremone.τ_r[ed.src, ed.dst] for ed in edges(g)]
     hist!(axs_hist[1], τ_r, color="green")
     hist!(axs_hist[2], τ_s, color="red")
-    axs_hist[1].xlabel = "τᵣ"
-    axs_hist[2].xlabel = "τₛ"
+    axs_hist[1].xlabel = rich("τ", subscript("U"))
+    axs_hist[2].xlabel = rich("τ", subscript("R"))
     xlims!(axs_hist[1], 0.0, nothing)
     xlims!(axs_hist[2], 0.0, nothing)
     if ! isnothing(savename)
