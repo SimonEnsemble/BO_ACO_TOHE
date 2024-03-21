@@ -404,11 +404,12 @@ function toy_problem()
 		(2, 4, 0),
 		(4, 5, 3)
 	]
+    ω_tornado = 0.1 # prob tornado causes failure
 	for (i, j, nb_dangers) in edge_list
         add_edge!(g, i, j)
         add_edge!(g, j, i)
-        set_prop!(g, i, j, :ω, 1 - nb_dangers * 0.1)
-        set_prop!(g, j, i, :ω, 1 - nb_dangers * 0.1)
+        set_prop!(g, i, j, :ω, (1 - ω_tornado) ^ nb_dangers)
+        set_prop!(g, j, i, :ω, (1 - ω_tornado) ^ nb_dangers)
     end
 	for v = 1:nv(g)
 		set_prop!(g, v, :r, rewards[v])

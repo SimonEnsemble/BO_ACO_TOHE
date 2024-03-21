@@ -121,21 +121,25 @@ Other work involving robot path-planning in hazardous environments includes
 Inspired by the TSOP, we pose the bi-objective risky team orienteering problem (BORTOP), then implement a bi-objective ant colony optimization algorithm, guided by heuristics, to search for the Pareto-optimal robot-team trail plans for an example BORTOP instance.
 
 \paragraph{The bi-objective, risky team orienteering problem (BORTOP).} 
-A team of robots are mobile in a hazardous environment, modeled as a directed graph whose edges present known, independent probabilities of failure/destruction/disablement to a robot traversing them.
+A team of robots are mobile in a hazardous environment, modeled as a directed graph whose edges present known, independent probabilities of failure/destruction/disablement to a robot that traverses them.
 The nodes of the graph offer rewards to the team depending on the number of robot-visitations over the mission.
-The BORTOP is to plan the closed trails of the robots to maximize two team-level objectives: (i) the expected rewards collected from the nodes and (ii) the expected number of robots that survive the mission. 
+The BORTOP is to plan the closed trails of the robots to maximize two team-level objectives: the expected
+(1) rewards to the team, given by the nodes, and 
+(2) number of robots that survive the mission. 
 (In this offline setting, the trails are set at the beginning of the mission, then followed by the robots without adaptation.)
 See Fig.~\ref{fig:overview}.
 
 \paragraph{Intuition.} There are three interesting features of the BORTOP. 
 First, for the survival objective, the robots must find the safest closed trails to visit the nodes assigned to them.
-Second, for the reward objective, the robot team must build redundancy into their trail plans to make the rewards collected robust to robot failures.
-Third, the two objectives are inherently conflicting, as the robots must take risks to traverse the graph and collect the rewards\footnote{In the extreme cases: (1) to maximize survival, the robots never leave the source node no matter the rewards to be gained and (2) to maximize reward, each robot traverses the entire graph no matter the risks involved.}.
-Thus, we seek the Pareto-optimal set of robot-team trail plans. By definition, a Pareto-optimal trail plan cannot be altered to give higher expected rewards without lowering the expected survival and vice versa. 
-Fig.~\ref{fig:pareto_optimal} illustrates.
-A human decision-maker can then select the robot-team trail plans from the Pareto-optimal set according to his or her values assigned to rewards vs. robot survival. 
+Second, for the reward objective, the robot team must build node-visit redundancy into their trail plans to make the team-reward robust to robot failures.
+Third, the two objectives are inherently conflicting, as the robots must risk their survival while traveling to visit nodes and collect rewards\footnote{Two extremes:  (1) to maximize survival, the robots never leave the source node no matter the rewards to be gained and (2) to maximize reward, each robot traverses the entire graph no matter the risks involved.}.
 
-Finally, we describe and implement a bi-objective ant colony optimization algorithm to search for the Pareto-optimal set of robot-team trail plans.
+\paragraph{Pareto-optimal trail plans.}
+To handle the conflicting objectives, we search for the Pareto-optimal set of robot-team trail plans. By definition, a Pareto-optimal trail plan cannot be altered to give higher expected rewards without lowering the expected number of robots that survive and vice versa. 
+Fig.~\ref{fig:pareto_optimal} illustrates.
+We then can present the Pareto-optimal set to a human decision-maker that selects the robot-team trail plans that makes some tradeoff between the two objectives, based on his or her values assigned to rewards vs. robot survival. 
+
+\paragraph{Solution approach.} We employ a bi-objective ant colony optimization algorithm, guided by a heuristic, to search for the Pareto-optimal set of robot-team trail plans.
 {\color{red} say more}
 We illustrate by solving a BORTOP instance inspired by information-gathering for illustration.
 
@@ -151,7 +155,9 @@ We illustrate by solving a BORTOP instance inspired by information-gathering for
     \end{subfigure}
     \caption{
       The bi-objective risky team orienteering problem (BORTOP). 
-      (a) A team of robots are mobile on a directed graph whose nodes offer a reward to the team (coins) once visited by a robot and edges present dangers of failure to the robots (each tornados = 1/10 probability of failure). Our task is to plan the trails of the robots to maximize the expected reward collected and the expected number of robots that survive.
+      (a) A team of robots are mobile on a directed graph whose 
+      nodes offer a reward to the team (coins) e.g.\ if visited by a robot and 
+      edges present hazards of failure to the robots (each tornado = 1/10 probability of failure). Our task is to plan the trails of the robots to maximize the expected reward collected and the expected number of robots that survive.
       (b) Three sets of robot-team trail plans and their location in objective space. Two Pareto-optimal plans (orange points) trade risk of failure with expected reward. One Pareto-dominated solution (blue) should never be chosen.
     }
 \end{figure}
