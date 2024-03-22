@@ -42,7 +42,9 @@
 
 \sloppy 
 
-\title{Teams of mobile robots orienteering in hazardous environments}
+\title{
+Bi-objective trail-planning for a robot-team orienteering in a hazardous environment
+}
 \author[1]{Cory M. Simon}
 \author[2]{Jeffrey Richley}
 \author[2]{Lucas Overbey}
@@ -69,12 +71,16 @@
 
 \begin{abstract}
 Teams of mobile [aerial, ground, or aquatic] robots have applications in resource delivery, patrolling, information-gathering, pesticide application to crops, forest fire fighting, chemical plume source localization and mapping, and search-and-rescue.
-Robot teams traversing hazardous environments---with e.g.,\ rough terrain or seas, strong winds, or adversaries capable of attacking robots---should plan and coordinate their trails in consideration of risks of failure, destruction, or disablement.
-Specifically, the robots should take the safest trails, coordinate their trails to cooperatively achieve the team-level objective with robustness to robot failures, and balance the utility gained from visiting locations against the risk incurred by the robots.
+Robot teams traversing hazardous environments---with e.g.,\ rough terrain or seas, strong winds, or adversaries capable of attacking robots---should plan and coordinate their trails in consideration of risks of failure, disablement, or destruction.
+Specifically, the robots should take the safest trails, coordinate their trails to cooperatively achieve the team-level objective with robustness to robot failures, and balance the utility from visiting locations against risks of robot losses.
 
-Herein, we pose the bi-objective, risky team orienteering problem, where (i) a team of robots are mobile within an environment, abstracted as a graph (nodes: locations, edges: spatial connections between locations); (ii) each node offers a reward to the team depending on the number of robots that visit it; (iii) the traversal of each edge in the graph imposes a risk of robot failure; and (iv) the two [often, conflicting] team objectives are to maximize the expected (a) team reward and (b) number of robots that survive the mission. 
-We then use ant colony optimization, guided by heuristics, to search for the Pareto-optimal set of robot team trail plans. 
-A human decision-maker can then select the robot trail plans that balance, according to their values, the two [conflicting] objectives. As a case study, we illustrate with an information-gathering mission in a nuclear power plant from a Defense Advanced Research Projects Agency (DARPA) robots challenge.
+Herein, we consider bi-objective trail-planning for a robot team orienteering in a hazardous environment.
+A team of robots are mobile within a hazardous environment, abstracted as a graph whose (i) nodes offer rewards to the team depending on the number of robot visitations and (ii) edges present known probabilities of robot destruction when traversed.
+We wish to search for the Pareto-optimal robot-team trail plans that maximize two [conflicting] team objectives: the expected (i) reward and (ii) number of robots that survive the mission. 
+A human decision-maker can then select the trail plans that balance, according to their values, reward and robot survival.
+We implement ant colony optimization, guided by heuristics, to search for the Pareto-optimal set of robot team trail plans. 
+As a case study, we illustrate with an information-gathering mission in a nuclear power plant from a Defense Advanced Research Projects Agency (DARPA) robots challenge.
+
 \end{abstract}
 
 \clearpage
@@ -82,11 +88,11 @@ A human decision-maker can then select the robot trail plans that balance, accor
 
 \section{Introduction}
 \subsection{Applications of a team of mobile robots}
-Mobile [aerial, ground, or aquatic] robots equipped with sensors, actuators, and/or cargo have applications in agriculture (eg. planting and harvesting crops, spraying pesticide, monitoring crop health, killing weeds) \cite{santos2020path,bawden2017robot}, commerce (eg.\ order fulfillment in warehouses) \cite{wurman2008coordinating}, the delivery of goods \cite{coelho2014thirty}, search-and-rescue \cite{queralta2020collaborative}, chemical, biological, radiological, or nuclear incident response (eg.\ safely localizing the source(s) and mapping the distribution of the hazard) \cite{murphy2012projected,hutchinson2019unmanned}, environmental monitoring \cite{dunbabin2012robots,hernandez2012mobile,yuan2020maritime}, safety monitoring and leak detection in industrial chemical plants \cite{soldan2014towards,francis2022gas}, forest fire monitoring and fighting \cite{merino2012unmanned}, target tracking \cite{robin2016multi}, and military surveillance and reconnaissance. 
+Mobile [aerial, ground, or aquatic] robots equipped with sensors, actuators, and/or cargo have applications in agriculture (eg. planting and harvesting crops, spraying pesticide, monitoring crop health, destroying weeds) \cite{santos2020path,bawden2017robot}, commerce (eg.\ order fulfillment in warehouses) \cite{wurman2008coordinating}, the delivery of goods \cite{coelho2014thirty}, search-and-rescue \cite{queralta2020collaborative}, chemical, biological, radiological, or nuclear incident response (eg.\ safely localizing the source(s) and mapping the distribution of the hazard) \cite{murphy2012projected,hutchinson2019unmanned}, environmental monitoring \cite{dunbabin2012robots,hernandez2012mobile,yuan2020maritime}, safety monitoring and leak detection in industrial chemical plants \cite{soldan2014towards,francis2022gas}, forest fire monitoring and fighting \cite{merino2012unmanned}, target tracking \cite{robin2016multi}, and military surveillance and reconnaissance. 
 
 Deploying a \emph{team} of robots for a mission, as opposed to a single robot, can increase spatial coverage, decrease the time to achieve the objectives, and make achievement of the objectives robust to the failure of robots \cite{schranz2020swarm,brambilla2013swarm}.
 
-We often wish for an autonomous team of mobile robots to coordinate their paths in the environment to cooperatively achieve a shared, team-level objective \cite{parker1995design,parker2007distributed}.
+We often wish for the team of mobile robots to coordinate their paths in the environment to cooperatively achieve a shared, team-level objective \cite{parker1995design,parker2007distributed}.
 For example, consider the team orienteering problem (TOP) \cite{gunawan2016orienteering,vansteenwegen2011orienteering}. 
 The environment, in which a team of robots are mobile, is modeled as a graph (nodes: locations; edges: spatial connections between locations). Each node offers a reward to the team if visited by a robot.
 The TOP is to plan the paths of the robots between a source and destination node, subject to a per-robot travel budget, to accumulate the most rewards from the graph as a team. The TOP can be formulated as an integer program. Loosely, the OP combines the classic knapsack problem (selecting the nodes from which to collect rewards, under the travel budget) and traveling salesman problem (finding the shortest path that visits these nodes) \cite{vansteenwegen2011orienteering}.
@@ -106,11 +112,11 @@ or
 Third, the trail plans must balance the utility gained from visiting different locations in the environment against the risks incurred by the robots to reach those locations.
 
 Models and algorithms have been developed for coordinated robot team orienteering in risky environments abstracted as graphs \cite{zhou2021multi}. 
-In the Team Surviving Orienteers problem (TSOP) \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, each node of the graph offers a reward to the team when visited by a robot, but each edge traversal by a robot incurs an independent probability of failure. The objective in the [offline] TSOP is to plan the paths of the robots (from a source to destination node) to maximize the expected team reward under the constraint that each robot survives the mission with a probability above a certain threshold. 
+In the Team Surviving Orienteers problem (TSOP) \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, each node of the graph offers a reward to the team when visited by a robot, but each edge traversal by a robot incurs an independent probability of destruction. The objective in the [offline] TSOP is to plan the paths of the robots (from a source to destination node) to maximize the expected team reward under the constraint that each robot survives the mission with a probability above a certain threshold. 
 %In the extended Matroid TSO problem \cite{jorgensen2017matroid,jorgensen2024matroid}, we seek to maximize the weighted
 %expected number of nodes visited by one or more robots.
-Relatedly, the Foraging Route with the Maximum Expected Utility problem \cite{di2022foraging} is to plan the foraging route of a robot collecting rewards in an adversarial environment, but the rewards are lost if the robot fails before returning to the source node to deposit the goods it collected.
-In the [offline] Robust Multiple-path Orienteering Problem \cite{shi2023robust}, similarly, each node gives a reward to the team only if a robot visits it and survives the mission. The paths of the $K$ robots are planned to maximize the team reward under the worst-case attacks of $\alpha<K$ of the robots by an adversary. 
+Relatedly, the Foraging Route with the Maximum Expected Utility problem \cite{di2022foraging} is to plan the foraging route of a robot collecting rewards in a hazardous environment, but the rewards are lost if the robot is destroyed before returning to the source node to deposit the goods it collected.
+In the [offline] Robust Multiple-path Orienteering Problem \cite{shi2023robust}, similarly, each node gives a reward to the team only if a robot visits it and survives the mission; the paths of the $K$ robots are planned to maximize the team reward under the worst-case attacks of $\alpha<K$ of the robots by an adversary. 
 Viewed as a two-stage, sequential, one-step game with perfect information, the optimal path plans must trade off (i) redundancy in the nodes visited to give robustness against attacks and (ii) coverage of many nodes to collect many rewards.
 Other work involving robot path-planning in hazardous environments includes 
 (i) maximizing coverage of an area containing threats to robots \cite{korngut2023multi,yehoshua2016robotic}, 
@@ -118,67 +124,65 @@ Other work involving robot path-planning in hazardous environments includes
 (iii) gathering information in an environment with unknown hazards \cite{schwager2017multi}.
 
 \subsection{Our contribution}
-Inspired by the TSOP, we pose the bi-objective risky team orienteering problem (BORTOP), then implement a bi-objective ant colony optimization algorithm, guided by heuristics, to search for the Pareto-optimal robot-team trail plans for an example BORTOP instance.
+Inspired by the TSOP \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, we pose the bi-objective team orienteering in hazardous environments problem (BOTOHE), then implement a bi-objective ant colony optimization algorithm, guided by heuristics, to search for the Pareto-optimal robot-team trail plans for an example BOTOHE instance for an information-gathering mission in a nuclear power plant from a Defense Advanced Research Projects Agency (DARPA) robots challenge.
 
-\paragraph{The bi-objective, risky team orienteering problem (BORTOP).} 
-A team of robots are mobile in a hazardous environment, modeled as a directed graph whose edges present known, independent probabilities of failure/destruction/disablement to a robot that traverses them.
+\paragraph{The bi-objective team orienteering in hazardous environments problem (BOTOHE).} 
+A team of robots are mobile in a hazardous environment, modeled as a directed graph whose edges present known, independent probabilities of destruction to a robot that traverses them.
 The nodes of the graph offer rewards to the team depending on the number of robot-visitations over the mission.
-The BORTOP is to plan the closed trails of the robots to maximize two team-level objectives: the expected
-(1) rewards to the team, given by the nodes, and 
+The BOTOHE is to plan the closed trails of the robots to maximize two team-level objectives: the expected
+(1) rewards to the team given by the nodes and 
 (2) number of robots that survive the mission. 
 (In this offline setting, the trails are set at the beginning of the mission, then followed by the robots without adaptation.)
 See Fig.~\ref{fig:overview}.
 
-\paragraph{Intuition.} There are three interesting features of the BORTOP. 
-First, for the survival objective, the robots must find the safest closed trails to visit the nodes assigned to them.
-Second, for the reward objective, the robot team must build node-visit redundancy into their trail plans to make the team-reward robust to robot failures.
-Third, the two objectives are inherently conflicting, as the robots must risk their survival while taking their trails to visit nodes and collect rewards\footnote{Two extremes: (1) to maximize survival, the robots never leave the source node no matter the rewards to be gained and (2) to maximize reward, each robot traverses the entire graph no matter the risks involved.}.
+\paragraph{Intuition.} Three interesting features of the BOTOHE are: 
+(1) for the survival objective, the robots seek the safest closed trails to visit the nodes assigned to them,
+(2) for the reward objective, the robot team builds node-visit redundancy into their trail plans to make the team-reward robust to the loss of robots during the mission,
+(3) the two objectives are inherently conflicting, as the robots must risk their survival while taking their trails to visit nodes and collect rewards\footnote{Two extremes: (1) to maximize survival, the robots never leave the source node no matter the rewards to be gained and (2) to maximize reward, each robot traverses the entire graph no matter the risks involved.}.
 
 \paragraph{Pareto-optimal trail plans.}
 To handle the conflicting objectives, we search for the Pareto-optimal set of robot-team trail plans. By definition, a Pareto-optimal trail plan cannot be altered to give higher expected rewards without lowering the expected number of robots that survive and vice versa. 
 Fig.~\ref{fig:pareto_optimal} illustrates.
-We then can present the Pareto-optimal set to a human decision-maker that selects the robot-team trail plans that makes some tradeoff between the two objectives, based on his or her value of rewards vs. robot survival. 
+We then can present the Pareto-optimal set to a human decision-maker who selects the robot-team trail plans that makes some tradeoff between the two objectives, based on his or her value of rewards vs. robot survival. 
 
-\paragraph{Solution approach.} We employ a bi-objective ant colony optimization algorithm, guided by a heuristic, to search for the Pareto-optimal set of robot-team trail plans.
+\paragraph{Solution approach.} 
+We employ a bi-objective ant colony optimization algorithm, guided by a heuristic, to search for the Pareto-optimal set of robot-team trail plans.
 {\color{red} say more}
 We illustrate by solving a BORTOP instance inspired by information-gathering for illustration.
 
 \begin{figure}[h!]
     \centering
-     \begin{subfigure}[b]{0.6\textwidth}
+     \begin{subfigure}[b]{0.62\textwidth}
     	\includegraphics[width=\textwidth]{drawings/overview_2.pdf}
 	\caption{} \label{fig:overview}
     \end{subfigure}
-    \begin{subfigure}[b]{0.6\textwidth}
-    	\includegraphics[width=\textwidth]{drawings/toy_pareto_front.pdf}
+    \begin{subfigure}[b]{0.66\textwidth}
+    	\includegraphics[width=\textwidth]{drawings/toy_pareto_front2.pdf}
 	\caption{} \label{fig:pareto_optimal}
     \end{subfigure}
     \caption{
-      The bi-objective risky team orienteering problem (BORTOP). 
+      The bi-objective team orienteering in hazardous environments problem (BOTOHE).
       (a) A team of robots are mobile on a directed graph whose 
-      nodes offer a reward to the team (coins) e.g.\ if visited by a robot and 
-      edges present hazards of failure to the robots (each tornado = 1/10 probability of failure). Our task is to plan the trails of the robots to maximize the expected reward collected and the expected number of robots that survive.
-      (b) Three sets of robot-team trail plans and their location in objective space. Two Pareto-optimal plans (orange points) trade risk of failure with expected reward. One Pareto-dominated solution (blue) should never be chosen.
-    }
+      nodes offer a reward to the team e.g.\ if visited by a robot and 
+      edges present a probability of destruction to robots that traverse them (tornado = 1/10 probability of destruction). Our task is to plan the trails of the robots to maximize the expected reward collected and the expected number of robots that survive.
+      (b) Pareto-optimal and -dominated robot-team trail plans scattered in objective space, with two Pareto-optimal and one Pareto-dominated trail plans shown.}
 \end{figure}
 
 
 
-\section{The bi-objective risky team orienteering problem (BO-RTOP)}
-In the risky team orienteering problem (RTOP), our task is to plan the trails of a team of mobile robots on a directed graph whose (i) nodes offer rewards to the team depending on the number of robots that visit them and (ii) edges, when traversed by a robot, impose a risk of robot failure/destruction.
-The trails are set at the beginning of the mission, then followed by the robots without updates during the mission---an offline setting. 
-For the bi-objective RTOP (BO-RTOP), we wish to find the set of Pareto-optimal trail plans for the robot team that maximize the expected (i) rewards collected by the team and (ii) the number of robots that survive the mission.
-
-Our BO-RTOP formulation follows the TSOP \cite{jorgensen2018team} with four modifications: we (i) omit the constraints that each robot survives above a threshold probability, (ii) allow robots to follow trails instead of paths and hence allow a robot to visit a given node more than once\footnote{A path prohibits a robot from visiting a node more than once. Unlike trails, restricting to paths prohibits a robot from eg. visiting multiple nodes in a star graph.}, (iii) aim to maximize two objectives instead of one, and (iv) do not assume the reward function is submodular. 
+\section{The bi-objective team orienteering in hazardous environments problem (BOTOHE)}
+%In the risky team orienteering problem (RTOP), our task is to plan the trails of a team of mobile robots on a directed graph whose (i) nodes offer rewards to the team depending on the number of robots that visit them and (ii) edges, when traversed by a robot, impose a risk of robot failure/destruction.
+%The trails are set at the beginning of the mission, then followed by the robots without updates during the mission---an offline setting. 
+%For the bi-objective RTOP (BO-RTOP), we wish to find the set of Pareto-optimal trail plans for the robot team that maximize the expected (i) rewards collected by the team and (ii) the number of robots that survive the mission.
 
 
 
 
 \subsection{Problem setup}
+We pose the bi-objective team orienteering in hazardous environments problem (BOTOHE).
 
-
-\paragraph{Spatially abstracting the environment as a directed graph.}
-We abstract the environment as a directed graph $G=(\mathcal{V}, \mathcal{E})$, where $\mathcal{V}$ is its set of vertices and $\mathcal{E}$ is its set of edges (ordered pairs of distinct vertices). We assume $G$ is strongly connected, but not necessarily complete.
+\paragraph{Spatial abstraction of the environment as a directed graph.}
+We model the environment as a directed graph $G=(\mathcal{V}, \mathcal{E})$, where $\mathcal{V}$ is its set of vertices and $\mathcal{E}$ is its set of edges (ordered pairs of distinct vertices). We assume $G$ is strongly connected, but not necessarily complete.
 
 \vspace{-\baselineskip}
 \subparagraph{Interpretation.} 
@@ -191,39 +195,40 @@ Each edge $(v, v^\prime) \in \mathcal{E}$ represents a direct spatial connection
 % Eg., consider a building with node $v$ representing a room on the first floor, node $v^\prime$ a room on the second floor, and node $u$ as the staircase between the first and second floors. Traveling from node $v$ to node $v^\prime$ necessitates passing through node $u$ first.}.
 
 \paragraph{The team of mobile robots.}
-A homogenous team of $K$ robots all begin at a base station represented by node $v_b \in \mathcal{V}$ of the graph $G$. The robots are \emph{mobile} in the environment. I.e., generally, they may walk on the graph $G$, ie. sequentially move from one node $v$ to another node $v^\prime$ via traversing edge $(v, v^\prime)\in\mathcal{E}$.
+A homogenous team of $K$ robots all begin at a base station represented by node $v_b \in \mathcal{V}$ of the graph $G$. The robots are \emph{mobile} in the environment, meaning they may walk on the graph $G$.
+Ie., each robot can sequentially move from one node $v$ to another node $v^\prime$ joined with it via traversing edge $(v, v^\prime)\in\mathcal{E}$.
 
 \paragraph{Team rewards offered by nodes in the graph.}
-Each node $v\in \mathcal{V}$ in the graph $G$ offers rewards to the robot team, depending on the number of robots that visit it over the course of the mission. 
-The node reward function $u_v: \mathbb{N}_{\geq 0} \rightarrow \mathbb{R}$ maps 
+Each node $v\in \mathcal{V}$ in the graph $G$ offers a reward to the robot team, whose magnitude depends on the number of robots that visit it over the course of the mission. 
+The node reward function $r_v: \mathbb{N}_{\geq 0} \rightarrow \mathbb{R}$ maps 
 the number of robots that visit node $v$ over the course of the mission
 % visits node $v$ receives by a robot over the course of the mission
  to 
  the reward accumulated by the team from node $v$.
  The total reward collected by the team is additive among nodes of the graph.
-Note, even if a robot fails after leaving node $v$, it still counts as a successful visit to node $v$.
-In other words, the marginal reward offered by a node is immediately and irrevocably accumulated by the team after a robot visit.
+Note, even if a robot is destroyed after leaving node $v$, it still counts as a successful visit to node $v$.
+Ie., the marginal reward offered by a node is immediately and irrevocably accumulated by the team after a robot visit.
 
 \vspace{-\baselineskip}
 \subparagraph{Interpretation.} The rewards given by a node represent the utility gained by the team when eg. robots deliver units of a resource to the node, take images of the node and transmit them back to the command center, actuate some process (eg. turn a valve) at the node, etc. 
 
 \vspace{-\baselineskip}
 \subparagraph{Remarks.} The reward offered by a node could be negative, ie. there could be a penalty to visit a node instead of an incentive.
-Also, unlike in the TSOP, we do not assume the node reward function $u_v$ satisfies a diminishing returns property. E.g. in resource delivery, two units of the resource could be required to construct some useful equipment from which utility is gained.
+Also, unlike in the TSOP, we do not assume the node reward function $r_v$ satisfies a diminishing returns property. E.g., for resource delivery, two deliveries of a resource could be required to construct some useful equipment from which utility is ultimately gained.
 
 
-\paragraph{The probabilistic model of robot failure/destruction during trail-following.} 
-Each robot incurs a risk of failure/destruction when it traverses an edge of the graph $G$.
+\paragraph{The probabilistic model of robot destruction during trail-following.} 
+Each robot incurs a risk of destruction when it traverses an edge of the graph $G$.
 % following its trail $\rho$. 
 Specifically, starting (in a functioning state) at some node $v$, a robot survives with probability $\omega(v, v^\prime)$ the two-step process of (i) traversing edge $(v, v^\prime) \in \mathcal{E}$ then (ii) visiting node $v^\prime$. 
-We assume (i) each outcome (success or failure) of this two-step process is an independent event and (ii) the survival probabilities are static over the course of the mission. 
+We assume (i) each outcome (survival or destruction) of this two-step process is an independent event and (ii) the survival probabilities are static over the course of the mission. 
 Thus, from the function $\omega: \mathcal{E} \rightarrow (0, 1]$ that assigns robot survival probabilities to each edge of the graph $G$, we can compute the survival probabilities of the $K$ robots following any given set of trails.
 % plans $\{\rho_1, ..., \rho_K\}$.% and (2) the expected utility of the rewards harvested by the robots along their paths, which we write next. 
 
 
 
 \vspace{-\baselineskip}
-\subparagraph{Interpretation.} The danger to a robot when traversing an edge to visit a new node could originate from obstacles the robot could crash into, rough terrain or seas, severe weather, mines, or adversaries capable of attacking the robots at the edge and/or sink node.
+\subparagraph{Interpretation.} The hazards in the environment could originate from obstacles the robot could crash into, rough terrain or seas, severe weather, mines, or adversaries capable of attacking the robots at the edge and/or sink node.
 The stochasticity in the survival/failure of a robot traversing an edge originates from eg. (i) the unpredictability of an aerial robot crashing into an obstacle, a ground robot getting stuck in rocks/mud, or a surface aquatic robot succumbing to ocean waves or (ii) an adversary with an imperfect capability to detect and attack robots.
 
 \vspace{-\baselineskip}
@@ -275,6 +280,12 @@ We derive formulas for the values of the two objectives as a function of the rob
 \subparagraph{Remarks on lacks of constraints.} 
 Unlike in the TSOP formulation, we do not impose constraints on the survival probability of each individual robot. We accept if one [unmanned] robot bears much more risk of destruction than another during the mission. 
 Unlike in the TOP formulation, we do not constrain the length of the planned trail of the robots. We assume each robot has sufficient fuel/electrical battery power to traverse the graph.
+
+% TODO merge with above
+\subparagraph{Comparison with TSO}
+Our BO-RTOP formulation follows the TSOP \cite{jorgensen2018team} with four modifications: we (i) omit the constraints that each robot survives above a threshold probability, (ii) allow robots to follow trails instead of paths and hence allow a robot to visit a given node more than once\footnote{A path prohibits a robot from visiting a node more than once. Unlike trails, restricting to paths prohibits a robot from eg. visiting multiple nodes in a star graph.}, (iii) aim to maximize two objectives instead of one, and (iv) do not assume the reward function is submodular. 
+
+
 
 
 \paragraph{Seeking the Pareto-optimal set of robot-team trail plans.} 
