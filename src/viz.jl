@@ -19,10 +19,12 @@ end
 #=
 visualization of the Pareto set
 =#
-function _viz_objectives!(ax, solns::Vector{Soln})
+function _viz_objectives!(ax, solns::Vector{Soln}; label=nothing, markersize=14)
     scatter!(ax,
         [soln.objs.r for soln in solns],
-        [soln.objs.s for soln in solns]
+        [soln.objs.s for soln in solns],
+        label=label,
+        markersize=markersize
     )
 end
 
@@ -92,8 +94,9 @@ function viz_Pareto_front(
     ylims!(0, nothing)
     pareto_solns = get_pareto_solns(solns, false)
     _viz_area_indicator!(ax, pareto_solns)
-    _viz_objectives!(ax, solns)
-    _viz_objectives!(ax, pareto_solns)
+    _viz_objectives!(ax, solns, markersize=5, label="dominated")
+    _viz_objectives!(ax, pareto_solns, label="Pareto-optimal")
+    axislegend(labelsize=12, framevisible=true, framecolor="lightgray")
     if ! isnothing(id_hl)
         scatter!(ax, [solns[id_hl].objs.r], [solns[id_hl].objs.s], color=Cycled(4))
     end
@@ -276,7 +279,7 @@ function viz_robot_trail(
         layout = _g_layout(top, C=2.0)
     end
 
-    fig = Figure(resolution=resolution)
+    fig = Figure(resolution=resolution, backgroundcolor=:transparent)
     ax = Axis(fig[1, 1], aspect=DataAspect())
     hidespines!(ax)
     hidedecorations!(ax)

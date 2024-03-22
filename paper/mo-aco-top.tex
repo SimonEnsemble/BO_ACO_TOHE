@@ -132,12 +132,12 @@ See Fig.~\ref{fig:overview}.
 \paragraph{Intuition.} There are three interesting features of the BORTOP. 
 First, for the survival objective, the robots must find the safest closed trails to visit the nodes assigned to them.
 Second, for the reward objective, the robot team must build node-visit redundancy into their trail plans to make the team-reward robust to robot failures.
-Third, the two objectives are inherently conflicting, as the robots must risk their survival while traveling to visit nodes and collect rewards\footnote{Two extremes:  (1) to maximize survival, the robots never leave the source node no matter the rewards to be gained and (2) to maximize reward, each robot traverses the entire graph no matter the risks involved.}.
+Third, the two objectives are inherently conflicting, as the robots must risk their survival while taking their trails to visit nodes and collect rewards\footnote{Two extremes: (1) to maximize survival, the robots never leave the source node no matter the rewards to be gained and (2) to maximize reward, each robot traverses the entire graph no matter the risks involved.}.
 
 \paragraph{Pareto-optimal trail plans.}
 To handle the conflicting objectives, we search for the Pareto-optimal set of robot-team trail plans. By definition, a Pareto-optimal trail plan cannot be altered to give higher expected rewards without lowering the expected number of robots that survive and vice versa. 
 Fig.~\ref{fig:pareto_optimal} illustrates.
-We then can present the Pareto-optimal set to a human decision-maker that selects the robot-team trail plans that makes some tradeoff between the two objectives, based on his or her values assigned to rewards vs. robot survival. 
+We then can present the Pareto-optimal set to a human decision-maker that selects the robot-team trail plans that makes some tradeoff between the two objectives, based on his or her value of rewards vs. robot survival. 
 
 \paragraph{Solution approach.} We employ a bi-objective ant colony optimization algorithm, guided by a heuristic, to search for the Pareto-optimal set of robot-team trail plans.
 {\color{red} say more}

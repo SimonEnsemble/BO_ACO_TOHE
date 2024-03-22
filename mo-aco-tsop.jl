@@ -272,7 +272,7 @@ random_toy_solns = [
 		Ant(rand()), 
 		Pheremone(toy_top), 
 		toy_top
-	) for i = 1:250
+	) for i = 1:50000
 ]
 
 # ╔═╡ d8925e73-3fe6-48c5-975e-4a9985c8306d
@@ -282,7 +282,7 @@ sort!(random_toy_solns, by=s -> s.objs.r)
 all_toy_solns = vcat(toy_res.global_pareto_solns, random_toy_solns)
 
 # ╔═╡ 37b0fde6-3b0e-471e-90d2-b7cf2d533d1e
-@bind id_toy_all PlutoUI.Slider(1:length(all_toy_solns), show_value=true)
+@bind id_toy_all PlutoUI.Slider(1:length(toy_res.global_pareto_solns), show_value=true)
 
 # ╔═╡ fdc9990c-163d-4fca-bd1f-2b7eba3c741c
 viz_Pareto_front(all_toy_solns, id_hl=id_toy_all)
@@ -296,50 +296,54 @@ md"finally, hand-select some solutions to present for intuition"
 # ╔═╡ 6f159833-58b7-4e04-b893-b8ca1b82c9cd
 solns_to_present = [3, 7, 16, 42]
 
+# ╔═╡ d3437897-8661-42b2-8fb2-536c462ad25b
+toy_res.global_pareto_solns[12].robots
+
 # ╔═╡ dab36455-6614-4f86-aac3-3472c9cade6e
 function select_toy_solutions()
-	# stay put
-	robots = [
-		Robot([1, 1], toy_top), 
-		Robot([1, 1], toy_top)
+	return [
+		toy_res.global_pareto_solns[6],
+		toy_res.global_pareto_solns[12],
+		# dominated
+		Soln(
+			[
+				Robot([1, 2, 1], toy_top), 
+				Robot([1, 2, 3, 4, 2, 1, 1], toy_top)
+			],
+			toy_top
+		)
 	]
-	solns = [Soln(robots, toy_top)]
-	
-	# Pareto-optimal soln #1
-	robots = [
-		Robot([1, 1], toy_top), 
-		Robot([1, 3, 2, 4, 2, 3, 1], toy_top)
-	]
-	push!(solns, Soln(robots, toy_top))
-
-	# Pareto-optimal soln #2
-	robots = [
-		Robot([1, 3, 2, 4, 5, 4, 2, 3, 1], toy_top),
-		Robot([1, 3, 2, 4, 2, 3, 1], toy_top)
-	]
-	push!(solns, Soln(robots, toy_top))
-
-	# non-optimal solution
-	robots = [
-		Robot([1, 2, 1], toy_top), 
-		Robot([1, 2, 3, 4, 2, 1, 1], toy_top)
-	]
-	push!(solns, Soln(robots, toy_top))
-
-	return solns
 end
+
+# ╔═╡ a8cebbb2-b9e5-4255-baf4-0c06dc96d623
+toy_res.global_pareto_solns[3]
 
 # ╔═╡ 8341da6a-0756-4b24-aa92-f6c4068cdd42
 toy_solns_to_show = select_toy_solutions()
 
+# ╔═╡ bc10c308-ad48-4c05-9ea0-a601f2b260d5
+toy_solns_to_show[end].objs
+
 # ╔═╡ 7b6a097f-8cac-4370-a09d-38f156edfbda
-viz_Pareto_front(toy_solns_to_show, resolution=(300, 300), upper_xlim=10, savename="toy_Pareto_front")
+begin
+	local fig = viz_Pareto_front(
+		all_toy_solns, 
+		resolution=(300, 300), 
+		upper_xlim=10, 
+		savename="toy_Pareto_front"
+	)
+	local ax = current_axis(fig)
+	# to see where non-dominated solution falls
+	scatter!(
+		[toy_solns_to_show[end].objs.r], [toy_solns_to_show[end].objs.s], color="black", marker=:x, markersize=3)
+	fig
+end
 
 # ╔═╡ 61efbac2-2c41-4adb-8fb3-5e94efc2367d
 md"visualize the robot trails."
 
 # ╔═╡ 67518659-c654-4fea-9878-a9585c77474a
-viz_robot_trail(toy_top, toy_solns_to_show[4].robots, 1, layout=toy_layout, underlying_graph=true)
+viz_robot_trail(toy_top, toy_solns_to_show[3].robots, 1, layout=toy_layout, underlying_graph=true)
 
 # ╔═╡ 25322609-8f3a-4fd6-bd9e-4010718af529
 viz_robot_trail(toy_top, [Robot(toy_top)], 1, layout=toy_layout, underlying_graph=true, savename=joinpath("toy_solns", "underlying_graph"))
@@ -417,8 +421,11 @@ viz_robot_trail(toy_top, [Robot(toy_top), Robot(toy_top), Robot([1, 3, 4, 2, 3, 
 # ╠═840bcd72-a885-41bc-9eb7-77ca77e37684
 # ╟─1cd2f793-f0ff-4ae1-a363-99f4f1e7b934
 # ╠═6f159833-58b7-4e04-b893-b8ca1b82c9cd
+# ╠═d3437897-8661-42b2-8fb2-536c462ad25b
 # ╠═dab36455-6614-4f86-aac3-3472c9cade6e
+# ╠═a8cebbb2-b9e5-4255-baf4-0c06dc96d623
 # ╠═8341da6a-0756-4b24-aa92-f6c4068cdd42
+# ╠═bc10c308-ad48-4c05-9ea0-a601f2b260d5
 # ╠═7b6a097f-8cac-4370-a09d-38f156edfbda
 # ╟─61efbac2-2c41-4adb-8fb3-5e94efc2367d
 # ╠═67518659-c654-4fea-9878-a9585c77474a
