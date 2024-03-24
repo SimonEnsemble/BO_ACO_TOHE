@@ -321,7 +321,13 @@ See Fig.~\ref{fig:pareto_optimal}.
 
 \subsection{Deriving formulas for the two objectives}
 We now derive formulas for how the two objectives, the expected team reward $\mathbb{E}[R(\mathcal{P})]$ and the expected number of robots that survive the mission $\mathbb{E}[S(\mathcal{P})]$, depend on the robot-team trail plan $\mathcal{P}$. 
-These formulas follow from the directed graph $G$, edge survival probability map $\omega$, and node reward functions $\{r_v : v \in \mathcal{V}\}$.
+These formulas follow from the directed graph $G$, edge survival probability map $\omega$, and node reward functions $\{r_v : v \in \mathcal{V}\}$. Fig.~\ref{fig:notation} illustrates our notation.
+
+\begin{figure}[h!]
+    \centering
+    	\includegraphics[width=0.6\textwidth]{drawings/notation_fig/notation.pdf}
+    \caption{Illustrating notation for a particular robot trail plan.} \label{fig:notation}
+\end{figure}
 
 \paragraph{The survival of a single robot along its followed trail.} First, we write a formula for the probability that a robot survives to reach a given node in its planned trail.
 For $0 \leq n \leq \lvert \rho \rvert$, let $S_n(\rho) : \{\text{fail}, \text{survive}\} \rightarrow \{0, 1\} $ be the Bernoulli random variable that is $1$ if a robot following trail $\rho$ survives to visit the $n$th node in the trail $\rho$ and $0$ otherwise. For the event of survival, the robot must survive its traversal of \emph{all} of the first $n$ arcs in its trail. So the probability of survival is the product of these $n$ arc survival probabilities:
