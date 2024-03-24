@@ -319,8 +319,8 @@ Formally, plan $\mathcal{P}^*$ belongs to the Pareto-optimal set of plans if no 
 Clearly, if a plan $\mathcal{P}^\prime$ were to Pareto-dominate another plan $\mathcal{P}^*$, one would never choose plan $\mathcal{P}^*$ over plan $\mathcal{P}^\prime$, regardless of how we relatively value the two objectives.
 See Fig.~\ref{fig:pareto_optimal}.
 
-\subsection{Deriving formulas for the two objectives}
-We now derive formulas for how the two objectives, the expected team reward $\mathbb{E}[R(\mathcal{P})]$ and the expected number of robots that survive the mission $\mathbb{E}[S(\mathcal{P})]$, depend on the robot-team trail plan $\mathcal{P}$. 
+\subsection{Probability distributions and expectations of $R(\mathcal{P})$ and $S(\mathcal{P})$}
+We now derive formulas for the probability distributions and expectations of the team reward $R(\mathcal{P})$ and number of robots that survive the mission $S(\mathcal{P})$, depending on the robot-team trail plan $\mathcal{P}$. 
 These formulas follow from the directed graph $G$, edge survival probability map $\omega$, and node reward functions $\{r_v : v \in \mathcal{V}\}$. Fig.~\ref{fig:notation} illustrates our notation.
 
 \begin{figure}[h!]
@@ -455,8 +455,8 @@ In the simplifying case of single-visit rewards, each node $v$ offers a reward $
 
 % harvest risk different from visit risk. once harvested, then no longer risk for other robots to visit that node.
 
-\subsection{Bi-objective ant colony optimization}
-To search for the Pareto-optimal set of robot-team trail plans (see eqn.~\ref{eq:the_two_objs}) we resort to bi-objective (BO) ant colony optimization (ACO) \cite{iredi2001bi}. 
+\section{Bi-objective ant colony optimization to search for the Pareto-optimal robot-team trail plans}
+To search for the Pareto-optimal set of robot-team trail plans (see eqn.~\ref{eq:the_two_objs}), we resort to bi-objective (BO) ant colony optimization (ACO) \cite{iredi2001bi}. 
 ACO \cite{dorigo2006ant}, a form of swarm intelligence \cite{bonabeau1999swarm} inspired by ants foraging for food via pheromone trails \cite{bonabeau2000inspiration}, is a meta-heuristic for combinatorial optimization problems. ACO is particularly naturally-suited for finding optimal trails on graphs. 
 
 ACO has been employed to solve the team orienteering problem \cite{ke2008ants}.
