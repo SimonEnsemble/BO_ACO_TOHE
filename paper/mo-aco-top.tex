@@ -480,7 +480,7 @@ When a member of an ant colony discovers a highly-quality food source, it is adv
 Some species of foraging ant colonies can collectively 
 (i) when presented with two food sources of differing quality, select the highest-quality food source \cite{beckers1993modulation} and
 (ii) when given two paths between the nest and a food source, select the shortest path \cite{goss1989self}.
-The ants---as individuals, possessing limited intelligence \cite{edelstein1995trail}---achieve this largely [though not exclusively \cite{evison2008combined,czaczkes2015trail,robinson2005no}] via a mechanism excluding central control, \emph{direct} communication with each other, and a global [conceptual or visual] view of the environment: by laying and following pheromone trails \cite{czaczkes2015trail}.
+The ants---as individuals, possessing limited intelligence \cite{edelstein1995trail}---achieve this largely [though not exclusively \cite{evison2008combined,czaczkes2015trail,robinson2005no}] via a mechanism excluding central control, \emph{direct} communication with each other, individual memory, and a global [conceptual or visual] view of the environment: by laying and following pheromone trails \cite{czaczkes2015trail}.
 
 As worker ants travel from a food source back to the nest, they deposit pheromone, a relatively volatile chemical substance \cite{david2009trail}, on the ground. 
 The amount of pheromone they deposit is modulated by the quality of the food source \cite{beckers1993modulation}. 
@@ -489,9 +489,6 @@ Ants tend to follow pheromone trails with higher concentrations of pheromone \ci
 This, coupled with food-quality-modulated pheromone deposition, explains how ants can select the highest quality food source when presented with multiple options. 
 As for finding shortest paths, consider an ensemble of ants initially exploring multiple paths from a high-quality food source back to the nest.
 The ants taking the shorter paths return to the nest and complete their pheromone trails sooner. This quickly recruits new ants. These shorter trails accumulate pheromone more quickly than the longer trails and get reinforced. By this positive feedback mechanism, ants are mass-recruited to take the shortest path from the nest to a food source. \cite{jackson2006communication,czaczkes2015trail,bonabeau1999swarm}
-Simple, probabilistic models of ants laying and following pheromone trails reproduce this behavior \cite{bonabeau1999swarm,goss1989self,jackson2006communication,edelstein1995trail}.
-
-In summary, pheromone trails of an ant colony constitute a collective memory, a local guide for ants to high-quality food sources and short paths to them, and a medium for indirect communication between the ants \cite{jackson2006communication}.
 
 Pheromone also evaporates over time, which is a negative feedback mechanism \cite{jackson2006communication}.
 When a food source is exhausted, the ants no longer lay pheromone on the way back to the nest. The concentration of pheromone on this trail then decays over time due to evaporation \cite{david2009trail,van2011temperature}. Consequently, ants are not [wastefully] recruited to that location anymore. 
@@ -502,6 +499,10 @@ To a degree, this stochasticity in the process of ants choosing a trail is benef
 (ii) exploiting multiple food sources in parallel, 
 and 
 (iii) endowing the colony with plasticity in a dynamic environment (e.g. introduction of new, higher-quality food sources) \cite{deneubourg1983probabilistic,shiraishi2019diverse,deneubourg1986random,dussutour2009noise,edelstein1995trail}
+
+In summary, pheromone trails of an ant colony constitute a collective memory, a local guide for ants to high-quality food sources and short paths to them, and a medium for indirect communication between the ants \cite{jackson2006communication}. 
+Combining positive feedback, negative feedback, randomness, and multiple agents via ants laying and following pheromone trails enables self-organization of the colony \cite{bonabeau1997self}, where ``complex collective behaviors may emerge from interactions among individuals that exhibit simple behaviors''.
+Simple models of ants laying and probabilistically following pheromone trails (some with evaporation) indeed reproduce the observed foraging behavior of ants \cite{bonabeau1999swarm,goss1989self,jackson2006communication,edelstein1995trail}.
 
 Finally, some ants can deposit multiple species of pheromone (from different glands) with eg. different longevities \cite{czaczkes2015trail}, allowing for more complex indirect communication \cite{jackson2006communication} eg. a ``no entry'' signal \cite{robinson2005no}. 
 \end{mybox}
