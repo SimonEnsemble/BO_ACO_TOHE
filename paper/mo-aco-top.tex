@@ -472,34 +472,38 @@ In the simplifying case of single-visit rewards, each node $v$ offers a reward $
 \section{Bi-objective ant colony optimization to search for the Pareto-optimal robot-team trail plans}
 To efficiently search for the Pareto-optimal set of robot-team trail plans defined by eqn.~\ref{eq:the_two_objs}, we resort to bi-objective (BO) ant colony optimization (ACO) \cite{iredi2001bi}. 
 
-A swarm intelligence algorithm \cite{bonabeau1999swarm}, ACO \cite{dorigo2006ant} is a meta-heuristic for combinatorial optimization problems, inspired by \cite{bonabeau2000inspiration} how some ant colonies collectively find the shortest paths to the highest-quality food sources in their environment \cite{czaczkes2015trail}. 
+A swarm intelligence algorithm \cite{bonabeau1999swarm}, ACO \cite{dorigo2006ant,bonabeau1999swarm} is a meta-heuristic for combinatorial optimization problems, inspired by the behavior of ants foraging for food \cite{bonabeau2000inspiration}. 
 
 \begin{mybox}[label=box:qcmzifs, breakable]{Ants lay and follow pheromone trails to collectively select the shortest trail to the highest-quality food source}
-When a member of an ant colony discovers a highly-quality food source, it is advantageous for the colony of ants to mobilize to exploit this food source \cite{deneubourg1983probabilistic} and to take the \emph{shortest} path between the nest and the food \cite{goss1989self}.
+When a member of an ant colony discovers a highly-quality food source, it is advantageous to mobilize the colony to exploit this food source \cite{deneubourg1983probabilistic} and to take the \emph{shortest} path between the nest and the food \cite{goss1989self}.
 
-Some species of foraging ants can collectively 
+Some species of foraging ant colonies can collectively 
 (i) when presented with two food sources of differing quality, select the highest-quality food source \cite{beckers1993modulation} and
 (ii) when given two paths between the nest and a food source, select the shortest path \cite{goss1989self}.
-The ants---as individuals, possessing limited intelligence \cite{edelstein1995trail}---achieve this largely [though not exclusively \cite{evison2008combined,czaczkes2015trail}] via a mechanism excluding central control, \emph{direct} communication with each other, and a global [conceptual or visual] view of the environment: laying and following pheromone trails \cite{czaczkes2015trail}.
+The ants---as individuals, possessing limited intelligence \cite{edelstein1995trail}---achieve this largely [though not exclusively \cite{evison2008combined,czaczkes2015trail,robinson2005no}] via a mechanism excluding central control, \emph{direct} communication with each other, and a global [conceptual or visual] view of the environment: by laying and following pheromone trails \cite{czaczkes2015trail}.
 
-As ants travel from a food source back to the nest, they deposit pheromone, a relatively volatile chemical substance \cite{david2009trail}, on the ground. 
-The amount of pheromone they deposit depends on the quality of the food source \cite{beckers1993modulation}. 
+As worker ants travel from a food source back to the nest, they deposit pheromone, a relatively volatile chemical substance \cite{david2009trail}, on the ground. 
+The amount of pheromone they deposit is modulated by the quality of the food source \cite{beckers1993modulation}. 
 This pheromone marks trails to high-quality food sources and, as an olfactory cue \cite{knaden2016sensory}, signals to other ants in the colony to follow it. \cite{david2009trail,deneubourg1990self}
-Ants tend to follow pheromone trails with higher concentrations of pheromone \cite{czaczkes2015trail}.
-Thus, naturally, among an ensemble of ants initially exploring multiple paths from a high-quality food source back to the nest, the \emph{shortest} path from the nest to the food source will be reinforced with more pheromone by newly recruited ants. 
-As a result of this positive feedback and food-quality-modulated pheromone deposition, the ants are mass-recruited to take the shortest path to the highest-quality food source \cite{goss1989self,jackson2006communication}.
-The pheromone trails of the colony constitute a collective memory, a local guide for ants, and a medium for indirect communication between the ants \cite{jackson2006communication}.
+Ants tend to follow pheromone trails with higher concentrations of pheromone \cite{beckers1993modulation,czaczkes2015trail}.
+This, coupled with food-quality-modulated pheromone deposition, explains how ants can select the highest quality food source when presented with multiple options. 
+As for finding shortest paths, consider an ensemble of ants initially exploring multiple paths from a high-quality food source back to the nest.
+The ants taking the shorter paths return to the nest and complete their pheromone trails sooner. This quickly recruits new ants. These shorter trails accumulate pheromone more quickly than the longer trails and get reinforced. By this positive feedback mechanism, ants are mass-recruited to take the shortest path from the nest to a food source. \cite{jackson2006communication,czaczkes2015trail,bonabeau1999swarm}
+Simple, probabilistic models of ants laying and following pheromone trails reproduce this behavior \cite{bonabeau1999swarm,goss1989self,jackson2006communication,edelstein1995trail}.
 
-When the food source is exhausted, the ants no longer lay pheromone on the way back to the nest, and the pheromone trail evaporates over time \cite{david2009trail,van2011temperature} so ants are not recruited there anymore. Pheromone evaporation is a form of negative feedback \cite{jackson2006communication}.
+In summary, pheromone trails of an ant colony constitute a collective memory, a local guide for ants to high-quality food sources and short paths to them, and a medium for indirect communication between the ants \cite{jackson2006communication}.
 
-Not all ants deterministically follow the trail with the highest pheromone concentration without ``error'' \cite{deneubourg1990self}.
-Some degree of stochasticity in the process of the ants choosing a trail is beneficial for 
+Pheromone also evaporates over time, which is a negative feedback mechanism \cite{jackson2006communication}.
+When a food source is exhausted, the ants no longer lay pheromone on the way back to the nest. The concentration of pheromone on this trail then decays over time due to evaporation \cite{david2009trail,van2011temperature}. Consequently, ants are not [wastefully] recruited to that location anymore. 
+
+Importantly, all ants do not deterministically select the trail with the highest pheromone concentration, without ``error'' \cite{deneubourg1990self}.
+To a degree, this stochasticity in the process of ants choosing a trail is beneficial for 
 (i) exploration in the explore-exploit tradeoff during foraging, 
 (ii) exploiting multiple food sources in parallel, 
 and 
-(iii) endowing the colony with plasticity in a dynamic environment \cite{deneubourg1983probabilistic,shiraishi2019diverse,deneubourg1986random,dussutour2009noise,edelstein1995trail}
+(iii) endowing the colony with plasticity in a dynamic environment (e.g. introduction of new, higher-quality food sources) \cite{deneubourg1983probabilistic,shiraishi2019diverse,deneubourg1986random,dussutour2009noise,edelstein1995trail}
 
-Finally, some ants can deposit multiple species of pheromone (from different glands) with eg. different longevities \cite{czaczkes2015trail}, allowing for more complex indirect communication \cite{jackson2006communication} eg. an additional ``no entry'' pheromone \cite{robinson2005no}. 
+Finally, some ants can deposit multiple species of pheromone (from different glands) with eg. different longevities \cite{czaczkes2015trail}, allowing for more complex indirect communication \cite{jackson2006communication} eg. a ``no entry'' signal \cite{robinson2005no}. 
 \end{mybox}
 
 by  pheromone trails \cite{bonabeau2000inspiration}, is a . 
