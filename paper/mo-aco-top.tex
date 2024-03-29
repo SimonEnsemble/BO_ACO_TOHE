@@ -633,8 +633,9 @@ The double sum counts the number of times the arc $(v, v^\prime)$ appears in $\m
 Consequently, arcs that receive the most pheromone (associated with an objective) (i) frequently belong to Pareto-optimal trails and/or belong to trail plans achieving a high objective value. 
 
 % TODO not quite, needs work
-We stochastically alternate between basing the pheromone depositions $\Delta \tau_{r, s}$ on the iteration- or global-Pareto-optimal team trail plans. The latter is inspired by elitist ants that define Pareto-optimality over trails constructed over \emph{all} past iterations instead of just over trails constructed this iteration \cite{dorigo1996ant}.
+We base the pheromone depositions on the union of the iteration- and global-Pareto-optimal team trail plans. The corresponds to having an \emph{elitist ant} that, each iteration, deposits pheromone on the Pareto-optimal trails over \emph{all} past iterations instead of just over trails constructed this iteration \cite{dorigo1996ant}.
 % TODO say how often and why.
+% TODO explain better, what iteration and global best means.
 
 
 \paragraph{Area indicator for Pareto-set quality.}

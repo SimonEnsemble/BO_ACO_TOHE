@@ -76,11 +76,8 @@ function mo_aco(
         =#
         if use_pheremone
             evaporate!(pheremone, ρ)
-            if rand() < 0.2
-                lay!(pheremone, global_pareto_solns)
-            else
-                lay!(pheremone, iter_pareto_solns)
-            end
+            # concatenate them so it corresponds to elitist ants
+            lay!(pheremone, unique_solns(vcat(global_pareto_solns, iter_pareto_solns), :robot_trails))
          end
 #        if min_max
 #            min_max!(pheremone, global_pareto_solns, ρ, avg_nb_choices_soln_components)
