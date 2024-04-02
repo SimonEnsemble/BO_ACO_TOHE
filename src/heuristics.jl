@@ -1,5 +1,6 @@
 # note: combined heuristic could be reward per survival probability?
 ϵ = 0.05 # small number to add, to avoid it being zero...
+
 """
     η_r(u, v, top)
     η_r(u, v, top, previous_robots)

@@ -15,7 +15,6 @@ function mo_aco(
     #min_max::Bool=true,
     use_heuristic::Bool=true,
     use_pheremone::Bool=true,
-    consider_previous_robots::Bool=true,
     my_seed::Int=1337
 )
     Random.seed!(my_seed)
@@ -37,7 +36,7 @@ function mo_aco(
         🐜s construct solutions
         =#
         solns = [construct_soln(ant, pheremone, top, 
-                                use_heuristic=use_heuristic, use_pheremone=use_pheremone, consider_previous_robots=consider_previous_robots) 
+                                use_heuristic=use_heuristic, use_pheremone=use_pheremone)
                  for ant in ants]
 
         if run_checks

@@ -142,7 +142,7 @@ md"## MO-ACO
 "
 
 # ╔═╡ b9a9808e-8631-45e1-9e31-516565c804a3
-nb_iters = 100
+nb_iters = 2000
 
 # ╔═╡ 74459833-f3e5-4b13-b838-380c007c86ed
 md"### 🐜"
@@ -153,7 +153,6 @@ md"### 🐜"
 	verbose=false, 
 	nb_ants=100, 
 	nb_iters=nb_iters,
-	consider_previous_robots=true,
 	use_heuristic=true,
 	use_pheremone=true,
 )
@@ -185,7 +184,6 @@ res_heuristic_only = mo_aco(
 	verbose=false, 
 	nb_ants=100, 
 	nb_iters=nb_iters,
-	consider_previous_robots=true,
 	use_heuristic=true,
 	use_pheremone=false,
 )
@@ -196,7 +194,6 @@ res_pheremone_only = mo_aco(
 	verbose=false, 
 	nb_ants=100, 
 	nb_iters=nb_iters,
-	consider_previous_robots=true,
 	use_heuristic=false,
 	use_pheremone=true,
 )
@@ -249,7 +246,6 @@ toy_res = mo_aco(
 	verbose=false, 
 	nb_ants=100, 
 	nb_iters=2000,
-	consider_previous_robots=true,
 	use_heuristic=true,
 	use_pheremone=true,
 )
