@@ -59,6 +59,9 @@ i.e. that not zero robots visit node `j`.
 (each robot must survive its journey to visit it)
 """
 function π_some_robot_visits_node_j(robots::Vector{Robot}, j::Int, top::TOP)
+    if length(robots) == 0
+        return 0.0
+    end
 	# get probability that each robot visits this node
 	π_visits = [π_robot_visits_node_j(robot, j, top) for robot in robots]
 	

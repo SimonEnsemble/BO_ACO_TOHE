@@ -23,8 +23,8 @@ end
 function η_r(u::Int, v::Int, top::TOP, previous_robots::Vector{Robot})
     # only get expected one-hop reward if none of the previous robots visisted.
     # special case if v = 1. then we don't use this rule, since it would never be selected.
-    if v == 1
-        return η_r(u, v, top)
+    if v == 1 # not going to get reward if we stay at base...
+        return ϵ
     else
         return ϵ + η_r(u, v, top) * (1.0 - π_some_robot_visits_node_j(previous_robots, v, top))
     end

@@ -48,7 +48,7 @@ TSOP = team survival orienteering problem
 "
 
 # ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
-top = art_museum(3)
+top = darpa_urban_environment(3)
 
 # ╔═╡ 47eeb310-04aa-40a6-8459-e3178facc83e
 md"toy TOP problems (deterministic, for testing)"

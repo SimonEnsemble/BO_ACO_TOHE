@@ -51,7 +51,12 @@ function extend_trail!(
     transition_probs = ones(length(vs))
     for (i, v) in enumerate(vs)
         if use_heuristic
-            _η_r = η_r(u, v, top, previous_robots)
+            # if already in robot trail, can't get further reward...
+            if v in robot.trail
+                _η_r = ϵ
+            else
+                _η_r = η_r(u, v, top, previous_robots)
+            end
             _η_s = η_s(u, v, top)
 
             transition_probs[i] *= _η_s ^ ant.λ * _η_r ^ (1 - ant.λ)
@@ -88,7 +93,7 @@ function construct_soln(
 	# ant builds a solution
     for (k, robot) in enumerate(robots)
 		while ! robot.done
-            extend_trail!(robot, ant, pheremone, robots[1:k], top, 
+            extend_trail!(robot, ant, pheremone, robots[1:k-1], top, 
                           use_pheremone=use_pheremone, use_heuristic=use_heuristic)
 		end
 	end
