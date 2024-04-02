@@ -531,7 +531,7 @@ Note, as ACO is a meta-heuristic, it is not guaranteed to find all Pareto-optima
 
 \paragraph{A heterogeneous colony of artificial ants.}
 We create a colony of $N_{\text{ants}}$ artificial ants.
-Each ant searches for a Pareto-optimal robot-team trail plan $\{\rho_1, ..., \rho_K\}$ every iteration.
+Every iteration, each ant searches for a Pareto-optimal robot-team trail plan $\{\rho_1, ..., \rho_K\}$.
 To dictate how an ant balances the two objectives during its search, it is assigned a parameter $\lambda \in [0, 1]$, where $\lambda$ closer to zero (one) implies the ant prioritizes maximizing the expected reward $E[R]$ (expected robot survivals $E[S]$). 
 Particularly, ant $i\in\{1, ..., N_{\text{ants}}\}$ in the colony is assigned $\lambda_i := (i-1) / (N_{\text{ants}}-1)$.
 This heterogeneity in the colony provides some division of labor in the colony: different ants focus on finding trail-plans in different regions of the Pareto front. 
@@ -542,20 +542,25 @@ The ants lay and [probabilistically] follow two distinct species of artificial p
 The pheromone maps $\tau_r:\mathcal{E}\rightarrow \mathbb{R}_+$ and $\tau_s:\mathcal{E}\rightarrow \mathbb{R}_+$ give the amount of reward and survivability pheromone, respectively, on each arc of $G$.
 E.g., the amount of reward pheromone on arc $(v, v^\prime)\in\mathcal{E}$, $\tau_r(v, v^\prime)$, scores the promise of that arc, learned from all past experience of the ants, for belonging to robot trails that maximize the expected reward $\mathbb{E}[R]$. A similar interpretation holds for $\tau_s(v, v^\prime)$. 
 Note, the pheromone maps are not static, but change from iteration-to-iteration due to both deposition by the ants and evaporation. 
-The pheromone maps constitute a collective memory of the artificial ant colony---a memory of which arcs led to Pareto-optimal robot-team trail plans and, vaguely through \emph{two} species of pheromone, where on the Pareto-front these plans were.
+Together, the pheromone maps constitute a collective, but fading, memory of the artificial ant colony---a memory of the propensity of arcs to belong to Pareto-optimal robot-team trail plans and, vaguely, where along the Pareto-front those plans might lie.
+% vaguely, through laying and following \emph{two} species of pheromone, .
 
  
-\paragraph{Robot-team trail building by an ant.}
+\paragraph{Robot-team trail-building by an ant.}
 Each iteration, every ant in the colony constructs a robot-team trail plan $\{\rho_1, ..., \rho_K\}$.
-First, the ant assigns trails to the robots sequentially, robot-by-robot. 
-I.e., the ant fully constructs the closed trail for robot 1, $\rho_1$, then $\rho_2$ for robot 2, and so on up to robot $K$.
-Second, the ant constructs a trail for a robot, starting at the base node $v_b$, hop-by-hop, essentially following the trail the robot will take. 
+An ant sequentially allocate trails to the robots, 
+% It assigns trails to the robots sequentially, robot-by-robot. 
+i.e. fully constructs the closed trail for robot 1, $\rho_1$, then $\rho_2$ for robot 2, and so on, up to robot $K$.
+For each trail $\rho$, the ant starts at the base node $v_b$, then, hop-by-hop, essentially follows the trail the robot will take. 
 
 We now write the probabilistic transition rule for an ant during the process of trail construction.
-Suppose the ant with objective-balancing parameter $\lambda$ is constructing the closed trail for robot $k$, $\rho_k$, and currently sits at node $v=\rho_k[i]$.
+Suppose the ant with objective-balancing parameter $\lambda$ is constructing the closed trail for robot $k$, $\rho_k$, and currently resides at node $v=\rho_k[i]$.
 I.e., the ant has chosen the first $i$ nodes of robot $k$'s trail, with the partial trail being $\tilde{\rho_k}=(v_b, \rho_k[1], ..., \rho_k[i]=v)$. 
+The transition rule is the probability mass function $\pi[v^\prime \mid \rho_1, ..., \rho_{k-1}, \tilde{\rho}_k]$ over all nodes $v^\prime \in \mathcal{V}$ for extending the partial trail, i.e. $\rho_k[i+1]:=v^\prime$.
+% termination criteria
+
 \subparagraph{Viable next-nodes in the trail.}
-The next viable node in the trail, $v^\prime = \rho[i+1]$, must have an arc from $v$ to it and (by definition of a trail) this arc must not have been traversed already in the partial trail $\tilde{\rho_k}$. I.e., the viable candidate set of next-nodes in the trail are:
+The next node in a partial trail, $v^\prime = \tilde{\rho}[i+1]$, must have an arc from $v$ to it and (by definition of a trail) this arc must not have been traversed already in the partial trail $\tilde{\rho_k}$. I.e., the viable candidate set of next-nodes in the trail are:
 %\begin{equation}
 % 	\mathcal{V}^\prime := \{ v^\prime : (v, v^\prime ) \in \mathcal{E} \land \nexists j \in \{0, ..., i-1\} : (\tilde{\rho_k}[j], \tilde{\rho_k}[j+1])= (v, v^\prime)  \}.
 %\end{equation}
