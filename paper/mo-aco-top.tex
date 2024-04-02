@@ -548,34 +548,42 @@ Together, the pheromone maps constitute a collective, but fading, memory of the 
  
 \paragraph{Robot-team trail-building by an ant.}
 Each iteration, every ant in the colony constructs a robot-team trail plan $\{\rho_1, ..., \rho_K\}$.
-An ant sequentially allocate trails to the robots, 
+The ant sequentially allocates trails to the robots, 
 % It assigns trails to the robots sequentially, robot-by-robot. 
 i.e. fully constructs the closed trail for robot 1, $\rho_1$, then $\rho_2$ for robot 2, and so on, up to robot $K$.
-For each trail $\rho$, the ant starts at the base node $v_b$, then, hop-by-hop, essentially follows the trail the robot will take. 
+For each trail it constructs, the ant starts at the base node $v_b$, then, arc hop by arc hop, constructs the closed trail on the graph that the robot will follow. 
 
-We now write the probabilistic transition rule for an ant during the process of trail construction.
-Suppose the ant with objective-balancing parameter $\lambda$ is constructing the closed trail for robot $k$, $\rho_k$, and currently resides at node $v=\rho_k[i]$.
-I.e., the ant has chosen the first $i$ nodes of robot $k$'s trail, with the partial trail being $\tilde{\rho_k}=(v_b, \rho_k[1], ..., \rho_k[i]=v)$. 
-The transition rule is the probability mass function $\pi[v^\prime \mid \rho_1, ..., \rho_{k-1}, \tilde{\rho}_k]$ over all nodes $v^\prime \in \mathcal{V}$ for extending the partial trail, i.e. $\rho_k[i+1]:=v^\prime$.
+Trail construction is a stochastic process. Suppose the ant with objective-balancing parameter $\lambda$ is constructing the closed trail for robot $k$, $\rho_k$, and currently resides at node $v=\rho_k[i]$.
+I.e., the ant has chosen the first $i$ nodes of robot $k$'s trail, with the partial trail being $\tilde{\rho_k}=(v_b, \rho_k[1], ..., \rho_k[i]=v)$.
+The partial-trail extension rule gives the probability of next hopping to node $v^\prime\in\mathcal{V}$; it is the probability mass function $\pi[v^\prime \mid \rho_1, ..., \rho_{k-1}, \tilde{\rho}_k]$ over all nodes $v^\prime \in \mathcal{V}$ for extending the partial trail i.e. for setting $\rho_k[i+1]:=v^\prime$.
 % termination criteria
 
-\subparagraph{Viable next-nodes in the trail.}
-The next node in a partial trail, $v^\prime = \tilde{\rho}[i+1]$, must have an arc from $v$ to it and (by definition of a trail) this arc must not have been traversed already in the partial trail $\tilde{\rho_k}$. I.e., the viable candidate set of next-nodes in the trail are:
+\subparagraph{Feasible next-nodes in the trail.}
+For node $v^\prime$ to be a candidate as the next node in the trail $\rho_k[i+1]$, arc $(v, v^\prime)$ must exist and (by definition of a trail) this arc mustn't have already been traversed in the partial trail $\tilde{\rho_k}$. 
+The feasible candidate set of next-nodes in the trail are:
 %\begin{equation}
 % 	\mathcal{V}^\prime := \{ v^\prime : (v, v^\prime ) \in \mathcal{E} \land \nexists j \in \{0, ..., i-1\} : (\tilde{\rho_k}[j], \tilde{\rho_k}[j+1])= (v, v^\prime)  \}.
 %\end{equation}
 \begin{equation}
- 	\mathcal{V}^\prime := \{ v^\prime : (v, v^\prime ) \in \mathcal{E} \} \setminus \{ (\tilde{\rho_k}[j], \tilde{\rho_k}[j+1]) : j \in \{0,...,i-1\} \}
+ 	\mathcal{V}^\prime := \{ v^\prime : (v, v^\prime ) \in \mathcal{E} \} \setminus \{ (\tilde{\rho_k}[j], \tilde{\rho_k}[j+1]) : j \in \{0,...,i-1\} \}.
 \end{equation}
+Finally, if the current node is the base node ($v=v_b$), we augment the candidate set with $v_b$ ($\mathcal{V}^\prime \leftarrow \mathcal{V}^\prime \cup \{v_b\}$) to allow the closed partial trail to terminate, i.e. $\rho_k:=\tilde{\rho_k}$. Conceptually, this is equivalent to adding a self-loop $(v_b, v_b)$ to the set of arcs. This also allows a robot to never leave the base node.
 
-\subparagraph{Transition rule.}
-The ant selects the next node $v^\prime \in  \mathcal{V}^\prime$ in the trail probabilistically. The probability of choosing a given next-node $v^\prime \in  \mathcal{V}^\prime$ depends on (i) the amount of each species of pheromone on arc $(v, v^\prime)$ that encodes ants' past experiences, (ii) the heuristic, experience-independent values $\eta_r(v, v^\prime)$ and $\eta_s(v, v^\prime)$ that score the [greedy] appeal, in terms of maximizing $\mathbb{E}[R]$ and $\mathbb{E}[S]$, respectively, of hopping from $v$ to $v^\prime$, and (ii) the relative value the ant places on the two objectives ($\lambda$):
-\begin{equation}
-	\pi(v^\prime \mid v) \propto 
-		 \left[\tau_r(v, v^\prime) \eta_r(v, v^\prime) \right]^{1-\lambda} \left[ \tau_s(v, v^\prime) \eta_s(v, v^\prime) \right]^\lambda \text{ for }  v^\prime \in \mathcal{V}^\prime.
+ %(i, $\lvert \tilde{\rho_k} \rvert=1$) the robot to never leave the base node or (ii, $\lvert \tilde{\rho_k} \rvert >1$) the closed partial trail to terminate i.e. $\rho_k:=\tilde{\rho_k}$. 
+
+\subparagraph{The partial-trail extension rule rule.}
+% The ant selects the next node $\rho_k[i+1]=v^\prime$ in the trail $\rho_k$ from the candidate set $\mathcal{V}^\prime$ stochastically. 
+The probability of choosing $\rho_k[i+1]:=v^\prime \in  \mathcal{V}^\prime$ depends on (i) the amount of each species of pheromone on arc $(v, v^\prime)$ that encodes ants' past experiences, (ii) the heuristic, experience-independent values $\eta_r(v, v^\prime)$ and $\eta_s(v, v^\prime)$ that score the [greedy] appeal, in terms of maximizing $\mathbb{E}[R]$ and $\mathbb{E}[S]$, respectively, of hopping from $v$ to $v^\prime$, and (ii) the objective-balancing parameter $\lambda$. Specifically,
+\begin{multline}
+	\pi(v^\prime \mid \rho_1, ..., \rho_{k-1}, \tilde{\rho_k}) \propto \\
+		\begin{cases}
+		 \left[\tau_r(v, v^\prime) \eta_r(v, v^\prime; \rho_1, ..., \rho_{k-1}) \right]^{1-\lambda} \left[ \tau_s(v, v^\prime) \eta_s(v, v^\prime) \right]^\lambda & v^\prime \in \mathcal{V}^\prime (v, \tilde{\rho_k}) \\
+		 0 & v^\prime \notin \mathcal{V}^\prime (v, \tilde{\rho_k}), \\
+		 \end{cases}
 	 \label{eq:prob_x_y}
-\end{equation}
-The transition probability mass function in eqn.~\ref{eq:prob_x_y} specifies that ants are more likely to traverse arcs with more pheromone and/or heuristic appeal, with more emphasis on the reward or survivability pheromone/heuristic, depending on the ant's $\lambda$.
+\end{multline}
+where we emphasize the dependence of $\eta_r$ on the ant's previously-constructed robot trails and of $\mathcal{V}^\prime$ on the current node and the partial trail.
+Eqn.~\ref{eq:prob_x_y} makes ants more likely to traverse arcs with more pheromone and/or heuristic appeal, with more emphasis on the reward or survivability pheromone/heuristic depending on the ant's $\lambda$.
 
 \subparagraph{Heuristics.} We now define the heuristic maps $\eta_s: \mathbb{E} \rightarrow \mathbb{R}_+$ and $\eta_r:  \mathbb{E} \rightarrow \mathbb{R}_+$ that serve to bias and guide trail-building towards good solutions to accelerate the convergence of the ACO algorithm. 
 
@@ -583,12 +591,13 @@ For the survivability objective, we greedily score the desirability of arc $(v, 
 \begin{equation}
 	\eta_s(v, v^\prime):=\omega(v, v^\prime) 
 \end{equation}
-For the reward objective, we greedily score the desirability of arc $(v, v^\prime)$ with the expected marginal reward the team receives by robot $k$ visiting node $v^\prime$ next, in consideration of the previous $k-1$ robots's trails:
+
+For the reward objective, we greedily score the desirability of arc $(v, v^\prime)$ with the expected marginal reward the team receives by robot $k$ visiting node $v^\prime$ next, in consideration of the previous $k-1$ robots' trails:
 \begin{equation}
-	\eta_r(v, v^\prime) :=  \sum_{k^\prime=0}^k \omega(v, v^\prime)  [r_{v^\prime}(k^\prime+1) - r_{v^\prime}(k^\prime)]
+	\eta_r(v, v^\prime; \rho_1, ..., \rho_{k-1}) :=  \sum_{k^\prime=0}^{k-1} \omega(v, v^\prime)  [r_{v^\prime}(k^\prime+1) - r_{v^\prime}(k^\prime)]
 	 \pi[ T_{v^\prime}(\{\rho_1, ..., \rho_{k-1}\}) = k^\prime )]
 \end{equation}
-This heuristic sums over all possible numbers of visits $k^\prime$ node $v^\prime$ could have received by the preceding $k-1$ robots. Inside the sum is the expected marginal reward collected by robot $k$, conditioned on $k^\prime$ of the previous robots visiting node $v^\prime$, weighted by the probability that $k^\prime$ of the previous robots visited node $v^\prime$.
+This heuristic sums over all possible numbers of visits $k^\prime$ node $v^\prime$ could receive from the preceding $k-1$ robots. Inside the sum is the expected marginal reward collected by robot $k$ if it visits node $v^\prime$ next, conditioned on $k^\prime$ of the previous robots visiting node $v^\prime$, weighted by the probability that $k^\prime$ of the previous robots visited node $v^\prime$.
 
 Both of these heuristics are greedy and myopic. E.g., $\eta_r(v, v^\prime)$ does not account for rewards robot $k$ could collect further than one-hop down the trail. 
 
