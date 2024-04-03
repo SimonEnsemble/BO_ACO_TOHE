@@ -215,13 +215,13 @@ Ie., each robot can sequentially hop from a node $v$ to another node $v^\prime$ 
 
 \paragraph{Team rewards offered by nodes in the graph.}
 Each node $v\in \mathcal{V}$ in the graph $G$ offers a reward to the robot team if visited by a robot over the course of the mission.
-The node reward map $r: \mathcal{V} \rightarrow \mathbb{R}$ specifies the reward offered to the team by each node. 
+The node reward map $r: \mathcal{V} \rightarrow \mathbb{R}$ quantifies the reward offered to the team by each node. 
 % visits node $v$ receives by a robot over the course of the mission
 The total reward collected by the team is additive among nodes of the graph.
  
 Note, 
-(1) even if a robot is destroyed after leaving node $v$, it still counts as a successful visit to node $v$ to extract its reward;
-(2) multiple visits to a node do not provide further marginal reward; and
+(1) even if a robot is destroyed after leaving node $v$, it still counts as a successful visit to node $v$ to extract its reward $r(v)$;
+(2) multiple visits to a node do not provide further marginal reward over a single visit; and
 (3) the reward offered by a node could be negative, ie. there could be a penalty to visit a node instead of an incentive.
 
 \vspace{-\baselineskip}
@@ -297,7 +297,7 @@ the BOTOHE problem is to determine the optimal robot-team [closed] trail plan $\
 
 
 \subparagraph{Comparison with TSOP.}
-The BOTOHE formulation follows the TSOP \cite{jorgensen2018team} with four modifications: we (i) omit the constraints that each robot survives above a threshold probability\footnote{Ie., we accept if one [unmanned] robot bears much more risk of destruction than another during the mission.}, (ii) allow robots to follow trails instead of paths, allowing a robot to visit a given node more than once and to orienteer in a directed graph containing nodes with an in- and out-degree of one\footnote{E.g. paths prohibit a robot from visiting multiple nodes in a star graph.}, (iii) aim to maximize two objectives instead of one, and (iv) do not assume the team reward viewed as a function over the set of visited nodes is monotone because we allow for negative rewards.
+The BOTOHE formulation follows the TSOP \cite{jorgensen2018team} with four modifications: we (i) omit the constraints that each robot survives above a threshold probability\footnote{Ie., we accept if one [unmanned] robot bears much more risk of destruction than another during the mission.}, (ii) allow robots to follow trails instead of restricting to paths, as paths prevent robots from visiting a given node more than once and thus from e.g., harvesting reward from a node with an in- and out-degree of one, (iii) aim to maximize two objectives instead of one, and (iv) do not assume the team reward viewed as a function over the set of visited nodes is monotone because we allow for negative rewards.
 {\color{red} k then make this happen in example, and how then does $\eta_r$ work if it can be negative? }
 
 \paragraph{Seeking the Pareto-optimal set of robot-team trail plans.} 
@@ -326,7 +326,7 @@ Clearly, if a plan $\mathcal{P}^\prime$ were to Pareto-dominate another plan $\m
 
 \subsection{Probability distributions and expectations of $R(\mathcal{P})$ and $S(\mathcal{P})$}
 We now derive formulas for the probability distributions and expectations of the team reward $R(\mathcal{P})$ and number of robots that survive the mission $S(\mathcal{P})$, depending on the robot-team trail plan $\mathcal{P}$. 
-These formulas follow from the directed graph $G$, edge survival probability map $\omega$, and node reward functions $\{r_v : v \in \mathcal{V}\}$. Fig.~\ref{fig:notation} illustrates our notation.
+These formulas follow from the directed graph $G$, edge survival probability map $\omega$, and node reward map $r$. Fig.~\ref{fig:notation} illustrates our notation.
 
 \begin{figure}[h!]
     \centering
@@ -335,11 +335,12 @@ These formulas follow from the directed graph $G$, edge survival probability map
 \end{figure}
 
 \paragraph{The survival of a single robot along its followed trail.} First, we write a formula for the probability that a robot survives to reach a given node in its planned trail.
-For $0 \leq n \leq \lvert \rho \rvert$, let $S_n(\rho)$ be the Bernoulli random variable that is $1$ if a robot following trail $\rho$ survives to visit the $n$th node in the trail $\rho$ and $0$ otherwise. For the event of survival, the robot must survive its traversal of \emph{all} of the first $n$ arcs in its trail. So the probability of survival is the product of these $n$ arc survival probabilities:
+For $0 \leq n \leq \lvert \rho \rvert$, 
+Let $S_n(\rho)$ be the Bernoulli random variable that is one if a robot following trail $\rho$ survives to visit the $n$th node in the trail and zero otherwise. For the event of survival, the robot must survive traversal of \emph{all} of the first $n$ arcs in its trail to visit node $\rho[n]$. So, since the arc-traversal$+$node-visit survival events are independent, the probability that a robot following trail $\rho$ successfully visits node $\rho[n]$ is the product of the survival probabilities of the first $n$ arc-hops in the trail:
 \begin{align}
-	\pi[S_n(\rho) = 1] & = \prod_{i=1}^n \omega(\rho[i-1], \rho[i]) \label{eq:pi_S_n} \\ %\text{ for } 0 \leq n \leq \lvert \rho \rvert \\%\in \{1, ..., \lvert \rho \rvert\} 
+	\pi[S_n(\rho) = 1] & = \prod_{i=1}^n \omega(\rho[i-1], \rho[i]) \label{eq:pi_S_n} \text{ for } 0 \leq n \leq \lvert \rho \rvert \\%\in \{1, ..., \lvert \rho \rvert\} 
 	& = 1 - \pi[S_n(\rho) = 0]. \label{eq:pi_S_n_0} 
-\end{align} The factorization owes to the independence of the arc-traversal$+$node-visit survival events.
+\end{align} %The factorization owes to the independence of the arc-traversal$+$node-visit survival events.
 The second line follows because the complement of the event of survival is destruction.
 
 Note, the outcome $S_n(\rho)=0$ implies $S_{n+i}(\rho)=0$ for $1 \leq i \leq \lvert \rho \rvert-n$ since, once a robot is destroyed at some node/arc along its trail, it cannot visit subsequent nodes in the planned trail.
@@ -354,14 +355,14 @@ Consequently, the number of robots that survive the mission, $S$, is the sum of 
 Thus, $S$ follows the Poisson-Binomial distribution \cite{tang2023poisson}.
 Specifically, the probability that $s$ robots survive the mission is:
 \begin{multline}
-	\pi[S=s] = \sum_{\substack{\mathcal{S} \subseteq \{1, ..., K\}  \\ \lvert \mathcal{R} \rvert = s} } \,
+	\pi[S(\mathcal{P})=s] = \sum_{\substack{\mathcal{R} \subseteq \{1, ..., K\}  \\ \lvert \mathcal{R} \rvert = s} } \,
 	\prod_{k \in \mathcal{R}} \pi[S_{\lvert \rho_k \rvert}(\rho_k) = 1]
 	\prod_{k^\prime \in \{1, ..., K\} \setminus \mathcal{R}}
 	 \pi[S_{\lvert \rho_{k^\prime} \rvert}(\rho_{k^\prime}) = 0]
 	 , \\ \text{ for } 0 \leq s \leq K.
 	\label{eq:R_pb}
 \end{multline}
-Eqn.~\ref{eq:R_pb} sums over all $\binom{K}{s}$ possible size-$s$ surviving subsets $\mathcal{R}$ of the $K$ robots. The first product is the probability that all of those robots in $\mathcal{R}$ indeed survive their closed trails. The second product is the probability that the other robots outside of $\mathcal{R}$ indeed fail somewhere along their closed trails.
+Eqn.~\ref{eq:R_pb} sums over all $\binom{K}{s}$ possible size-$s$ surviving subsets $\mathcal{R}$ of the $K$ robots. The first product is the probability that all of those robots in $\mathcal{R}$ indeed survive their closed trails. The second product is the probability that the other robots outside of $\mathcal{R}$ indeed get destroyed somewhere along their closed trails.
 Seen from eqn.~\ref{eq:R_sum} and the linearity of the expectation operator, the expected number of robots that survive the mission is:
 \begin{equation}
 	\mathbb{E}[S(\mathcal{P}=\{\rho_1, ..., \rho_K\})]=\sum_{k=1}^K \mathbb{E}[S_{\lvert \rho_k \rvert}(\rho_k)] = \sum_{k=1}^K  \pi[S_{\lvert \rho_k \rvert}(\rho_k) = 1] \label{eq:formula_obj2}
@@ -373,7 +374,7 @@ Let the Boolean random variable $T_v(\rho)$ be one if robot following trail $\rh
 If node $v$ is not in the planned trail $\rho$, $T_v(\rho)=0$ with certainty. 
 Now, suppose node $v$ is in the planned trail $\rho$. Let $n^*$ be the index in the trail where the robot plans its first visit to node $v$:
 \begin{equation}
-n^*:= \min_{
+n^*(\rho, v) = \min_{
 	\substack{n \in \{0, ..., \lvert \rho \rvert\} \\ \rho[n] = v}
 } n.
 \end{equation}
@@ -383,15 +384,15 @@ So, the probability node $v$ is not visited by a robot following trail $\rho$ is
 	\pi[T_v(\rho) = 0] = 
 	\begin{cases}
 		1 & v\notin \rho\\
-		 \pi [S_{n^*}(\rho)=0 ] & v \in \rho
+		 \pi [S_{n^*(\rho, v)}(\rho)=0 ] & v \in \rho
 	\end{cases}
 	 \label{eq:pi_T_v}
 \end{equation}
 with $\pi[S_{n^*}(\rho)=0]$ calculated using eqn.~\ref{eq:pi_S_n_0}.
 
 \paragraph{The probability a given node is visited by one or more robots on the team.} 
-Now, let $T_v(\mathcal{P}=\{\rho_1, ..., \rho_K\} )$ be the Boolean random variable that is one if one or more robots on the team with trail plans $\mathcal{P}$ visit node $v$ and zero otherwise (i.e., zero robots on the team visit node $v$).
-The latter occurs if and only if none of the robots visit node $v$. Hence,
+Now, let $T_v(\mathcal{P}=\{\rho_1, ..., \rho_K\} )$ be the Boolean random variable that is one if one or more robots on the team with trail plans $\mathcal{P}$ visit node $v$ and zero otherwise.
+The latter occurs if and only if zero of the robots visit node $v$. Hence,
 \begin{equation}
 	\pi [T_v(\{\rho_1, ..., \rho_K\} ) = 1)] = 
 	1 - \prod_{k=1}^K \pi[T_v(\rho_k)=0].
@@ -403,15 +404,14 @@ with $\pi[T_v(\rho) = 0]$ in eqn.~\ref{eq:pi_T_v}.
 Finally, the total team reward collected by the robot-team following trail plan $\{\rho_1, ..., \rho_K\}$ is the sum of the rewards given to the team by each node:
 \begin{equation}
 R(\{\rho_1,...,\rho_K\}) = \sum_{v\in\mathcal{V}} r(v)  T_v(\{\rho_1, ..., \rho_K\}),
-\end{equation} where the reward from node $v$ is collected if and only if node $v$ is visited by one or more robots (i.e. iff $T_v(\mathcal{P})=1$).
+\end{equation} where the reward from node $v$, $r(v)$, is collected if and only if node $v$ is visited by one or more robots (i.e. iff $T_v(\mathcal{P})=1$).
 Finally, the expected reward accumulated over the mission by a robot-team following trail plans $\{\rho_1, ..., \rho_K\}$ is:
 \begin{equation}
 	\mathbb{E}[R(\{\rho_1,...,\rho_K\})]= \sum_{v\in\mathcal{V}} r(v) \pi[T_v(\{\rho_1, ..., \rho_K\}) = 1] \label{eq:formula_obj1}
 \end{equation}
 with $ \pi[T_v(\{\rho_1, ..., \rho_K\}) = 1]$ given in eqn.~\ref{eq:pi_T_v_all}.
 
-
-
+\paragraph{Summary.} Given a proposed robot-team trail plan $\mathcal{P}$, we can calculate the two objectives $\mathcal{E}[R(\mathcal{P})]$ and $\mathcal{E}[S(\mathcal{P})]$ via eqns.~\ref{eq:formula_obj1} and \ref{eq:formula_obj2}, respectively.
 % harvest risk different from visit risk. once harvested, then no longer risk for other robots to visit that node.
 
 \section{Bi-objective ant colony optimization to search for the Pareto-optimal robot-team trail plans}
