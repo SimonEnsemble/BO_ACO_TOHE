@@ -135,8 +135,11 @@ In the [offline] Robust Multiple-path Orienteering Problem \cite{shi2023robust},
 Viewed as a two-stage, sequential, one-step game with perfect information, the optimal path plans must trade off (i) redundancy in the nodes visited to give robustness against attacks and (ii) coverage of many nodes to collect many rewards.
 Other work involving robot path-planning in hazardous environments includes 
 (i) maximizing coverage of an area containing threats to robots \cite{korngut2023multi,yehoshua2016robotic}, 
-(ii) handling adversarial attacks on the sensors of the robots \cite{liu2021distributed,zhou2022distributed,mayya2022adaptive,zhou2018resilient}, and 
-(iii) gathering information in an environment with unknown hazards \cite{schwager2017multi}.
+(ii) handling adversarial attacks on the sensors of the robots \cite{liu2021distributed,zhou2022distributed,mayya2022adaptive,zhou2018resilient}, 
+(iii) gathering information in an environment with unknown hazards \cite{schwager2017multi},
+(iv) finding the optimal formation for a robot team \cite{shapira2015path},
+and 
+(v) multi-robot patrolling under adversarial attacks \cite{huang2019survey}.
 
 \subsection{Our contribution}
 Inspired by the TSOP \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, we pose the bi-objective team orienteering in hazardous environments problem (BOTOHE) then implement a bi-objective ant colony optimization algorithm, guided by heuristics, to search for the Pareto-optimal robot-team trail plans.
@@ -635,30 +638,27 @@ Defense Advanced Research Projects Agency (DARPA) Subterranean (SubT) Challenge 
 
 \section{Discussion}
 
-couple with putting stuff on the robots for resource delivery.
 
-learn the dangers.
+\paragraph{Future work.}
+Much future work remains for path-planning of robots in adversarial/hazardous environments.
 
-We assumed each robot has sufficient fuel/electrical battery power to traverse the graph.
-constraints on battery. refuleing.
+For the BOTOHE we have posed, we wish to (i) tackle the online version with ACO, where the robots adapt their planned trails during the mission, in response to observed failures of robots, (ii) devise local search methods to improve the robot trails the ants found, accelerating the convergence of ACO \cite{dorigo2006ant}, and (iii) employ multi-colony ant optimization \cite{iredi2001bi}.
 
-Much future work remains.
-The risky orienteering problem can be extended to account for more real-world complexity, such as (a) fuel/battery constraints for the robots and perhaps nodes that serve as fuel/recharging stations, (b) stochastic rewards.
+Interesting and practical extensions of robot-team orienteering in adversarial/hazardous environments abstracted a graphs include treating (some of these ideas from Ref.~\cite{jorgensen2018team}): 
+(i) a heterogenous team of robots with different (a) capabilities to harvest rewards from nodes and (b) survival probabilities for each edge traversal owing to e.g. stealth;
+(ii) more complicated reward structures, e.g., time-dependent, stochastic, non-additive (correlated \cite{yu2014correlated}), multi-category, or multi-visit rewards;
+(iii) fuel/battery constraints of the robots and nodes representing refueling, recharging, or battery-switching stations \cite{asghar2023risk,khuller2011fill,liao2016electric}; 
+(iv) constraints on the rewards a robot can harvest e.g. for resource delivery applications where each robot holds limited cargo capacity \cite{coelho2014thirty};
+(v) non-binary surviving states of the robots due to various levels of damage;
+(vi) non-independent events of robots surviving edge-traversals;
+(vii) express the survival objective using a different risk metric from the expected value \cite{majumdar2020should}.
+% TODO: cite green vehicle routing
 
-local search. like 2-opt but for safest path.
+Another interesting direction is to learn the survival probabilities from feedback over repeated missions. 
+Specifically, suppose we are uncertain about the survival probability of each arc $(i,j)$. Within a Bayesian inference framework, we may impose a prior distribution on each $\omega(i,j)$. Then, when a robot survives or gets destroyed during a mission, we update the prior distribution. 
+The trail-planning of the robots over sequential missions must then balance (a) exploitation to harvest the most reward and take what appear to be, under uncertainty, the safest trails and (b) exploration to find even safer trails.
 
-analytical case? star graph.
-
-other risk metrics \cite{majumdar2020should}.
-
-non-independent edge hops. eg. adversary in certain area, or not.
-
-Future work. online.
-
-Employ multiple-colony bi-objective ant colony optimization \cite{iredi2001bi}.
-
-if observed then reward diminished.
-
+Finally, instead of abstracting the environment as a graph, one could path-plan for robots in a continuous space with obstacles. 
 
 \bibliography{refs}
 \bibliographystyle{unsrt}
