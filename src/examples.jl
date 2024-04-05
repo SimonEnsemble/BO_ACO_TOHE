@@ -421,3 +421,29 @@ function toy_problem()
                nb_robots
              )
 end
+
+function toy_starish_top(nb_nodes::Int; seed::Int=1337)
+	Random.seed!(seed)
+
+	g = MetaDiGraph(star_graph(nb_nodes))
+
+	# add another layer
+	@assert degree(g)[1] == 2*(nb_nodes-1) # first node is center
+	for v = 2:nb_nodes
+		add_vertex!(g)
+		add_edge!(g, nb_nodes + v - 1, v)
+		add_edge!(g, v, nb_nodes + v - 1)
+	end
+
+	# assign survival probabilities
+	for ed in edges(g)
+		set_prop!(g, ed, :ω, rand())
+	end
+
+	# assign rewards
+	for v in vertices(g)
+		set_prop!(g, v, :r, 0.1 + rand())
+	end
+
+	return TOP(nv(g), g, 1)
+end

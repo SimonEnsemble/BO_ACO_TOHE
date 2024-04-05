@@ -22,5 +22,5 @@ module MOACOTOP
            next_node_candidates, extend_trail!, construct_soln, # build_soln.jl
            mo_aco, # mo_aco.jl
            viz_setup, viz_Pareto_front, viz_soln, viz_pheremone, viz_progress, viz_robot_trail, # viz.jl
-           darpa_urban_environment, art_museum, generate_random_top, generate_manual_top, toy_problem # examples.jl
+           darpa_urban_environment, art_museum, generate_random_top, generate_manual_top, toy_problem, toy_starish_top # examples.jl
 end

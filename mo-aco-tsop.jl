@@ -38,49 +38,22 @@ end
 TableOfContents()
 
 # ╔═╡ 613ad2a0-abb7-47f5-b477-82351f54894a
-md"# MO-ACO of TSOP
-
-MO-ACO = multi-objective ant colony optimization
-
-TSOP = team survival orienteering problem
+md"# bi-objective ant colony optimization of team orienteering in a hazardous environment
 
 ## generate problem instance
 "
 
+# ╔═╡ 7e4e838c-0e42-4925-9ddf-4c3601466b64
+@bind problem_instance Select(["power_plant", "art_museum", "starish"], default="power_plant")
+
 # ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
-top = darpa_urban_environment(3)
-
-# ╔═╡ 47eeb310-04aa-40a6-8459-e3178facc83e
-md"toy TOP problems (deterministic, for testing)"
-
-# ╔═╡ fcf3cd41-beaa-42d5-a0d4-b77ad4334dd8
-function generate_toy_star_top(nb_nodes::Int)
-	Random.seed!(1337)
-	g = MetaGraph(star_graph(nb_nodes))
-
-	# add another layer
-	@assert degree(g)[1] == nb_nodes-1 # first node is center
-	for v = 2:nb_nodes
-		add_vertex!(g)
-		add_edge!(g, nb_nodes + v - 1, v)
-		add_edge!(g, v, nb_nodes + v - 1)
-	end
-	
-	# assign survival probabilities
-	for ed in edges(g)
-		set_prop!(g, ed, :ω, rand())
-	end
-
-	# assign rewards
-	for v in vertices(g)
-		set_prop!(g, v, :r, 0.1 + rand())
-	end
-	
-	return TOP(nv(g), g, 1)
+if problem_instance == "power_plant"
+	top = darpa_urban_environment(3)
+elseif problem_instance == "art_museum"
+	top = art_museum(3)
+elseif problem_instance == "starish"
+	top = toy_starish_top(5)
 end
-
-# ╔═╡ bda53ee3-555e-48cc-8e74-578032368650
-
 
 # ╔═╡ f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 md"## viz setup"
@@ -103,7 +76,7 @@ robots_failure_example = [
 	]
 
 # ╔═╡ 74ce2e45-8c6c-40b8-8b09-80d97f58af2f
-viz_setup(top, nlabels=true, C=2.0, radius=0.5, savename="art_gallery", depict_r=false, depict_ω=false, show_robots=true)
+viz_setup(top, nlabels=true, C=3.0, radius=0.3, savename="art_gallery", depict_r=false, depict_ω=false, show_robots=true)
 
 # ╔═╡ e8598540-a37b-4f52-a6ca-819c50411d13
 viz_setup(top, nlabels=true, C=2.0, radius=0.5, savename="art_gallery_trail", depict_r=false, depict_ω=false, robots=[robot_example])
@@ -138,14 +111,11 @@ viz_setup(top, nlabels=true, C=2.0, radius=0.6, savename="art_gallery_plans_all"
 	robots=robots_example)
 
 # ╔═╡ 9d44f37d-8c05-450a-a448-7be50387499c
-md"## MO-ACO
+md"## MO-ACO 🐜
 "
 
 # ╔═╡ b9a9808e-8631-45e1-9e31-516565c804a3
-nb_iters = 2000
-
-# ╔═╡ 74459833-f3e5-4b13-b838-380c007c86ed
-md"### 🐜"
+@bind nb_iters Select([2000, 250], default=250)
 
 # ╔═╡ a8e27a0e-89da-4206-a7e2-94f796cac8b4
 @time res = mo_aco(
@@ -344,9 +314,6 @@ viz_robot_trail(toy_top, toy_solns_to_show[3].robots, 1, layout=toy_layout, unde
 # ╔═╡ 25322609-8f3a-4fd6-bd9e-4010718af529
 viz_robot_trail(toy_top, [Robot(toy_top)], 1, layout=toy_layout, underlying_graph=true, savename=joinpath("toy_solns", "underlying_graph"))
 
-# ╔═╡ 0bc62c67-9d8d-4952-94d7-ce95ccfeeaac
-toy_top.g
-
 # ╔═╡ de3274c8-b7f8-43b0-8a90-9e3ef654e95e
 if ! isdir("toy_solns")
 	mkdir("toy_solns")
@@ -366,10 +333,8 @@ viz_robot_trail(toy_top, [Robot(toy_top), Robot(toy_top), Robot([1, 3, 4, 2, 3, 
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
 # ╠═e136cdee-f7c1-4add-9024-70351646bf24
 # ╟─613ad2a0-abb7-47f5-b477-82351f54894a
+# ╠═7e4e838c-0e42-4925-9ddf-4c3601466b64
 # ╠═bdb5d550-13f6-4d8d-9a74-14b889efe7a2
-# ╟─47eeb310-04aa-40a6-8459-e3178facc83e
-# ╠═fcf3cd41-beaa-42d5-a0d4-b77ad4334dd8
-# ╠═bda53ee3-555e-48cc-8e74-578032368650
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 # ╠═54ddc953-ad25-4d77-905e-732a7664e9aa
 # ╠═ab9bf29e-8d06-42a0-ac38-8564af098025
@@ -386,7 +351,6 @@ viz_robot_trail(toy_top, [Robot(toy_top), Robot(toy_top), Robot([1, 3, 4, 2, 3, 
 # ╠═a8a194e0-28fe-4016-81ba-d1375ad1852e
 # ╟─9d44f37d-8c05-450a-a448-7be50387499c
 # ╠═b9a9808e-8631-45e1-9e31-516565c804a3
-# ╟─74459833-f3e5-4b13-b838-380c007c86ed
 # ╠═a8e27a0e-89da-4206-a7e2-94f796cac8b4
 # ╠═793286fa-ff36-44bb-baaf-e7fd819c5aa4
 # ╠═92d564b1-17f1-4fd1-9e76-8ea1b65c127a
@@ -426,7 +390,6 @@ viz_robot_trail(toy_top, [Robot(toy_top), Robot(toy_top), Robot([1, 3, 4, 2, 3, 
 # ╟─61efbac2-2c41-4adb-8fb3-5e94efc2367d
 # ╠═67518659-c654-4fea-9878-a9585c77474a
 # ╠═25322609-8f3a-4fd6-bd9e-4010718af529
-# ╠═0bc62c67-9d8d-4952-94d7-ce95ccfeeaac
 # ╠═de3274c8-b7f8-43b0-8a90-9e3ef654e95e
 # ╠═a0faa901-f8ef-4b75-869b-2f3285d79076
 # ╠═0a8dec0e-e107-4c10-a36e-c0a1c922c265
