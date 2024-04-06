@@ -66,7 +66,11 @@ end
 md"## viz setup"
 
 # ╔═╡ e3946d78-b7d4-4484-9e00-dc20d0457293
-layout = Spring(iterations=350, C=1.4, initialtemp=1.0)(top.g)
+if problem_instance == "art_museum"
+	layout = art_museum_layout(15.0)
+else
+	layout = Spring(iterations=350, C=1.4, initialtemp=1.0)(top.g)
+end
 
 # ╔═╡ 74ce2e45-8c6c-40b8-8b09-80d97f58af2f
 viz_setup(top, nlabels=true, layout=layout, radius=0.3, savename=problem_instance, depict_r=false, depict_ω=false, show_robots=false, node_size=23)
@@ -100,7 +104,7 @@ end
 # ╔═╡ e8598540-a37b-4f52-a6ca-819c50411d13
 problem_instance == "art_museum" ? 
 	viz_setup(top, 
-		nlabels=true, C=C, radius=0.5, 
+		nlabels=true, layout=layout, radius=0.5, 
 		savename=problem_instance * "_trail", depict_r=false, 
 		depict_ω=false, robots=[robot_example]
 	) : 
@@ -108,14 +112,14 @@ problem_instance == "art_museum" ?
 
 # ╔═╡ 2e468a5c-4400-4da8-b2f5-c978065cf440
 problem_instance == "art_museum" ? 
-	viz_setup(top, nlabels=true, C=C, radius=0.5, 
+	viz_setup(top, nlabels=true, layout=layout, radius=0.5, 
 			  savename=problem_instance * "_trails", depict_r=false, 
 			  depict_ω=false, robots=robots_example) :
 	nothing
 
 # ╔═╡ 65cba45f-0151-4692-8280-7c67cc4372ec
 problem_instance == "art_museum" ? 
-	viz_setup(top, nlabels=true, C=C, radius=0.5, 
+	viz_setup(top, nlabels=true, layout=layout, radius=0.5, 
 		      savename=problem_instance * "_omegas", depict_r=false, 
 		      depict_ω=true, show_robots=true
 	) :
@@ -123,7 +127,7 @@ problem_instance == "art_museum" ?
 
 # ╔═╡ 787972cc-f1de-4f6d-9760-c92cbcb2bc4c
 problem_instance == "art_museum" ? 
-	viz_setup(top, nlabels=true, C=C, radius=0.5, 			 
+	viz_setup(top, nlabels=true, layout=layout, radius=0.5, 			 
 		      savename=problem_instance * "_survive_robot", depict_r=false,
 			  depict_ω=true, show_robots=true, robots=[robot_example]
 	) :
@@ -131,7 +135,7 @@ problem_instance == "art_museum" ?
 
 # ╔═╡ 7cfd6d84-aa4f-4dd2-9dff-7da94ff3b82e
 problem_instance == "art_museum" ? 
-	viz_setup(top, nlabels=true, C=C, radius=0.5,
+	viz_setup(top, nlabels=true, layout=layout, radius=0.5,
 			  savename=problem_instance * "_prob_survive_team", depict_r=false, 
 		      depict_ω=true, show_robots=true, robots=robots_example
 	) : 
@@ -139,7 +143,7 @@ problem_instance == "art_museum" ?
 
 # ╔═╡ fd7d8294-3e2b-4954-96f8-b4773ba11cef
 problem_instance == "art_museum" ? 
-	viz_setup(top, nlabels=true, C=C, radius=0.5, 
+	viz_setup(top, nlabels=true, layout=layout, radius=0.5, 
 			  savename=problem_instance * "_failure", depict_r=false, depict_ω=false,
 		      show_robots=true, robots=robots_failure_example
 	) : 
@@ -147,7 +151,7 @@ problem_instance == "art_museum" ?
 
 # ╔═╡ f9ad4452-5927-43cc-b14d-5cd87bf8cf54
 problem_instance == "art_museum" ? 
-	viz_setup(top, nlabels=true, C=C, radius=0.6, 
+	viz_setup(top, nlabels=true, layout=layout, radius=0.6, 
 		      savename=problem_instance * "_plans_b4_failure", depict_r=true,
 			  depict_ω=true, robots=robots_example
 	) : 
@@ -155,7 +159,7 @@ problem_instance == "art_museum" ?
 
 # ╔═╡ a8a194e0-28fe-4016-81ba-d1375ad1852e
 problem_instance == "art_museum" ? 
-	viz_setup(top, nlabels=true, C=C, radius=0.6, 
+	viz_setup(top, nlabels=true, layout=layout, radius=0.6, 
 		      savename=problem_instance * "_plans_all", depict_r=true,        
 		      depict_ω=false, robots=robots_example
 	) : 	

@@ -228,65 +228,129 @@ function darpa_urban_environment(nb_robots::Int; seed::Int=97330)
              )
 end
 
+function art_museum_layout(scale::Float64)
+	# read in node locations from plot digitizer of art museum map
+	raw_node_locs = split.(readlines("art_museum_node_locs.csv"), ",")
+	xs = [parse(Float64, rnl[1]) for rnl in raw_node_locs]
+	ys = -1 * [parse(Float64, rnl[2]) for rnl in raw_node_locs] # reflect
+
+	# standardize
+	r = maximum(xs) - minimum(xs) # avoid stretching one more than another
+	xs = (xs .- minimum(xs)) / r
+	ys = (ys .- minimum(ys)) / r
+
+	# manual adjustments
+	# node 4 bring it down
+	ys[4] -= 0.05
+
+	# move floor 2 nodes
+	f2_nodes = [21, 22, 23, 27, 24, 25, 26]
+	# xs[f2_nodes]
+	ys[f2_nodes] .-= 0.8
+
+	# scale
+	xs *= scale
+	ys *= scale
+
+	# wut the graph makie wants
+	spatial_layout = Point2{Float64}[]
+	for (x, y) in zip(xs,  ys)
+		pos = Point2{Float64}(x, y)
+		push!(spatial_layout, pos)
+	end
+	return spatial_layout
+end
+
+"""
+the San Diego art museum
+"""
 function art_museum(nb_robots::Int)
 	g = MetaDiGraph(SimpleDiGraph(27))
 	edge_list = [
         # floor 1
-        # from main
-        (1, 2),
-        (2, 3),
-        (2, 8),
-        (2, 9),
-        (8, 10),
-        (8, 6),
+        # in main
+        (1, 2, "m"),
+        (2, 3, "m"),
+        (2, 8, "m"),
+        # in/out of main
+        (2, 9, "iom"),
+        (2, 4, "iom"),
+        (8, 10, "iom"),
+        (8, 6, "iom"),
+        # main to floor 2 (floor transition)
+        (2, 21, "ft"),
         # left
-        (9, 10),
-        (9, 16),
-        (10, 11),
-        (11, 12),
-        (11, 14),
-        (16, 15),
-        (14, 15),
-        (12, 13),
-        (14, 13),
-        (12, 18),
-        (17, 18),
-        (17, 14),
-        (20, 14),
-        (14, 19),
-        (20, 19),
+        (9, 10, "l"),
+        (9, 16, "l"),
+        (10, 11, "l"),
+        (11, 12, "l"),
+        (11, 14, "l"),
+        (16, 15, "l"),
+        (14, 15, "l"),
+        (12, 13, "l"),
+        (14, 13, "l"),
+        (12, 18, "l"),
+        (17, 18, "l"),
+        (17, 14, "l"),
+        (20, 14, "l"),
+        (14, 19, "l"),
+        (20, 19, "l"),
         # right
-        (2, 4),
-        (4, 5),
-        (5, 3),
-        (6, 3),
-        (6, 5),
-        (7, 5),
-        (7, 6),
-        # floor transition
-        (2, 21),
+        (4, 5, "r"),
+        (5, 3, "r"),
+        (6, 3, "r"),
+        (6, 5, "r"),
+        (7, 5, "r"),
+        (7, 6, "r"),
         # floor 2
-        (21, 22),
-        (21, 23),
-        (21, 27),
-        (25, 27),
-        (24, 27),
-        (22, 27),
-        (26, 27),
-        (23, 27)
-   ]
-	
-    for (i, j) in edge_list
+        (21, 22, "f2"),
+        (21, 23, "f2"),
+        (21, 27, "f2"),
+        (25, 27, "f2"),
+        (24, 27, "f2"),
+        (22, 27, "f2"),
+        (26, 27, "f2"),
+        (23, 27, "f2")
+    ]
+
+    #=
+    survival model
+    =#
+    ωs = Dict(
+        # dangerous floor transition
+        "ft" => 0.75,
+        # in/out of main
+        "iom" => 0.95,
+        # right side of floor 1 
+        "r" => 0.99,
+        # left side of floor 1 
+        "l" => 0.97,
+        # floor 2
+        "f2" => 0.97,
+        # main hall
+        "m" => 0.99
+    )
+
+    function my_add_edge!(g, i, j, ω)
         add_edge!(g, i, j)
         add_edge!(g, j, i)
-        ω = 0.98
         set_prop!(g, i, j, :ω, ω)
         set_prop!(g, j, i, :ω, ω)
     end
-    # floor transition (dangerous)
-    set_prop!(g, 2, 21, :ω, 0.75)
-    set_prop!(g, 21, 2, :ω, 0.75)
-    # set rewards
+    
+    for (i, j, loc) in edge_list
+        my_add_edge!(g, i, j, ωs[loc])
+    end
+    
+    #=
+    reward model
+    =#
+    nodes_with_rewards = Dict(
+        "f2" => [22, 23, 24, 25, 26],
+        "m" => [8],
+        "l" => [9, 10, 11, 15, 16, 12, 13, 14, 17, 18, 19, 20],
+        "r" => [3, 4, 5, 6, 7]
+    )
     for v = 1:nv(g)
         if (v in [1, 2, 21, 27])
             set_prop!(g, v, :r, 0.0)
