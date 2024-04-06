@@ -246,6 +246,7 @@ function art_museum_layout(scale::Float64)
 	# move floor 2 nodes
 	f2_nodes = [21, 22, 23, 27, 24, 25, 26]
 	# xs[f2_nodes]
+	xs[f2_nodes] .-= 0.05
 	ys[f2_nodes] .-= 0.8
 
 	# scale
@@ -318,7 +319,7 @@ function art_museum(nb_robots::Int)
     =#
     ωs = Dict(
         # dangerous floor transition
-        "ft" => 0.75,
+        "ft" => 0.9,
         # in/out of main
         "iom" => 0.95,
         # right side of floor 1 
@@ -345,19 +346,24 @@ function art_museum(nb_robots::Int)
     #=
     reward model
     =#
-    nodes_with_rewards = Dict(
-        "f2" => [22, 23, 24, 25, 26],
-        "m" => [8],
-        "l" => [9, 10, 11, 15, 16, 12, 13, 14, 17, 18, 19, 20],
-        "r" => [3, 4, 5, 6, 7]
-    )
     for v = 1:nv(g)
-        if (v in [1, 2, 21, 27])
-            set_prop!(g, v, :r, 0.0)
+        # BIG galleries
+        if v in [24, 26, 25, 6, 7]
+            set_prop!(g, v, :r, 2.0)
+        # med galleries
+        elseif v in [5, 4, 10, 11, 14, 12, 17]
+            set_prop!(g, v, :r, 1.0)
+        # small galleries
+        elseif v in [3, 9, 16, 15, 13, 18]
+            set_prop!(g, v, :r, 3.0)
+        # corners / hiddenish
+        elseif v in [19, 20, 22, 23, 8]
+            set_prop!(g, v, :r, 0.4)
         else
-            set_prop!(g, v, :r, sample([1, 5, 10, 30], ProbabilityWeights([40.0, 30.0, 10.0, 2.0])))
+            set_prop!(g, v, :r, 0.0)
         end
     end
+
 	return TOP(
                nv(g),
                g,

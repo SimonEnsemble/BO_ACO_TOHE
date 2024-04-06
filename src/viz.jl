@@ -114,20 +114,21 @@ end
 #=
 viz of the TOP setup and soln
 =#
-robot_colors = ColorSchemes.Pastel1_4
+robot_colors = ColorSchemes.Accent_4
 
 """
-    viz_setup(TOP; nlabels=true, robots=nothing, show_robots=true, radius=1.0, C=2.0)
+    viz_setup(TOP; nlabels=true, robots=nothing, show_robots=true, robot_radius=1.0, C=2.0)
 
 viz setup of the TOP.
 """
 function viz_setup(
     top::TOP;
     nlabels::Bool=true,
+    elabels::Bool=false,
     robots::Union{Nothing, Vector{Robot}}=nothing,
     show_robots::Bool=true,
     C::Float64=2.0,
-    radius::Float64=1.0,
+    robot_radius::Float64=1.0,
     savename::Union{Nothing, String}=nothing,
     depict_ω::Bool=true,
     depict_r::Bool=true,
@@ -138,8 +139,7 @@ function viz_setup(
     g = deepcopy(top.g)
 
     # assign node color based on rewards
-    reward_color_scheme = ColorSchemes.viridis
-    reward_color_scheme = ColorSchemes.summer
+    reward_color_scheme = reverse(ColorSchemes.acton)
     rewards = [get_r(top, v) for v in vertices(g)]
     crangescale_r = (0.0, round(maximum(rewards), digits=1))
     if depict_r
@@ -149,9 +149,9 @@ function viz_setup(
     end
 
     # assign edge color based on probability of survival
-    survival_color_scheme = reverse(ColorSchemes.thermal)
+    survival_color_scheme = reverse(ColorSchemes.inferno)
     edge_surivival_probs = [get_ω(top, ed.src, ed.dst) for ed in edges(g)]
-    crangescale_s = (minimum(edge_surivival_probs), maximum(edge_surivival_probs))
+    crangescale_s = (minimum(edge_surivival_probs) - 0.05, 1.0)
     if depict_ω
         edge_color = [get(survival_color_scheme, p, crangescale_s) for p in edge_surivival_probs]
     else
@@ -174,7 +174,7 @@ function viz_setup(
             graphplot!(
                 g_trail,
                 layout=layout,
-                elabels=["$(get_prop(g_trail, e, :step))" for e in edges(g_trail)],
+                elabels=elabels ? ["$(get_prop(r_trail, e, :step))" for e in edges(g_trail)] : nothing,
                 elabels_fontsize=10,
                 node_strokewidth=1,
                 node_size=0,
@@ -214,9 +214,9 @@ function viz_setup(
             end
             x = layout[id_node_robots][1]
             y = layout[id_node_robots][2]
-            θ = π/2 * (r - 1)
-            scatter!([x + radius*cos(θ)], [y + radius*sin(θ)],
-                marker='✈',markersize=30, color=robot_colors[r])
+            θ = - π/2 * (r - 1)
+            scatter!([x + robot_radius*cos(θ)], [y + robot_radius*sin(θ)],
+                marker='✈',markersize=25, color=robot_colors[r])
         end
     end
     if depict_r
@@ -269,6 +269,7 @@ function viz_robot_trail(
     layout::Union{Nothing, Vector{Point2{Float64}}}=nothing,
     resolution::Tuple{Int, Int}=the_resolution,
     pad::Float64=0.1,
+    elabels::Bool=true,
     savename::Union{Nothing, String}=nothing,
     underlying_graph::Bool=true
 )
@@ -297,7 +298,7 @@ function viz_robot_trail(
 	graphplot!(
                 r_trail,
                 layout=layout,
-                elabels=["$(get_prop(r_trail, e, :step))" for e in edges(r_trail)],
+                elabels=elabels ? ["$(get_prop(r_trail, e, :step))" for e in edges(r_trail)] : nothing,
                 elabels_fontsize=14,
                 elabels_distance=12.0,
                 arrow_size=20,
@@ -329,15 +330,19 @@ function viz_soln(
     soln::Soln,
     top::TOP; 
     nlabels::Bool=false,
+    elabels::Bool=false,
     savename::Union{Nothing, String}=nothing,
-    radius::Float64=0.2,
+    robot_radius::Float64=0.2,
     show_𝔼::Bool=true,
-    show_robots::Bool=true
+    show_robots::Bool=true,
+    layout=nothing
 )
     g = top.g
 
     # graph layout
-    layout = _g_layout(top)
+    if isnothing(layout)
+        layout = _g_layout(top)
+    end
     
     fig = Figure(resolution=(300 * top.nb_robots, 400))
     axs = [
@@ -352,8 +357,10 @@ function viz_soln(
         hidedecorations!(ax)
     end
     @assert top.nb_robots == length(soln.robots)
+    # sort robots by survivability
+    ids_sp = sortperm([π_robot_survives(robot.trail, top) for robot in soln.robots])
     for r = 1:top.nb_robots
-        robot = soln.robots[r]
+        robot = soln.robots[ids_sp[r]]
         # represent trail as a graph
         r_trail = trail_to_digraph(robot, top)
 
@@ -361,7 +368,7 @@ function viz_soln(
         π_survive = π_robot_survives(robot.trail, top)
         axs[r].title = "robot $r"
         if show_𝔼
-            axs[r].title = "robot $r\nπ(survive)=$(round(π_survive, digits=5))"
+            axs[r].title = "robot $r\nπ(survive)=$(round(π_survive, digits=2))"
         end
         
         # plot graph with nodes and edges colored
@@ -379,38 +386,40 @@ function viz_soln(
             arrow_shift=:end,
             nlabels_align=(:center, :center)
         )
-        # plot trail of robot
-        graphplot!(
-            axs[r],
-            r_trail, 
-            layout=layout,
-            elabels=["$(get_prop(r_trail, e, :step))" for e in edges(r_trail)],
-            elabels_fontsize=10,
-            node_size=14, 
-            node_color="black", 
-            edge_color=robot_colors[r],
-            edge_width=3,
-            nlabels=nlabels ? ["$v" for v in vertices(g)] : nothing,
-            curve_distance_usage=true,
-            nlabels_color=:white,
-            nlabels_fontsize=9,
-            arrow_shift=:end,
-            nlabels_align=(:center, :center)
-        )
-        
+        # plot trail of robot. unless self-loop.
+        if robot.trail != [1, 1]
+            graphplot!(
+                axs[r],
+                r_trail, 
+                layout=layout,
+                elabels=elabels ? ["$(get_prop(r_trail, e, :step))" for e in edges(r_trail)] : nothing,
+                elabels_fontsize=10,
+                node_size=14, 
+                node_color="black", 
+                edge_color=robot_colors[r],
+                edge_width=3,
+                nlabels=nlabels ? ["$v" for v in vertices(g)] : nothing,
+                curve_distance_usage=true,
+                nlabels_color=:white,
+                nlabels_fontsize=9,
+                arrow_shift=:end,
+                nlabels_align=(:center, :center)
+            )
+        end
+
         if show_robots
             # start node = 1
             x = layout[1][1]
             y = layout[1][2]
-            scatter!(axs[r], [x + radius], [y + radius], 
+            scatter!(axs[r], [x], [y - robot_radius], 
                 marker='✈',markersize=20, color=robot_colors[r])
         end
     end
     if show_𝔼
         Label(
             fig[2, :], 
-            "𝔼[reward]=$(round(soln.objs.r, digits=3))\n
-             𝔼[# robots survive]=$(round(soln.objs.s, digits=3))\n
+            "𝔼[reward]=$(round(soln.objs.r, digits=2))\n
+             𝔼[# robots survive]=$(round(soln.objs.s, digits=2))\n
             ",
             font=firasans("Light")
         )
@@ -455,8 +464,8 @@ function viz_pheremone(
 
     fig = Figure()
     axs = [Axis(fig[1, i], aspect=DataAspect()) for i = 1:2]
-    axs[1].title = rich("τ", subscript("U"))
-    axs[2].title = rich("τ", subscript("R"))
+    axs[1].title = rich("τ", subscript("R"))
+    axs[2].title = rich("τ", subscript("S"))
 
     for i = 1:2
         graphplot!(axs[i],
@@ -485,8 +494,8 @@ function viz_pheremone(
     τ_r = [pheremone.τ_r[ed.src, ed.dst] for ed in edges(g)]
     hist!(axs_hist[1], τ_r, color="green")
     hist!(axs_hist[2], τ_s, color="red")
-    axs_hist[1].xlabel = rich("τ", subscript("U"))
-    axs_hist[2].xlabel = rich("τ", subscript("R"))
+    axs_hist[1].xlabel = rich("τ", subscript("R"))
+    axs_hist[2].xlabel = rich("τ", subscript("S"))
     xlims!(axs_hist[1], 0.0, nothing)
     xlims!(axs_hist[2], 0.0, nothing)
     if ! isnothing(savename)
