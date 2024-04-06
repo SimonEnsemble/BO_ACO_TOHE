@@ -232,14 +232,16 @@ function art_museum(nb_robots::Int)
 	g = MetaDiGraph(SimpleDiGraph(27))
 	edge_list = [
         # floor 1
-        # main
+        # from main
         (1, 2),
+        (2, 3),
         (2, 8),
-        # left
         (2, 9),
+        (8, 10),
+        (8, 6),
+        # left
         (9, 10),
         (9, 16),
-        (8, 10),
         (10, 11),
         (11, 12),
         (11, 14),
@@ -253,21 +255,19 @@ function art_museum(nb_robots::Int)
         (20, 14),
         (14, 19),
         (20, 19),
+        # right
         (2, 4),
-        (2, 3),
         (4, 5),
         (5, 3),
         (6, 3),
         (6, 5),
         (7, 5),
         (7, 6),
-        (8, 6),
         # floor transition
         (2, 21),
         # floor 2
         (21, 22),
         (21, 23),
-        (23, 22),
         (21, 27),
         (25, 27),
         (24, 27),

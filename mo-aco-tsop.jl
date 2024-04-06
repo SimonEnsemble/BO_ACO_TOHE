@@ -38,13 +38,20 @@ end
 TableOfContents()
 
 # ╔═╡ 613ad2a0-abb7-47f5-b477-82351f54894a
-md"# bi-objective ant colony optimization of team orienteering in a hazardous environment
+md"# BO-ACO of RTOHE problem
+BO = bi-objective
+
+ACO = ant colony optimization
+
+RTOHE = robot team orienteering in a hazardous environment
 
 ## generate problem instance
 "
 
 # ╔═╡ 7e4e838c-0e42-4925-9ddf-4c3601466b64
-@bind problem_instance Select(["power_plant", "art_museum", "starish"], default="power_plant")
+@bind problem_instance Select(
+	["power_plant", "art_museum", "starish"], default="power_plant"
+)
 
 # ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
 if problem_instance == "power_plant"
@@ -58,57 +65,101 @@ end
 # ╔═╡ f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 md"## viz setup"
 
-# ╔═╡ 54ddc953-ad25-4d77-905e-732a7664e9aa
-robot_example = Robot([1, 2, 4, 5, 3, 2, 1], top)
+# ╔═╡ e3946d78-b7d4-4484-9e00-dc20d0457293
+layout = Spring(iterations=350, C=1.4, initialtemp=1.0)(top.g)
 
-# ╔═╡ ab9bf29e-8d06-42a0-ac38-8564af098025
-robots_example = [
+# ╔═╡ 74ce2e45-8c6c-40b8-8b09-80d97f58af2f
+viz_setup(top, nlabels=true, layout=layout, radius=0.3, savename=problem_instance, depict_r=false, depict_ω=false, show_robots=false, node_size=23)
+
+# ╔═╡ 79dd4f91-8a4a-4be1-8013-c9b6dfa56a75
+viz_setup(top, nlabels=true, radius=0.6, 
+	      savename=problem_instance * "_full_setup", depict_r=true,
+		  depict_ω=true, show_robots=true, layout=layout, node_size=23
+)
+
+# ╔═╡ 09b09bd5-42f0-46f7-a723-34fc37e08920
+md"### (for presentation)"
+
+# ╔═╡ 54ddc953-ad25-4d77-905e-732a7664e9aa
+if problem_instance == "art_museum"
+	robot_example = Robot([1, 2, 4, 5, 3, 2, 1], top)
+
+	robots_example = [
 		robot_example,
 		Robot([1, 2, 21, 22, 27, 26, 27, 23, 21, 2, 1], top),
 		Robot([1, 2, 3, 6, 8, 10, 9, 2, 1], top)
 	]
 
-# ╔═╡ d2a377a0-4e0b-489d-b4d2-55c85cfaa07e
-robots_failure_example = [
+	robots_failure_example = [
 		Robot(robots_example[1].trail[1:5], top),
 		Robot(robots_example[2].trail[1:5], top),
 		Robot(robots_example[3].trail[1:3], top),
 	]
-
-# ╔═╡ 74ce2e45-8c6c-40b8-8b09-80d97f58af2f
-viz_setup(top, nlabels=true, C=3.0, radius=0.3, savename="art_gallery", depict_r=false, depict_ω=false, show_robots=true)
+end
 
 # ╔═╡ e8598540-a37b-4f52-a6ca-819c50411d13
-viz_setup(top, nlabels=true, C=2.0, radius=0.5, savename="art_gallery_trail", depict_r=false, depict_ω=false, robots=[robot_example])
+problem_instance == "art_museum" ? 
+	viz_setup(top, 
+		nlabels=true, C=C, radius=0.5, 
+		savename=problem_instance * "_trail", depict_r=false, 
+		depict_ω=false, robots=[robot_example]
+	) : 
+	nothing
 
 # ╔═╡ 2e468a5c-4400-4da8-b2f5-c978065cf440
-viz_setup(top, nlabels=true, C=2.0, radius=0.5, savename="art_gallery_trails", depict_r=false, depict_ω=false, 
-	robots=robots_example
-)
+problem_instance == "art_museum" ? 
+	viz_setup(top, nlabels=true, C=C, radius=0.5, 
+			  savename=problem_instance * "_trails", depict_r=false, 
+			  depict_ω=false, robots=robots_example) :
+	nothing
 
 # ╔═╡ 65cba45f-0151-4692-8280-7c67cc4372ec
-viz_setup(top, nlabels=true, C=2.0, radius=0.5, savename="art_gallery_omegas", depict_r=false, depict_ω=true, show_robots=true)
+problem_instance == "art_museum" ? 
+	viz_setup(top, nlabels=true, C=C, radius=0.5, 
+		      savename=problem_instance * "_omegas", depict_r=false, 
+		      depict_ω=true, show_robots=true
+	) :
+	nothing
 
 # ╔═╡ 787972cc-f1de-4f6d-9760-c92cbcb2bc4c
-viz_setup(top, nlabels=true, C=2.0, radius=0.5, savename="art_gallery_prob_survive_robot", depict_r=false, depict_ω=true, show_robots=true, robots=[robot_example])
+problem_instance == "art_museum" ? 
+	viz_setup(top, nlabels=true, C=C, radius=0.5, 			 
+		      savename=problem_instance * "_survive_robot", depict_r=false,
+			  depict_ω=true, show_robots=true, robots=[robot_example]
+	) :
+	nothing
 
 # ╔═╡ 7cfd6d84-aa4f-4dd2-9dff-7da94ff3b82e
-viz_setup(top, nlabels=true, C=2.0, radius=0.5, savename="art_gallery_prob_survive_team", depict_r=false, depict_ω=true, show_robots=true, robots=robots_example)
-
-# ╔═╡ 79dd4f91-8a4a-4be1-8013-c9b6dfa56a75
-viz_setup(top, nlabels=true, C=2.0, radius=0.6, savename="art_gallery_full_setup", depict_r=true, depict_ω=true, show_robots=true)
+problem_instance == "art_museum" ? 
+	viz_setup(top, nlabels=true, C=C, radius=0.5,
+			  savename=problem_instance * "_prob_survive_team", depict_r=false, 
+		      depict_ω=true, show_robots=true, robots=robots_example
+	) : 
+	nothing
 
 # ╔═╡ fd7d8294-3e2b-4954-96f8-b4773ba11cef
-viz_setup(top, nlabels=true, C=2.0, radius=0.5, savename="art_gallery_failure", depict_r=false, depict_ω=false, show_robots=true,
-	robots=robots_failure_example)
+problem_instance == "art_museum" ? 
+	viz_setup(top, nlabels=true, C=C, radius=0.5, 
+			  savename=problem_instance * "_failure", depict_r=false, depict_ω=false,
+		      show_robots=true, robots=robots_failure_example
+	) : 
+	nothing
 
 # ╔═╡ f9ad4452-5927-43cc-b14d-5cd87bf8cf54
-viz_setup(top, nlabels=true, C=2.0, radius=0.6, savename="art_gallery_plans_b4_failure", depict_r=true, depict_ω=true, 
-	robots=robots_example)
+problem_instance == "art_museum" ? 
+	viz_setup(top, nlabels=true, C=C, radius=0.6, 
+		      savename=problem_instance * "_plans_b4_failure", depict_r=true,
+			  depict_ω=true, robots=robots_example
+	) : 
+	nothing
 
 # ╔═╡ a8a194e0-28fe-4016-81ba-d1375ad1852e
-viz_setup(top, nlabels=true, C=2.0, radius=0.6, savename="art_gallery_plans_all", depict_r=true, depict_ω=false, 
-	robots=robots_example)
+problem_instance == "art_museum" ? 
+	viz_setup(top, nlabels=true, C=C, radius=0.6, 
+		      savename=problem_instance * "_plans_all", depict_r=true,        
+		      depict_ω=false, robots=robots_example
+	) : 	
+	nothing
 
 # ╔═╡ 9d44f37d-8c05-450a-a448-7be50387499c
 md"## MO-ACO 🐜
@@ -333,19 +384,19 @@ viz_robot_trail(toy_top, [Robot(toy_top), Robot(toy_top), Robot([1, 3, 4, 2, 3, 
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
 # ╠═e136cdee-f7c1-4add-9024-70351646bf24
 # ╟─613ad2a0-abb7-47f5-b477-82351f54894a
-# ╠═7e4e838c-0e42-4925-9ddf-4c3601466b64
+# ╟─7e4e838c-0e42-4925-9ddf-4c3601466b64
 # ╠═bdb5d550-13f6-4d8d-9a74-14b889efe7a2
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
-# ╠═54ddc953-ad25-4d77-905e-732a7664e9aa
-# ╠═ab9bf29e-8d06-42a0-ac38-8564af098025
-# ╠═d2a377a0-4e0b-489d-b4d2-55c85cfaa07e
+# ╠═e3946d78-b7d4-4484-9e00-dc20d0457293
 # ╠═74ce2e45-8c6c-40b8-8b09-80d97f58af2f
+# ╠═79dd4f91-8a4a-4be1-8013-c9b6dfa56a75
+# ╟─09b09bd5-42f0-46f7-a723-34fc37e08920
+# ╠═54ddc953-ad25-4d77-905e-732a7664e9aa
 # ╠═e8598540-a37b-4f52-a6ca-819c50411d13
 # ╠═2e468a5c-4400-4da8-b2f5-c978065cf440
 # ╠═65cba45f-0151-4692-8280-7c67cc4372ec
 # ╠═787972cc-f1de-4f6d-9760-c92cbcb2bc4c
 # ╠═7cfd6d84-aa4f-4dd2-9dff-7da94ff3b82e
-# ╠═79dd4f91-8a4a-4be1-8013-c9b6dfa56a75
 # ╠═fd7d8294-3e2b-4954-96f8-b4773ba11cef
 # ╠═f9ad4452-5927-43cc-b14d-5cd87bf8cf54
 # ╠═a8a194e0-28fe-4016-81ba-d1375ad1852e
