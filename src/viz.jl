@@ -79,10 +79,11 @@ end
 """
 function viz_Pareto_front(
         solns::Vector{Soln}; 
-        id_hl::Union{Nothing, Int}=nothing,
+        ids_hl::Vector{Int}=[],
         savename::Union{Nothing, String}=nothing,
         resolution=the_resolution,
-        upper_xlim=nothing
+        upper_xlim=nothing,
+        incl_legend::Bool=true
     )
     fig = Figure(resolution=resolution)
     ax = Axis(
@@ -96,9 +97,11 @@ function viz_Pareto_front(
     _viz_area_indicator!(ax, pareto_solns)
     _viz_objectives!(ax, solns, markersize=5, label="dominated")
     _viz_objectives!(ax, pareto_solns, label="Pareto-optimal")
-    axislegend(labelsize=12, framevisible=true, framecolor="lightgray")
-    if ! isnothing(id_hl)
-        scatter!(ax, [solns[id_hl].objs.r], [solns[id_hl].objs.s], color=Cycled(4))
+    if incl_legend
+        axislegend(labelsize=12, framevisible=true, framecolor="lightgray")
+    end
+    if length(ids_hl) > 0
+        scatter!(ax, [s.objs.r for s in solns[ids_hl]], [s.objs.s for s in solns[ids_hl]], color=Cycled(4))
     end
     if ! isnothing(savename)
         save(savename * ".pdf", fig)
@@ -366,10 +369,7 @@ function viz_soln(
 
         # wut is survival prob of this robot?
         π_survive = π_robot_survives(robot.trail, top)
-        axs[r].title = "robot $r"
-        if show_𝔼
-            axs[r].title = "robot $r\nπ(survive)=$(round(π_survive, digits=2))"
-        end
+        axs[r].title = "π(robot $r survives)=$(round(π_survive, digits=2))"
         
         # plot graph with nodes and edges colored
         graphplot!(
@@ -418,11 +418,10 @@ function viz_soln(
     if show_𝔼
         Label(
             fig[2, :], 
-            "𝔼[reward]=$(round(soln.objs.r, digits=2))\n
-             𝔼[# robots survive]=$(round(soln.objs.s, digits=2))\n
-            ",
+            "𝔼[R]=$(round(soln.objs.r, digits=2)); 𝔼[S]=$(round(soln.objs.s, digits=2))",
             font=firasans("Light")
         )
+        rowgap!(fig.layout, 1, Relative(-0.3))
     end
     if ! isnothing(savename)
         save(savename * ".pdf", fig)
@@ -464,6 +463,8 @@ function viz_pheremone(
 
     fig = Figure()
     axs = [Axis(fig[1, i], aspect=DataAspect()) for i = 1:2]
+    rowsize!(fig.layout, 1, Relative(0.75))
+    colgap!(fig.layout, 1, Relative(0.02))
     axs[1].title = rich("τ", subscript("R"))
     axs[2].title = rich("τ", subscript("S"))
 
@@ -486,7 +487,7 @@ function viz_pheremone(
     axs_hist = [
         Axis(
             fig[2, i],
-            ylabel="# edges"
+            ylabel="# arcs"
         )
         for i = 1:2
     ]
@@ -498,6 +499,7 @@ function viz_pheremone(
     axs_hist[2].xlabel = rich("τ", subscript("S"))
     xlims!(axs_hist[1], 0.0, nothing)
     xlims!(axs_hist[2], 0.0, nothing)
+    rowgap!(fig.layout, 1, Relative(-0.2))
     if ! isnothing(savename)
         save(savename * ".pdf", fig)
     end
@@ -512,7 +514,8 @@ view area indicator vs iteration.
 function viz_progress(res::MO_ACO_run; savename::String="")
     fig = Figure(resolution=the_resolution)
     ax  = Axis(fig[1, 1], xlabel="iteration", ylabel="area indicator")
-    lines!(1:res.nb_iters, res.areas)
+    lines!(1:res.nb_iters, res.areas, linewidth=3)
+    xlims!(0, 1.02 * res.nb_iters)
     if savename != ""
         save(savename * ".pdf", fig)
     end

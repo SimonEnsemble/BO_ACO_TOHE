@@ -62,6 +62,9 @@ elseif problem_instance == "starish"
 	top = toy_starish_top(5)
 end
 
+# ╔═╡ 21ef0739-9c36-4825-b965-b99cd984b9d2
+nv(top.g)
+
 # ╔═╡ f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 md"## viz setup"
 
@@ -172,7 +175,7 @@ md"## MO-ACO 🐜
 "
 
 # ╔═╡ b9a9808e-8631-45e1-9e31-516565c804a3
-@bind nb_iters Select([2000, 250], default=250)
+@bind nb_iters Select([10000, 250], default=250)
 
 # ╔═╡ a8e27a0e-89da-4206-a7e2-94f796cac8b4
 @time res = mo_aco(
@@ -187,6 +190,9 @@ md"## MO-ACO 🐜
 # ╔═╡ 793286fa-ff36-44bb-baaf-e7fd819c5aa4
 res.areas[end]
 
+# ╔═╡ e1e64449-917a-4406-97de-e5a9853d8a99
+res.nb_iters
+
 # ╔═╡ 92d564b1-17f1-4fd1-9e76-8ea1b65c127a
 viz_progress(res, savename="progress")
 
@@ -196,11 +202,26 @@ viz_progress(res, savename="progress")
 # ╔═╡ f89383c4-e46c-4cc2-967a-11bd451ec486
 res.global_pareto_solns[soln_id].robots[2].trail
 
+# ╔═╡ f2f8de8e-629c-45eb-81f2-9898777678ff
+soln_id
+
 # ╔═╡ b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
 viz_soln(res.global_pareto_solns[soln_id], top, show_𝔼=true, savename="a_soln", layout=layout, robot_radius=robot_radius)
 
+# ╔═╡ aca53592-e8d5-4640-951a-7acca6241ea3
+ids_hl = [13, 80, 117, 156]
+
 # ╔═╡ 4769582f-6498-4f14-a965-ed109b7f97d1
-viz_Pareto_front(res.global_pareto_solns, id_hl=soln_id, savename="pareto_front")#)
+viz_Pareto_front(res.global_pareto_solns, resolution=(300, 300), ids_hl=ids_hl, savename="pareto_front", incl_legend=false)
+
+# ╔═╡ 60917dfc-8342-4bae-abec-d64eab350c15
+for soln_id in ids_hl
+	viz_soln(res.global_pareto_solns[soln_id], top, show_𝔼=false, savename="a_soln_$soln_id", layout=layout, robot_radius=robot_radius)
+end
+
+# ╔═╡ 751c4203-88b1-40dd-9a96-926cd614aef8
+viz_soln(
+	res.global_pareto_solns[soln_id], top, show_𝔼=false, savename="a_soln", layout=layout, robot_radius=robot_radius)
 
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 viz_pheremone(res.pheremone, top, savename="pheremone", layout=layout)
@@ -230,11 +251,18 @@ res_pheremone_only = mo_aco(
 
 # ╔═╡ 0808a99f-1f55-4b0a-81e9-3f511c9f55d5
 begin
-	local fig = Figure(resolution=MOACOTOP.the_resolution)
-	local ax = Axis(fig[1, 1], xlabel="# iterations", ylabel="area indicator")
-	lines!(1:res.nb_iters, res.areas, label="ACO")
-	lines!(1:res_pheremone_only.nb_iters, res_pheremone_only.areas, label="ACO (no heuristic)")
-	lines!(1:res_heuristic_only.nb_iters, res_heuristic_only.areas, label="ACO (no pheromone)")
+	local fig = Figure(resolution=(375, 300))
+	local ax = Axis(
+		fig[1, 1], 
+		xlabel="# iterations", 
+		ylabel="Pareto-set quality",
+		xscale=log10
+	)
+	lines!(1:res.nb_iters, res.areas, label="ACO", linewidth=3)
+	lines!(1:res_pheremone_only.nb_iters, res_pheremone_only.areas, 
+		label="ACO (no heuristic)", linewidth=3)
+	lines!(1:res_heuristic_only.nb_iters, res_heuristic_only.areas, 
+		label="ACO (no pheromone)", linewidth=3)
 	axislegend(position=:rb)
 	save("ACO_comparison.pdf", fig)
 	fig
@@ -311,7 +339,7 @@ all_toy_solns = vcat(toy_res.global_pareto_solns, random_toy_solns)
 @bind id_toy_all PlutoUI.Slider(1:length(toy_res.global_pareto_solns), show_value=true)
 
 # ╔═╡ fdc9990c-163d-4fca-bd1f-2b7eba3c741c
-viz_Pareto_front(all_toy_solns, id_hl=id_toy_all)
+viz_Pareto_front(all_toy_solns, ids_hl=[id_toy_all])
 
 # ╔═╡ 840bcd72-a885-41bc-9eb7-77ca77e37684
 viz_soln(all_toy_solns[id_toy_all], toy_top, show_𝔼=false, show_robots=false)
@@ -395,6 +423,7 @@ viz_robot_trail(toy_top, [Robot(toy_top), Robot(toy_top), Robot([1, 3, 4, 2, 3, 
 # ╟─613ad2a0-abb7-47f5-b477-82351f54894a
 # ╟─7e4e838c-0e42-4925-9ddf-4c3601466b64
 # ╠═bdb5d550-13f6-4d8d-9a74-14b889efe7a2
+# ╠═21ef0739-9c36-4825-b965-b99cd984b9d2
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 # ╠═e3946d78-b7d4-4484-9e00-dc20d0457293
 # ╠═74ce2e45-8c6c-40b8-8b09-80d97f58af2f
@@ -410,14 +439,19 @@ viz_robot_trail(toy_top, [Robot(toy_top), Robot(toy_top), Robot([1, 3, 4, 2, 3, 
 # ╠═f9ad4452-5927-43cc-b14d-5cd87bf8cf54
 # ╠═a8a194e0-28fe-4016-81ba-d1375ad1852e
 # ╟─9d44f37d-8c05-450a-a448-7be50387499c
-# ╠═b9a9808e-8631-45e1-9e31-516565c804a3
+# ╟─b9a9808e-8631-45e1-9e31-516565c804a3
 # ╠═a8e27a0e-89da-4206-a7e2-94f796cac8b4
 # ╠═793286fa-ff36-44bb-baaf-e7fd819c5aa4
+# ╠═e1e64449-917a-4406-97de-e5a9853d8a99
 # ╠═92d564b1-17f1-4fd1-9e76-8ea1b65c127a
 # ╠═f89383c4-e46c-4cc2-967a-11bd451ec486
 # ╟─3d98df3e-ec41-4685-b15d-bd99ec4bd5f7
+# ╠═f2f8de8e-629c-45eb-81f2-9898777678ff
 # ╠═b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
+# ╠═aca53592-e8d5-4640-951a-7acca6241ea3
 # ╠═4769582f-6498-4f14-a965-ed109b7f97d1
+# ╠═60917dfc-8342-4bae-abec-d64eab350c15
+# ╠═751c4203-88b1-40dd-9a96-926cd614aef8
 # ╠═197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 # ╠═17c48342-f684-4149-b1ea-b626896a4691
 # ╠═67c9334e-1155-4ef3-8d75-030dcfc1e570

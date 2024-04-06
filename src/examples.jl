@@ -319,17 +319,17 @@ function art_museum(nb_robots::Int)
     =#
     ωs = Dict(
         # dangerous floor transition
-        "ft" => 0.9,
+        "ft" => 0.8,
         # in/out of main
-        "iom" => 0.95,
+        "iom" => 0.9,
         # right side of floor 1 
-        "r" => 0.99,
+        "r" => 0.97,
         # left side of floor 1 
-        "l" => 0.97,
+        "l" => 0.95,
         # floor 2
-        "f2" => 0.97,
+        "f2" => 0.9,
         # main hall
-        "m" => 0.99
+        "m" => 0.9
     )
 
     function my_add_edge!(g, i, j, ω)
@@ -349,16 +349,16 @@ function art_museum(nb_robots::Int)
     for v = 1:nv(g)
         # BIG galleries
         if v in [24, 26, 25, 6, 7]
-            set_prop!(g, v, :r, 2.0)
+            set_prop!(g, v, :r, 2.0/3)
         # med galleries
         elseif v in [5, 4, 10, 11, 14, 12, 17]
-            set_prop!(g, v, :r, 1.0)
+            set_prop!(g, v, :r, 1.0/3)
         # small galleries
         elseif v in [3, 9, 16, 15, 13, 18]
-            set_prop!(g, v, :r, 3.0)
+            set_prop!(g, v, :r, 1.0)
         # corners / hiddenish
         elseif v in [19, 20, 22, 23, 8]
-            set_prop!(g, v, :r, 0.4)
+            set_prop!(g, v, :r, 1.0/10)
         else
             set_prop!(g, v, :r, 0.0)
         end
