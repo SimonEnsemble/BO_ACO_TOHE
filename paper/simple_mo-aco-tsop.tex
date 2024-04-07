@@ -534,19 +534,19 @@ So, the feasible set of next-nodes in the trail are:
 
 \subparagraph{The partial-trail extension rule.}
 % The ant selects the next node $\rho_k[i+1]=v^\prime$ in the trail $\rho_k$ from the candidate set $\mathcal{V}^\prime$ stochastically. 
-The probability of choosing $\rho_k[i+1]:=v^\prime \in  \mathcal{V}^\prime$ depends on (i) the amount of each species of pheromone on arc $(v, v^\prime)$ that encodes ants' past experiences, (ii) the heuristic, experience-independent values $\eta_r(v, v^\prime)$ and $\eta_s(v, v^\prime)$ that score the [greedy] appeal, in terms of maximizing $\mathbb{E}[R]$ and $\mathbb{E}[S]$, respectively, of hopping from $v$ to $v^\prime$, and (ii) the objective-balancing parameter $\lambda$. Specifically,
+The probability of choosing $\rho_k[i+1]:=v^\prime \in  \mathcal{V}^\prime$ depends on (i) the amount of each species of pheromone on arc $(v, v^\prime)$ that encodes ants' past experiences, (ii) the heuristic, experience-independent values $\eta_R(v, v^\prime)$ and $\eta_s(v, v^\prime)$ that score the [greedy] appeal, in terms of maximizing $\mathbb{E}[R]$ and $\mathbb{E}[S]$, respectively, of hopping from $v$ to $v^\prime$, and (ii) the objective-balancing parameter $\lambda$. Specifically,
 \begin{multline}
 	\pi(v^\prime \mid \rho_1, ..., \rho_{k-1}, \tilde{\rho_k}) \propto \\
 		\begin{cases}
-		 \left[\tau_R(v, v^\prime) \eta_r(v, v^\prime; \rho_1, ..., \rho_{k-1},\tilde{\rho_k}) \right]^{1-\lambda} \left[ \tau_S(v, v^\prime) \eta_s(v, v^\prime) \right]^\lambda & v^\prime \in \mathcal{V}^\prime (\tilde{\rho_k}) \\
+		 \left[\tau_R(v, v^\prime) \eta_R(v, v^\prime; \rho_1, ..., \rho_{k-1},\tilde{\rho_k}) \right]^{1-\lambda} \left[ \tau_S(v, v^\prime) \eta_s(v, v^\prime) \right]^\lambda & v^\prime \in \mathcal{V}^\prime (\tilde{\rho_k}) \\
 		 0 & v^\prime \notin \mathcal{V}^\prime (\tilde{\rho_k}), \\
 		 \end{cases}
 	 \label{eq:prob_x_y}
 \end{multline}
-where we emphasize the dependence of $\eta_r$ on the ant's previously-constructed robot trails and the partial trail and of $\mathcal{V}^\prime$ on the partial trail.
+where we emphasize the dependence of $\eta_R$ on the ant's previously-constructed robot trails and the partial trail and of $\mathcal{V}^\prime$ on the partial trail.
 Eqn.~\ref{eq:prob_x_y} makes ants more likely to traverse arcs with more pheromone and/or heuristic appeal, with more emphasis on the reward or survivability pheromone/heuristic depending on the ant's $\lambda$. Since the pheromone maps $\tau_{r,s}$ change from iteration-to-iteration, the transition rule in eqn.~\ref{eq:prob_x_y} also changes from iteration-to-iteration, as ants are hopefully biased towards arcs learned to be more promising based on past colony-level experience.
 
-\subparagraph{Heuristics.} We now define the heuristic maps $\eta_s: \mathcal{E} \rightarrow \mathbb{R}_+$ and $\eta_r:  \mathcal{E} \rightarrow \mathbb{R}_+$ that serve to bias and guide trail-building towards good solutions to accelerate the convergence of the ACO algorithm. Both heuristics are greedy and myopic, and the reward heuristic inappropriately treats robot-team trail following as sequential.   
+\subparagraph{Heuristics.} We now define the heuristic maps $\eta_s: \mathcal{E} \rightarrow \mathbb{R}_+$ and $\eta_R:  \mathcal{E} \rightarrow \mathbb{R}_+$ that serve to bias and guide trail-building towards good solutions to accelerate the convergence of the ACO algorithm. Both heuristics are greedy and myopic, and the reward heuristic inappropriately treats robot-team trail following as sequential.   
 
 For the survivability objective, we greedily score the desirability of arc $(v, v^\prime)$ with the probability of the robot surviving traversal of that arc:
 \begin{equation}
@@ -559,9 +559,9 @@ For the reward objective, we greedily score the desirability of arc $(v, v^\prim
 (ii) node $v^\prime$ is not planned to be visited earlier in the trail of robot $k$, and
 (iii) robot $k$ survives its hop to node $v^\prime$,
 and zero otherwise:
-% Consequently, $\eta_r$ considers both the previous $k-1$ robots' trails and robot $k$'s partial trail $\tilde{\rho_{k}}$:
+% Consequently, $\eta_R$ considers both the previous $k-1$ robots' trails and robot $k$'s partial trail $\tilde{\rho_{k}}$:
 \begin{equation}
-	\eta_r(v, v^\prime; \rho_1, ..., \rho_{k-1}, \tilde{\rho_k}) :=  
+	\eta_R(v, v^\prime; \rho_1, ..., \rho_{k-1}, \tilde{\rho_k}) :=  
 	 \pi[ T_{v^\prime}(\{\rho_1, ..., \rho_{k-1}\}) = 0)] \mathcal{I}[v^\prime \notin \tilde{\rho_k}] \omega(v, v^\prime) r(v^\prime ) ,
 \end{equation}
 with $\mathcal{I}$ the indicator function.
@@ -629,31 +629,33 @@ From iteration-to-iteration, we wish to measure the quality of the global [appro
 	q(\{\mathcal{P}^*_1, ...,\mathcal{P}^*_{P}\}):=
 	\Big \lvert 
 		\bigcup_{p=1}^P \{ o \in \mathbb{R}^2 : o \geq 0 \wedge  o \leq (\mathbb{E}[R(\mathcal{P}^*_p)], \mathbb{E}[S(\mathcal{P}^*_p)]) \} 
-	\Big \rvert.
+	\Big \rvert. \label{eq:q}
 \end{equation}
 This is illustrated by the area of the shaded yellow area in objective space of Fig.~\ref{fig:pareto_optimal}.
 
 \section{Results}
-We now implement and benchmark bi-objective ant colony optimization to search for Pareto-optimal robot-team trail plans for an instance of a team orienteering in a hazardous environment. We visualize some of the solutions to gain intuition. 
+We now implement and benchmark bi-objective ant colony optimization to search for Pareto-optimal robot-team trail plans for an instance of a team orienteering in a hazardous environment. 
+We visualize the pheromone trail and some of the Pareto-optimal solutions to gain intuition. 
+Our modular Julia code to both reproduce our results and modify and build upon with more complexity is available at \url{github.com/SimonEnsemble/BO_ACO_TOHE}.
 
 \paragraph{Problem setup.}
-\subparagraph{The information-gathering mission in an art museum.} 
+\subparagraph{An information-gathering mission in an art museum.} 
 Suppose a team of $K=3$ mobile robots are assigned an information-gathering mission in the San Diego Museum of Art. The robots are equipped with omnidirectional cameras and can transmit images back to the command center outside of the museum. 
-Generally, the command center wishes (i) to collect images of the art in each gallery and (ii) for the [expensive] robots to return from the mission. 
+Generally, the command center wishes for the robots (i) to collect images of the art in each gallery and (ii) return from the mission. 
 % Suppose these images have a gallery-dependent value to the command center.
 
 \subparagraph{Abstraction as a directed graph.} Spatially abstracted as a directed graph $G=(\mathcal{V}, \mathcal{E})$, this art museum exhibits an interesting topology. 
-The museum is partitioned into a collection of 23 distinct art galleries (rooms). The galleries are connected to each other via doorways or hallways in a rather rich pattern.
+The museum is partitioned into a collection of 23 distinct art galleries (rooms). The galleries are connected to each other via passages or doorways in a rather rich pattern.
 More, the museum has two floors connected by a single stairway.
 We construct a set of 27 nodes $\mathcal{V}$ to represent the 23 galleries, the entrance outside the building (base node $v_b$), the main entrance rooms on the first and second floors, and the stairway.
-We construct a set of arcs $\mathcal{E}$ according to the existence of direct doorways between the rooms. For each pair of rooms connected by a doorway, we allocate two arcs in each direction. 
+We construct a set of arcs $\mathcal{E}$ according to the existence of direct passages/doorways between the rooms. For each pair of rooms connected by a passage/doorway, we allocate two arcs in each direction. 
 
 \subparagraph{The arc-traversal hazards.}
-Suppose, owing to 
-(i) adversaries in the museum that seek to prevent the robots from imaging the art and 
-(ii) obstacles in the museum that the robots could crash into,
-each arc-traversal by a robot incurs a risk of robot destruction and capture by the adversary. 
-We construct the arc-survival probability map $\omega$ giving survival probabilities for the arc(s)
+Suppose the museum contains
+(i) adversaries that (a) seek to prevent the robots from imaging the art and (b) possess the ability attack and/or capture the robots, and
+(ii) obstacles that the robots could (a) crash into or (b) become entangled in.
+Consequently, each time a robot traverses a passage to enter a new room, it incurs a risk of destruction, disablement, or capture. 
+To model this, we construct the arc-survival probability map $\omega$ giving survival probabilities for the arc(s)
 (i) traversing the staircase of 0.8,
 (ii) inside and in/out of the main entrance room of 0.9,
 (iii) on the right side of the first floor of 0.97,
@@ -662,13 +664,23 @@ and
 (v) on the second floor of 0.9.
 
 \subparagraph{The rewards offered by nodes.}
-Each node represented a gallery gives a reward to the robot team if visited by one or more robots. Here, we assume upon visiting a node, the robot images the art in the gallery and transmits the image back to the command center---giving utility to the command center represented by the value of the node-rewards. We construct the node reward map $r$ giving a reward of
+Suppose, when a robot visits an art gallery in the museum, it images the art there and transmits this image back to the command center. 
+Each image is valued by the command center.
+Note, (i) even if the robot that took this image is later destroyed or captured, the image irrevocably provides utility to the command center, and (ii) multiple visits by robot(s) to a gallery do not provide further marginal utility because the command center already has an image from the first robot visit.
+To model this, we construct a node reward map $r$ assigning single-visit team rewards of
 (i) 2/3 for large galleries,
 (ii) 1/3 for medium-sized galleries,
 (iii) 1 for small galleries that we suppose contain the most valuable art, and
 (iv) 1/10 for five galleries that are in corners of the museum or behind the stairway.  
 
-\subparagraph{Visualization.}
+\subparagraph{Visualization of the TOHE problem instance.}
+We visualize this TOHE problem instance in Fig.~\ref{fig:ex_setup}. 
+First, the topology of the directed graph is shown, with a layout reflecting the spatial location of the rooms in the San Diego Museum of Art (based on the map on their website). The nodes on the first and second floor are grouped together.
+The base node is marked by the three robots near it.
+Second, the arc survival probability map $\omega$ is visualized by the color assigned to each arc.
+The stairway is the most dangerous arc.
+Third, the node reward map $r$ is visualized by the color assigned to each node. 
+
 % As a hazardous environment containing locations that offer rewards to a robot team, we use the graph model of the Satsop Nuclear Power Plant in Elma, Washington from the Defense Advanced Research Projects Agency (DARPA) Subterranean (SubT) robotics challenge \cite{chung2023into} (Alpha course of the Urban Circuit Network \cite{github_darpa_subt}).
 
 \begin{figure}[h!]
@@ -694,24 +706,55 @@ Each node represented a gallery gives a reward to the robot team if visited by o
     \end{subfigure}
     \caption{BO-ACO of our TOHE problem instance. 
     (a) The quality of the Pareto-set of robot team trail plans, measured via the area indicator (yellow-highlighted area in (c)), as a function of the number of iterations of ACO, broken into ordinary ACO, ACO when the heuristics are not used, and ACO when the pheromone trails are not used.
-    (b) The pheromone trails and distribution of the amount of pheromone on the arcs at the end of the ACO. 
-    (c) The [approximate] Pareto-front of robot-team team trail plans with a few select plans highlighted.
+    (b) The pheromone trails and distribution of the amount of pheromone on the arcs at the end of the ACO algorithm. 
+    (c) The [approximate] Pareto-front of robot-team team trail plans with four select plans shown.
     }
 \end{figure}
 
-\paragraph{ACO hyperparameters.}
-We use a colony of $N_{ants}=100$ ants and an evaporation rate of $\rho=0.05$. We run ACO for 10\,000 iterations.
+\paragraph{Bi-objective ant colony optimization.}
+We now employ our bi-objective ant optimization algorithm to search for the Pareto-optimal robot-team trail plans for our problem instance.
+We use a colony of $N_{ants}=100$ artificial ants, a pheromone evaporation rate of $\rho=0.04$, and 10\,000 iterations.
+The runtime is $\sim$5\,min on an Apple M1 machine.
 
-\paragraph{Baselines.}
+Fig.~\ref{fig:aco_progress} shows the quality (area indicator) of the Pareto-set $q$ in eqn.~\ref{eq:q} over iterations. As the ACO algorithm progresses, the quality of the Pareto-set improves, but with diminishing returns. 
 
+At the end of the ACO algorithm, Fig.~\ref{fig:pheromone} visualizes the pheromone maps $\tau_{R}$ and $\tau_S$ and the distribution of the amount of pheromone on the arcs. 
+Note the clock-wise vs.\ counter-close-wise preferences in some cycles of high pheromone to pursue high-reward nodes earlier in the trails to maximize expected reward.
+
+Fig.~\ref{fig:pareto_front} shows the [approximate] Pareto-front of 167 solutions found by BO-ACO. 
+Walking down the Pareto-front trades larger expected team reward for a smaller expected number of robots that return from the mission. The key motivation for treating the \emph{bi-objective} TOHE problem is to present this Pareto-front to a human decision-maker who will ultimately choose a robot-team trail plan that balances reward with robot survival.
+
+Finally, Fig.~\ref{fig:pareto_front} shows four Pareto-optimal trail plans belonging to different regions of the Pareto-front. 
+To gain intuition, we comment on the team trail plans as we move down the front---from plans offering low expected reward but high robot survival, to plans offering high expected reward but low robot survival. 
+In the first plan, only a single robot enters the museum to image galleries offering the highest rewards on the less-dangerous left side of the first floor. 
+In the second plan, two robots are utilized: the first covers much of the left side of the first floor, while the second robot covers much of the right side of the first floor.
+In the third plan, also utilizing two robots, the first robot plans to traverse most of the first floor and the second floor as well. The second robot traverses much of the first floor. This redundancy in node assignments to the robots builds robustness into the plans: even if the first robot gets destroyed early on, the second robot can still image most of the galleries on the first floor.
+Finally, the fourth plan uses all three robots with much redundancy to achieve high expected reward. Still, the robots avoid taking the risk to enter the bottom left corner of the first floor, whose galleries offer only a small reward.
+
+
+\paragraph{Baselines (two ablation studies).}
+ACO searches for Pareto-optimal robot-team trail plans guided by (i) the heuristics $\eta_R$ and $\eta_S$ that greedily score the appeal of traversing a given arc and (ii) the pheromone maps $\tau_R$ and $\tau_S$ that encapsulate the memory of the ant colony over previous iterations. Here, quantify how each of these components are contributing to the effectiveness of ACO by ablating each. 
+First, we run ACO where heuristics are not used to bias the ants towards \emph{a priori} promising arcs by setting $\eta_R(v, v^\prime)=\eta_S(v, v^\prime)=1$ for all arcs $(v, v^\prime)\in \mathcal{E}$. Second, we run ACO where pheromone is not used to bias the ants towards promising arcs based on the history of the colony's search by setting $\tau_R(v, v^\prime)=\tau_S(v, v^\prime)=1$ for all arcs $(v, v^\prime)\in \mathcal{E}$.
+Fig.~\ref{fig:aco_progress} compares the search efficiency with ordinary ACO with both heuristics and pheromone are used.
+Compared to ordinary ACO, the search efficiency diminishes for each ablation study. 
+Thus, both heuristic and pheromone contribute to the search efficiency.
+However, the search efficiency drops more dramatically when the heuristic is ablated. 
+Thus, the heuristic is more helpful than the pheromone in terms of finding a quality Pareto-set in few iterations. 
 
 \section{Discussion}
+Many applications for mobile robot teams---ranging from information-gathering, resource-delivery, chemical plume source localization, forest fire fighting, and resource delivery---involve traversing environments with hazards ranging from adversaries to obstacles to rough terrain. 
+In each case, we wish to select the subset of locations to visit, assign the safest trails to the robots, balance reward and risk to the robots, and build redundancy into the plans to make the objective robust to the failure of robots on the team. 
+
+Heavily inspired by the Team Surviving Orienteers Problem \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, we posed the bi-objective team orienteering in a hazardous environment (BO-TOHE) problem. 
+By finding the Pareto-optimal set of robot-team trail plans, we can present them to a human decision-maker who ultimately chooses the robot trail plans for the mission according to how he or she balanced the expected reward collected by the robot team with the expected number of robots that survive the dangerous mission.
+
+We employed bi-objective ant colony optimization to search for the Pareto-optimal team trail plans. Despite not having theoretical guarantees like in Ref.~\cite{jorgensen2018team}, ACO was effective and can be quite easily adapted to handle a variety of complexities in extended TOHE problem formulations we discuss below.
 
 
 \paragraph{Future work.}
 Much future work remains for path-planning of robots in adversarial/hazardous environments.
 
-For the BOTOHE we have posed, we wish to (i) tackle the online version with ACO, where the robots adapt their planned trails during the mission, in response to observed failures of robots, (ii) devise local search methods to improve the robot trails the ants found, accelerating the convergence of ACO \cite{dorigo2006ant}, and (iii) employ multi-colony ant optimization \cite{iredi2001bi}.
+For the BOTOHE we have posed, we wish to (i) tackle the online version with ACO, where the robots adapt their planned trails during the mission, in response to observed failures of robots, (ii) devise local search methods to improve the robot trails the ants found, accelerating the convergence of ACO \cite{dorigo2006ant}, (iii) benchmark non-sequential methods to allocate trails to robots with ACO \cite{ke2008ants}, and (iv) employ multi-colony ant optimization \cite{iredi2001bi}.
 
 Interesting and practical extensions of robot-team orienteering in adversarial/hazardous environments abstracted a graphs include treating (some of these ideas from Ref.~\cite{jorgensen2018team}): 
 (i) a heterogenous team of robots with different (a) capabilities to harvest rewards from nodes and (b) survival probabilities for each arc traversal owing to e.g. stealth;

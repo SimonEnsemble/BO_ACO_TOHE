@@ -354,10 +354,10 @@ function art_museum(nb_robots::Int)
         elseif v in [5, 4, 10, 11, 14, 12, 17]
             set_prop!(g, v, :r, 1.0/3)
         # small galleries
-        elseif v in [3, 9, 16, 15, 13, 18]
+        elseif v in [3, 9, 16, 15, 13, 18, 22]
             set_prop!(g, v, :r, 1.0)
         # corners / hiddenish
-        elseif v in [19, 20, 22, 23, 8]
+        elseif v in [19, 20, 23, 8]
             set_prop!(g, v, :r, 1.0/10)
         else
             set_prop!(g, v, :r, 0.0)

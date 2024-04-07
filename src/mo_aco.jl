@@ -11,7 +11,7 @@ function mo_aco(
     nb_iters::Int=100, 
     verbose::Bool=false,
     run_checks::Bool=true,
-    ρ::Float64=0.95, # trail persistence rate = 1 - evaporation rate
+    ρ::Float64=0.96, # trail persistence rate = 1 - evaporation rate
     #min_max::Bool=true,
     use_heuristic::Bool=true,
     use_pheremone::Bool=true,

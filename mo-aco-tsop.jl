@@ -70,7 +70,8 @@ md"## viz setup"
 
 # ╔═╡ e3946d78-b7d4-4484-9e00-dc20d0457293
 if problem_instance == "art_museum"
-	layout = art_museum_layout(8.0)
+	art_museum_scale = 8.0
+	layout = art_museum_layout(art_museum_scale)
 	robot_radius = 0.45
 else
 	layout = Spring(iterations=350, C=1.4, initialtemp=1.0)(top.g)
@@ -81,10 +82,23 @@ end
 viz_setup(top, nlabels=false, layout=layout, robot_radius=robot_radius, savename=problem_instance, depict_r=false, depict_ω=false, show_robots=false, node_size=23)
 
 # ╔═╡ 79dd4f91-8a4a-4be1-8013-c9b6dfa56a75
-viz_setup(top, nlabels=false, robot_radius=robot_radius,
-	      savename=problem_instance * "_full_setup", depict_r=true,
-		  depict_ω=true, show_robots=true, layout=layout, node_size=23
-)
+begin
+	fig = viz_setup(top, nlabels=false, robot_radius=robot_radius,
+		      savename=problem_instance * "_full_setup", depict_r=true,
+			  depict_ω=true, show_robots=true, layout=layout, node_size=23
+	)
+	if problem_instance == "art_museum"
+		ax = current_axis()
+		for (i, pos) in zip(1:2, [(2.75, 3.6), (3.75, -1.75)])
+			text!(ax, pos, text="floor #$i", 
+				align=(:center, :center), font=firasans("Light")
+			)
+		end
+	end	
+	resize_to_layout!(fig)
+	save(problem_instance * "_full_setup.pdf", fig)
+	fig
+end
 
 # ╔═╡ 09b09bd5-42f0-46f7-a723-34fc37e08920
 md"### (for presentation)"
@@ -206,17 +220,17 @@ res.global_pareto_solns[soln_id].robots[2].trail
 soln_id
 
 # ╔═╡ b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
-viz_soln(res.global_pareto_solns[soln_id], top, show_𝔼=true, savename="a_soln", layout=layout, robot_radius=robot_radius)
+viz_soln(res.global_pareto_solns[soln_id], top, show_𝔼=true, layout=layout, robot_radius=robot_radius, elabels=true, only_first_elabel=true)
 
 # ╔═╡ aca53592-e8d5-4640-951a-7acca6241ea3
-ids_hl = [13, 80, 117, 156]
+ids_hl = [13, 61, 133, 178]
 
 # ╔═╡ 4769582f-6498-4f14-a965-ed109b7f97d1
 viz_Pareto_front(res.global_pareto_solns, resolution=(300, 300), ids_hl=ids_hl, savename="pareto_front", incl_legend=false)
 
 # ╔═╡ 60917dfc-8342-4bae-abec-d64eab350c15
 for soln_id in ids_hl
-	viz_soln(res.global_pareto_solns[soln_id], top, show_𝔼=false, savename="a_soln_$soln_id", layout=layout, robot_radius=robot_radius)
+	viz_soln(res.global_pareto_solns[soln_id], top, show_𝔼=false, savename="a_soln_$soln_id", layout=layout, robot_radius=robot_radius, elabels=true, only_first_elabel=true)
 end
 
 # ╔═╡ 751c4203-88b1-40dd-9a96-926cd614aef8
@@ -260,10 +274,10 @@ begin
 	)
 	lines!(1:res.nb_iters, res.areas, label="ACO", linewidth=3)
 	lines!(1:res_pheremone_only.nb_iters, res_pheremone_only.areas, 
-		label="ACO (no heuristic)", linewidth=3)
+		label="heuristic ablation", linewidth=3)
 	lines!(1:res_heuristic_only.nb_iters, res_heuristic_only.areas, 
-		label="ACO (no pheromone)", linewidth=3)
-	axislegend(position=:rb)
+		label="pheromone ablation", linewidth=3)
+	axislegend(position=:rb, labelsize=13)
 	save("ACO_comparison.pdf", fig)
 	fig
 end

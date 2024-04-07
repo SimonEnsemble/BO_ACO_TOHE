@@ -24,7 +24,9 @@ function _viz_objectives!(ax, solns::Vector{Soln}; label=nothing, markersize=14)
         [soln.objs.r for soln in solns],
         [soln.objs.s for soln in solns],
         label=label,
-        markersize=markersize
+        markersize=markersize,
+        strokewidth=2,
+        color=Cycled(2)
     )
 end
 
@@ -101,7 +103,7 @@ function viz_Pareto_front(
         axislegend(labelsize=12, framevisible=true, framecolor="lightgray")
     end
     if length(ids_hl) > 0
-        scatter!(ax, [s.objs.r for s in solns[ids_hl]], [s.objs.s for s in solns[ids_hl]], color=Cycled(4))
+        scatter!(ax, [s.objs.r for s in solns[ids_hl]], [s.objs.s for s in solns[ids_hl]], color=Cycled(3), strokewidth=2)
     end
     if ! isnothing(savename)
         save(savename * ".pdf", fig)
@@ -229,7 +231,8 @@ function viz_setup(
             vertical=true,
             label="reward",
             limits=crangescale_r,
-            ticks=[0.0, crangescale_r[2]]
+            ticks=[0.0, crangescale_r[2]],
+            height=Relative(3/5)
            )
     end
     if depict_ω
@@ -239,7 +242,9 @@ function viz_setup(
             vertical=true,
             label="survival probability",
             limits=crangescale_s,
-            ticks=[crangescale_s[1], crangescale_s[2]]
+            ticks=[crangescale_s[1], crangescale_s[2]],
+            tellheight=true,
+            height=Relative(3/5)
         )
     end
     
@@ -334,6 +339,7 @@ function viz_soln(
     top::TOP; 
     nlabels::Bool=false,
     elabels::Bool=false,
+    only_first_elabel::Bool=false,
     savename::Union{Nothing, String}=nothing,
     robot_radius::Float64=0.2,
     show_𝔼::Bool=true,
@@ -358,6 +364,9 @@ function viz_soln(
     for ax in axs
         hidespines!(ax)
         hidedecorations!(ax)
+    end
+    for k = 1:top.nb_robots-1
+        colgap!(fig.layout, k, Relative(-0.01))
     end
     @assert top.nb_robots == length(soln.robots)
     # sort robots by survivability
@@ -388,11 +397,19 @@ function viz_soln(
         )
         # plot trail of robot. unless self-loop.
         if robot.trail != [1, 1]
+            if elabels
+                the_elabels = ["$(get_prop(r_trail, e, :step))" for e in edges(r_trail)]
+                if only_first_elabel
+                    the_elabels[2:end] .= ""
+                end
+            else
+                the_elabels = nothing
+            end
             graphplot!(
                 axs[r],
                 r_trail, 
                 layout=layout,
-                elabels=elabels ? ["$(get_prop(r_trail, e, :step))" for e in edges(r_trail)] : nothing,
+                elabels=the_elabels,
                 elabels_fontsize=10,
                 node_size=14, 
                 node_color="black", 
