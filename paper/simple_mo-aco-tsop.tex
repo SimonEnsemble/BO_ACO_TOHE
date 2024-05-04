@@ -467,17 +467,16 @@ The positive feedback, negative feedback, and randomness in the behavior of many
 Simple models of ants laying and probabilistically following pheromone trails (some with evaporation) indeed reproduce salient features of ants foraging \cite{bonabeau1999swarm,goss1989self,jackson2006communication,edelstein1995trail,watmough1995modelling}.
 \end{mybox}
 
-We describe the bi-objective ACO \cite{iredi2001bi} algorithm we employ to find the Pareto-optimal robot-team trail plans defined by eqn.~\ref{eq:the_two_objs}. 
-
 Bi-objective ACO proceeds iteratively. 
-At each iteration, each artificial ant in the heterogeneous colony constructs a robot-team trail plan $\{\rho_1, ..., \rho_K\}$---robot by robot, arc by arc.
-The ant constructs trails stochastically, guided by (i) two species of pheromone on the arcs, one for the reward objective, one for the survivability objective, and (ii) two greedy heuristics that score the myopic desirability of taking each arc in consideration of each objective. 
+At each iteration, each artificial ant in the colony constructs a robot-team trail plan $\{\rho_1, ..., \rho_K\}$---robot by robot, arc by arc.
+The colony is heterogeneous, in that each ant focuses on finding trail plans in a different region of the Pareto-front.
+The ants construct trails stochastically, guided by (i) two species of pheromone on the arcs, one for the reward objective, one for the survivability objective, and (ii) two greedy heuristics that score the myopic desirability of taking each arc in consideration of each objective. 
 At the end of each iteration, the ants compare the robot-team trail plans they constructed. 
-Ants that found Pareto-optimal robot team trail plans over that iteration deposit pheromone (of each species) on each arc belonging to these trails. The amount of pheromone an ant deposits is proportional to the value of the objective (associated with that species) achieved under the plan that ant found.
-To prevent stagnation and promote continual exploration, the pheromone evaporates each iteration as well.
-The ants communicate the trails they found with an elitist ant who maintains a set of, over all team trail plans constructed by all ants over all iterations, the Pareto-optimal robot-team trail plans. The elitist ant also deposits pheromone.
-The algorithm terminates after a pre-specified number of iterations and returns the Pareto-optimal robot-team trail plans maintained by the elitist ant. 
-Note, as ACO is a meta-heuristic, it is not guaranteed to find all Pareto-optimal solutions nor neglect to include a Pareto-dominated solution. I.e., the ACO algorithm returns an \emph{approximate} Pareto-optimal set of robot-team trail plans.
+Ants that found Pareto-optimal team trail plans over that iteration deposit pheromone (of each species) on each arc belonging to these trails. The amount of reward (survival) pheromone an ant deposits is proportional to the value of the reward (survival) objective achieved under the plan that ant found.
+An elitist ant maintains a set of global (i.e, over all iterations) Pareto-optimal team trail plans and also deposits pheromone.
+To prevent stagnation and promote continual exploration, the pheromone evaporates some over iteration.
+The ACO algorithm terminates after a pre-specified number of iterations and returns the [approximate] Pareto-optimal robot-team trail plans maintained by the elitist ant. 
+(The ACO meta-heuristic is not guaranteed to find all Pareto-optimal solutions nor neglect to include a Pareto-dominated solution.)
 %A colony of artificial ants collaborate in their search for Pareto-optimal team trail plans. At 
 %ACO is an iterative algorithm. 
 
