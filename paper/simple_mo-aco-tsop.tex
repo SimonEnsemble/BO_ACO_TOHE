@@ -129,12 +129,15 @@ and/or
 Third, the trail plans must balance the rewards gained from visiting different locations against the risks incurred by the robots to reach those locations.
 
 Models and algorithms have been developed for coordinated robot team orienteering in risky environments abstracted as graphs \cite{zhou2021multi}. 
-In the Team Surviving Orienteers problem (TSOP) \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, each node of the graph offers a reward to the team when visited by a robot, and each edge-traversal by a robot incurs an independent probability of destruction. The objective in the [offline] TSOP is to plan the paths of the robots (from a source to destination node) to maximize the expected team reward under the constraint that each robot survives the mission with a probability above a certain threshold. 
+In the Team Surviving Orienteers problem (TSOP) \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, each node of the graph offers a reward to the team when visited by a robot, and each edge-traversal by a robot incurs an independent probability of destruction. 
+The objective in the TSOP is to plan the paths of the robots (from a source to destination node) to maximize the expected team reward under the constraint that each robot survives the mission with a probability above a certain threshold. 
+(In the \emph{offline} setting, the paths of the robots are set at the beginning of the mission, then followed without adaptation. In the \emph{online} setting, the paths are updated during the mission in response to realized robot failures.)
 %In the extended Matroid TSO problem \cite{jorgensen2017matroid,jorgensen2024matroid}, we seek to maximize the weighted
 %expected number of nodes visited by one or more robots.
 Relatedly, the Foraging Route with the Maximum Expected Utility problem \cite{di2022foraging} is to plan the foraging route of a robot collecting rewards in a hazardous environment, but the rewards are lost if the robot is destroyed before returning to the source node to deposit the goods it collected.
-In the [offline] Robust Multiple-path Orienteering Problem \cite{shi2023robust}, similarly, each node gives a reward to the team only if a robot visits it \emph{and} survives the mission; the paths of the $K$ robots are planned to maximize the team reward under the worst-case attacks of $\alpha<K$ of the robots by an adversary. 
-Viewed as a two-stage, sequential, one-step game with perfect information, the optimal path plans must trade (i) redundancy in the nodes visited, to give robustness against attacks, and (ii) coverage of many nodes to collect many rewards.
+In the Robust Multiple-path Orienteering Problem (RMOP) \cite{shi2023robust}, similarly, each node gives a reward to the team only if a robot visits it \emph{and} survives the mission; the paths of the $K$ robots are planned to maximize the team reward under the worst-case attacks of $\alpha<K$ of the robots by an adversary. 
+The offline version of RMOP constitutes a two-stage, sequential, one-step game with perfect information: (1) the robot team chooses a set of paths then (2) the adversary, knowing these paths, chooses the subset of robots to attack and destroy. 
+The optimal path plans for the robots must trade (i) redundancy in the nodes visited, to give robustness against attacks, and (ii) coverage of many nodes, to collect many rewards.
 Other work involving robot path-planning in hazardous environments includes 
 maximizing coverage of an area containing threats to robots \cite{korngut2023multi,yehoshua2016robotic}, 
 handling adversarial attacks on the sensors of the robots \cite{liu2021distributed,zhou2022distributed,mayya2022adaptive,zhou2018resilient}, 
@@ -144,7 +147,7 @@ and
 multi-robot patrolling under adversarial attacks \cite{huang2019survey}.
 
 \subsection{Our contribution}
-As a variation of the TSOP \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, 
+As a variation of the offline TSOP \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, 
 we pose the bi-objective team orienteering in hazardous environments (BOTOHE) problem. 
 %Then, we use a bi-objective ant colony optimization algorithm, guided by heuristics, to search for the Pareto-optimal robot-team trail plans.
 %For illustration, we solve a BOTOHE instance for an information-gathering mission in an art museum. % nuclear power plant in a Defense Advanced Research Projects Agency (DARPA) robots challenge.
@@ -154,7 +157,7 @@ Each node of the graph offers a reward to the team if visited by a robot.
 The BOTHE problem is to plan the closed trails of the robots to maximize two team-level objectives: the expected
 (1) rewards accumulated by the team via visiting nodes and
 (2) number of robots that survive the mission. 
-(In this offline setting, the trails are set at the beginning of the mission, then followed by the robots without adaptation.)
+(In this offline setting, the trails are set at the beginning of the mission, then followed without revision during the mission, owing to lack of communication with/between robots after the mission executes.)
 See Fig.~\ref{fig:overview}.
 
 Three interesting features of the BOTOHE are: 
@@ -162,7 +165,7 @@ Three interesting features of the BOTOHE are:
 (2) for the reward objective, the robots (a) tend to visit the lowest-risk and highest-reward subgraphs early in their trails and (b) build node-visit redundancy into their trail plans to make the team-reward robust to the loss of robots during the mission,
 (3) the two objectives are inherently conflicting, as the robots must risk their survival while taking their trails to visit nodes and collect rewards.%\footnote{Two extremes: (1) to maximize survival, the robots never leave the base node no matter the rewards to be gained and (2) to maximize reward, each robot traverses the entire graph no matter the risks involved.}.
 
-To handle the conflict between the two objectives in the BOTOHE, we search for the Pareto-optimal set of robot-team trail plans. By definition, a Pareto-optimal trail plan cannot be altered to give higher expected rewards without lowering the expected number of robots that survive---and vice versa. 
+To handle the conflict between the two objectives in the BOTOHE, we search for the Pareto-optimal set \cite{pardalos2017non,branke2008multiobjective} of robot-team trail plans. By definition, a Pareto-optimal trail plan cannot be altered to give higher expected rewards without lowering the expected number of robots that survive---and vice versa. 
 Fig.~\ref{fig:pareto_optimal} illustrates.
 We then can present the Pareto-optimal set to a human decision-maker to select the team trail plan that strikes some tradeoff between the two objectives, based on their value of rewards vs. robot survival. 
 
@@ -258,7 +261,7 @@ Each trail $\rho$ is a \emph{planned} trail because the robot may be destroyed i
 
 \vspace{-\baselineskip}
 \subparagraph{A closed, directed trail.} 
-A \emph{directed trail} is an ordered list of nodes $\rho = (\rho[0], \rho[1], ..., \rho[\lvert \rho \rvert])$ where
+A \emph{directed trail} \cite{clark1991first,graphtheory2} is an ordered list of nodes $\rho = (\rho[0], \rho[1], ..., \rho[\lvert \rho \rvert])$ where
 (i) $\rho[i] \in \mathcal{V}$ is the $i$th node in the trail,  
 (ii) an arc exists from each node in $\rho$ to the subsequent node, ie., $(\rho[i-1], \rho[i])\in\mathcal{E}$ for $1 \leq i  \leq \lvert \rho \rvert$,
 (iii) $\lvert \rho \rvert$ is the number of arcs traversed in the trail,
@@ -267,10 +270,10 @@ and
 Note, unlike a path, the nodes in a trail are not necessarily distinct \cite{wilson1979introduction}.
 A \emph{closed} trail begins and ends at the same node, ie. $\rho [0]=\rho[\lvert \rho \rvert]$, which, here, $=v_b$.
 
-\vspace{-\baselineskip}
-\subparagraph{The static/offline setting.} 
-The robot-team trail plan $\mathcal{P}$ are set at the beginning of the mission, then followed by the robots without adaptation or updates during the mission in response to observing robot failure(s).
-Ie., robots cannot communicate their survival status to the command center during the mission and/or the command center cannot send updated instructions to the robots after the mission executes.
+%\vspace{-\baselineskip}
+%\subparagraph{The static/offline setting.} 
+%The robot-team trail plan $\mathcal{P}$ are set at the beginning of the mission, then followed by the robots without adaptation or updates during the mission in response to observing robot failure(s).
+%Ie., robots cannot communicate their survival status to the command center during the mission and/or the command center cannot send updated instructions to the robots after the mission executes.
 
 \paragraph{The two objectives.}
 The total team \underline{r}ewards collected by the robot-team, $R$, and the number of robots that ultimately \underline{s}urvive the mission, $S$, both (i) depend on the robot-team trail plan $\mathcal{P}$ and (ii) are random variables owing to the stochasticity of robot survival while trail-following.
@@ -321,7 +324,7 @@ For the reward objective, the daring robots \emph{all} plan to enter dangerous r
 Herein, solving the bi-objective optimization problem in eqn.~\ref{eq:the_two_objs} constitutes finding the Pareto-optimal set of team-robot trail plans. Then, we can present the Pareto set to a human decision-maker, who ultimately invokes their values---i.e., makes a team-reward vs.\  robot-survival tradeoff---by selecting a team-robot trail-plan from the Pareto set.
 
 \subparagraph{Pareto-optimal team-robot trail plans.} 
-A \emph{Pareto-optimal} \cite{pardalos2017non} robot-team trail plan $\mathcal{P}^*$ cannot be altered to increase the survival objective $\mathbb{E}[S]$ without compromising (decreasing) the reward objective $\mathbb{E}[R]$---and vice versa. 
+A \emph{Pareto-optimal} \cite{pardalos2017non,branke2008multiobjective} robot-team trail plan $\mathcal{P}^*$ cannot be altered to increase the survival objective $\mathbb{E}[S]$ without compromising (decreasing) the reward objective $\mathbb{E}[R]$---and vice versa. 
 Formally, plan $\mathcal{P}^*$ belongs to the Pareto-optimal set of plans if no other plan $\mathcal{P}^\prime$ \emph{Pareto-dominates} it. By definition, a plan $\mathcal{P}^\prime$ Pareto-dominates plan $\mathcal{P}^*$ if both:
 \begin{align}
 	\left (\mathbb{E}[R(\mathcal{P}^\prime)] \geq \mathbb{E}[R(\mathcal{P}^*)]  \right) & \wedge \left( \mathbb{E}[S(\mathcal{P}^\prime)] \geq \mathbb{E}[S(\mathcal{P}^*)] \right) \\
