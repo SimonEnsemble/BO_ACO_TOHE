@@ -286,7 +286,7 @@ The conflict is:
 (1) to maximize survival, a risk-averse robot team would not visit a dangerous region even if large rewards were contained therein, sacrificing reward for survival; 
 (2) to maximize reward, a daring robot team would visit a dangerous region even if only small rewards were contained therein, sacrificing survival for reward. 
 Hence, a utopian robot-team trail plan that simultaneously maximizes \emph{both} reward and survival objectives is unlikely to exist; the ultimate team trail plan selected for the mission must strike some tradeoff between reward and survival.
-By definition, a \emph{Pareto-optimal} \cite{pardalos2017non,branke2008multiobjective} robot-team trail plan $\mathcal{P}^*$ cannot be altered to increase the survival objective $\mathbb{E}[S(\mathcal{P}^*)]$ without compromising (decreasing) the reward objective $\mathbb{E}[R(\mathcal{P}^*)]$---and vice versa. See Fig.~\ref{fig:pareto_optimal}.
+By definition, a \emph{Pareto-optimal} \cite{pardalos2017non,branke2008multiobjective} robot-team trail plan $\mathcal{P}^*$ cannot be altered to increase the survival objective $\mathbb{E}[S(\mathcal{P}^*)]$ without compromising (decreasing) the reward objective $\mathbb{E}[R(\mathcal{P}^*)]$---and vice versa. See Fig.~\ref{fig:pareto_optimal} and the formal definition below.
 The Pareto-optimal set of team trail plans has value for presenting a \emph{portfolio} of team trail plans to a human decision-maker, who ultimately invokes their values---i.e., makes a team-reward vs.\  robot-survival tradeoff---by selecting a good team trail plan from the Pareto set.
 
 
@@ -435,17 +435,17 @@ with $ \pi[T_v(\{\rho_1, ..., \rho_K\}) = 1]$ given in eqn.~\ref{eq:pi_T_v_all}.
 \section{Bi-objective ant colony optimization to search for the Pareto-optimal robot-team trail plans}
 To efficiently search for the Pareto-optimal set of robot-team trail plans defined by eqn.~\ref{eq:the_two_objs}, we employ bi-objective (BO) ant colony optimization (ACO) \cite{iredi2001bi}. ACO \cite{dorigo2006ant,bonabeau1999swarm,blum2005ant} is a meta-heuristic for combinatorial optimization problems framed as a search for an optimal path (or trail) on a graph. As a swarm intelligence method \cite{bonabeau1999swarm}, 
 ACO is inspired by the behavior of ants efficiently foraging for food \cite{bonabeau2000inspiration}. See Box~\ref{box:ants}. 
-As precedent, variants of the single-robot- and team- orienteering problem have been efficiently and effectively solved by ACO \cite{ke2008ants,chen2015multiobjective,verbeeck2017time,sohrabi2021acs,chen2022environment,montemanni2011enhanced} (as well as other [meta-]heuristics \cite{gavalas2014survey,dang2013effective,chao1996fast,butt1994heuristic}), but not the TSOP.
+As precedent, variants of the single-robot- and team-orienteering problem have been efficiently and effectively solved by ACO \cite{ke2008ants,chen2015multiobjective,verbeeck2017time,sohrabi2021acs,chen2022environment,montemanni2011enhanced} (as well as other [meta-]heuristics \cite{gavalas2014survey,dang2013effective,chao1996fast,butt1994heuristic}), but not the TSOP.
 
 \begin{mybox}[label=box:ants, breakable]{Pheromone trail laying and following by foraging ants}
 Largely (but not exclusively \cite{evison2008combined,czaczkes2015trail,robinson2005no}) via laying and following pheromone trails \cite{czaczkes2015trail}, 
 some species of foraging ant colonies advantageously \cite{deneubourg1983probabilistic} can collectively select 
 (i) the shortest path from the nest to a food source \cite{goss1989self}
 and
-(ii) the highest quality food source among multiple equidistant options \cite{beckers1993modulation}. 
+(ii) the highest quality food source among multiple options equidistant from the nest \cite{beckers1993modulation}. 
 
 Pheromone, a relatively volatile chemical \cite{david2009trail}, serves as an olfactory cue for ants \cite{knaden2016sensory}, allowing for \emph{indirect} communication between ants in the colony. 
-On the way back to the nest from a food source, ants deposit pheromone on the ground---an amount modulated by the food quality \cite{beckers1993modulation}.
+On the way back to the nest from a food source, ants deposit pheromone on the ground---an amount modulated by the quality of the food source \cite{beckers1993modulation}.
 Shorter paths to higher quality food sources accumulate pheromone more quickly.
 Since ants are recruited to and follow pheromone \cite{beckers1993modulation,czaczkes2015trail}, these paths recruit more ants and get reinforced. Via this positive feedback, the colony can collectively select the shortest path or highest-quality food source \cite{jackson2006communication,czaczkes2015trail,bonabeau1999swarm}.
 The pheromone trails laid by the colony form a \emph{collective memory}---a local guide for ants to high-quality food sources and short paths to them \cite{jackson2006communication}.
@@ -461,51 +461,52 @@ Ants select among pheromone trails with some degree of stochasticity \cite{deneu
 and 
 (iii) plasticity in a dynamic environment \cite{deneubourg1983probabilistic,shiraishi2019diverse,deneubourg1986random,dussutour2009noise,edelstein1995trail}.
 
-Some species of ants can deposit multiple types of pheromone (from different glands) with eg. different longevities \cite{czaczkes2015trail}, allowing for more complex indirect communication \cite{jackson2006communication} eg. a ``no entry'' signal \cite{robinson2005no}. 
+Some species of ants can deposit multiple species of pheromone (from different glands) with eg. different longevities \cite{czaczkes2015trail}, allowing for more complex indirect communication \cite{jackson2006communication} eg. a ``no entry'' signal \cite{robinson2005no}. 
 
 %In summary, pheromone trails of an ant colony abstractly constitute a collective memory for the colony, a local guide for ants to high-quality food sources and short paths to them, and a medium for indirect communication \cite{jackson2006communication}. 
-Owing to positive feedback, negative feedback, and randomness in decentralized ants laying and following pheromone trails, ``complex collective behaviors may emerge from interactions among individuals that exhibit simple behaviors''  \cite{bonabeau1997self}. \cite{bonabeau1999swarm,goss1989self,jackson2006communication,edelstein1995trail,watmough1995modelling}
+Owing to positive feedback, negative feedback, and randomness in [decentralized] ants laying and following pheromone trails, ``complex collective behaviors may emerge from interactions among individuals that exhibit simple behaviors''  \cite{bonabeau1997self}. \cite{bonabeau1999swarm,goss1989self,jackson2006communication,edelstein1995trail,watmough1995modelling}
 %Simple models of ants laying and probabilistically following pheromone trails (some with evaporation) indeed reproduce salient features of ants foraging \cite{bonabeau1999swarm,goss1989self,jackson2006communication,edelstein1995trail,watmough1995modelling}.
 \end{mybox}
 
-\paragraph{Overview.}
-Bi-objective ACO proceeds iteratively. 
-At each iteration, each artificial ant in the colony constructs a robot-team trail plan $\{\rho_1, ..., \rho_K\}$---robot by robot, arc by arc.
-The colony is heterogeneous, in that each ant focuses on finding trail plans in a different region of the Pareto-front.
-The ants construct trails stochastically, guided by (i) two species of pheromone on the arcs, one for the reward objective, one for the survivability objective, and (ii) two greedy heuristics that score the myopic desirability of taking each arc in consideration of each objective. 
-At the end of each iteration, the ants compare the robot-team trail plans they constructed. 
-Ants that found Pareto-optimal team trail plans over that iteration deposit pheromone (of each species) on each arc belonging to these trails. The amount of reward (survival) pheromone an ant deposits is proportional to the value of the reward (survival) objective achieved under the plan that ant found.
-An elitist ant maintains a set of global (i.e, over all iterations) Pareto-optimal team trail plans and also deposits pheromone.
-To prevent stagnation and promote continual exploration, the pheromone evaporates some over each iteration.
-The ACO algorithm terminates after a pre-specified number of iterations and returns the [approximate] Pareto-optimal robot-team trail plans maintained by the elitist ant. 
-(The ACO meta-heuristic is not guaranteed to find all Pareto-optimal solutions nor neglect to include a Pareto-dominated solution.)
-%A colony of artificial ants collaborate in their search for Pareto-optimal team trail plans. At 
-%ACO is an iterative algorithm. 
+In bi-objective ACO, we simulate a heterogenous colony of artificial ants laying and stochastically-following trails of two different species of pheromone (one for each objective) on the graph $G$, over many iterations. 
+At each iteration, each ant stochastically constructs a robot-team trail plan $\{\rho_1, ..., \rho_K\}$ robot-by-robot, arc-by-arc, biased by (i) the amounts of two species of pheromone on the arcs encoding the colony's past experiences and (ii) two heuristics that score the greedy, \emph{a priori} appeal of each arc for each objective. 
+Each ant in the colony specializes to a different region of the Pareto-front.
+Then, ants that found the Pareto-optimal team trail plans over that iteration deposit pheromone of each species on these arcs, proportionally to the value of the associated objective.
+An elitist ant \cite{dorigo1996ant} maintains a set of global (i.e, over all iterations) Pareto-optimal team trail plans and also deposits pheromone on arcs.
+Finally, to prevent stagnation and promote continual exploration, a fraction of the pheromone evaporates. After many iterations, the ACO algorithm returns the [approximate\footnote{The ACO meta-heuristic is not guaranteed to find all Pareto-optimal solutions nor neglect to include a Pareto-dominated solution.}] Pareto-optimal set of robot-team trail plans maintained by the elitist ant. 
 
-\paragraph{A heterogeneous colony of artificial ants.}
+
+\subsection{The heterogenous artificial colony of ants}
 We construct a heterogenous colony of $N_{\text{ants}}$ artificial ants.
-Each ant is assigned a parameter $\lambda \in [0, 1]$ to dictate how it balances the two objectives during its search for optimal team trail plans. Particularly, ant $i\in\{1, ..., N_{\text{ants}}\}$ in the colony is assigned $\lambda_i := (i-1) / (N_{\text{ants}}-1)$.
-A $\lambda$ closer to zero (one) implies the ant prioritizes maximizing the expected reward $\mathbb{E}[R]$ (robot survivals $\mathbb{E}[S]$). This heterogeneity in the colony provides some division of labor: different ants tend to focus on finding trail plans in different regions of the Pareto front. 
+Ant $i\in\{1, ..., N_{\text{ants}}\}$ in the colony is assigned a parameter $\lambda_i := (i-1) / (N_{\text{ants}}-1)$ dictating its balance of the two objectives when searching for Pareto-optimal team trail plans.
+A $\lambda$ closer to zero (one) implies the ant prioritizes maximizing the expected reward $\mathbb{E}[R]$ (robot survivals $\mathbb{E}[S]$). 
+As division of labor, different ants seek trail plans belonging to different regions of the Pareto front. 
+Additionally, an elitist ant maintains the global-Pareto-optimal set of team trail plans.
 
-\paragraph{An elitist ant.} An elitist ant \cite{dorigo1996ant} maintains a memory of the Pareto-optimal team-robot trail plans found over \emph{all} previous iterations. The elitist ant does not build a team trail plan, but it does lay pheromone.
-
-
-\paragraph{Pheromone on the arcs of the graph $G$.}
-The ants lay and [probabilistically] follow two distinct species of artificial pheromone on the arcs of the graph $G$---one species associated with each objective. 
-The pheromone maps $\tau_R:\mathcal{E}\rightarrow \mathbb{R}_+$ and $\tau_S:\mathcal{E}\rightarrow \mathbb{R}_+$ give the amount of reward and survivability pheromone, respectively, on each arc of $G$.
-The value $\tau_R(v, v^\prime)$ ($\tau_S(v, v^\prime)$) scores the promise of arc $(v, v^\prime)$, learned from all past experience of the ant colony, for belonging to Pareto-optimal robot trail plans that maximize the expected reward $\mathbb{E}[R]$ (number of robots that survive $\mathbb{E}[S]$).
-The pheromone maps $\tau_{R,S}$ are not static, but change from iteration-to-iteration due to deposition by the ants and evaporation. 
+\subsection{Pheromone levels and heuristic scores on the arcs of the graph}
+Each arc $(v, v^\prime)\in\mathcal{E}$ of the graph is associated with 
+(i) amounts of two distinct species of artificial pheromone, $\tau_R(v, v^\prime)$ and $\tau_S(v, v^\prime)$, and 
+(ii) heuristic scores $\eta_R(v, v^\prime)$ and $\eta_S(v, v^\prime)$.
+Both $\tau_{R,S}(v, v^\prime)$ and $\eta_{R,S}(v, v^\prime)$ score the promise of arc $(v, v^\prime)$ for belonging to Pareto-optimal team trail plans that maximize $\mathbb{E}[R]$ and $\mathbb{E}[S]$, respectively, and guide ants' construction of robot team trail plans.
+The pheromone reflects learned past experience of the ant colony---a memory of the propensity the arcs to belong to trails contained in Pareto-optimal team trail plans and the objective values associated with those plans---and is dynamic over iterations due to deposition by the ants and evaporation. 
+By contrast, the heuristic is static and scores the \emph{a priori}, greedy/myopic appeal of each arc to accelerate the convergence of ACO.
+%
+%
+%The ants lay and [probabilistically] follow two distinct species of artificial pheromone on the arcs of the graph $G$---one species associated with each objective. 
+%
+%The pheromone maps $\tau_R:\mathcal{E}\rightarrow \mathbb{R}_+$ and $\tau_S:\mathcal{E}\rightarrow \mathbb{R}_+$ give the amount of reward and survivability pheromone, respectively, on each arc of $G$.
+%The value $\tau_R(v, v^\prime)$ ($\tau_S(v, v^\prime)$) scores the promise of arc $(v, v^\prime)$, learned from all past experience of the ant colony, for belonging to Pareto-optimal team trail plans that maximize the expected reward $\mathbb{E}[R]$ (number of robots that survive $\mathbb{E}[S]$).
+%As opposed to being static, the pheromone maps $\tau_{R,S}$ change from iteration-to-iteration due to deposition by the ants and evaporation. 
 % Together, the pheromone maps $\tau_{R,S}$ represent a [fading] memory of the artificial ant colony about the propensity of each arc to belong to Pareto-optimal robot-team trail plan and, vaguely, where along the Pareto-front the plan might lie.
 % vaguely, through laying and following \emph{two} species of pheromone, .
 
- 
-\paragraph{Robot-team trail-building by an ant.}
-Each iteration, every ant in the colony stochastically constructs a team trail plan $\{\rho_1, ..., \rho_K\}$ by sequentially allocating trails to the robots and [conceptually] following the closed trail each robot plans to take.
+\subsection{Constructing robot-team trail plans}
+Each iteration, every ant in the colony stochastically constructs a team trail plan $\mathcal{P}=\{\rho_1, ..., \rho_K\}$ by sequentially allocating trails to the robots and [conceptually] following the closed trail the ant designs for the robot.
 % It assigns trails to the robots sequentially, robot-by-robot. 
 % i.e. fully constructs the closed trail for robot 1, $\rho_1$, then $\rho_2$ for robot 2, and so on, up to robot $K$.
 % For each robot trail it constructs, the ant starts at the base node $v_b$, then, arc-hop by arc-hop, constructs the closed trail on the graph that the robot will follow. 
 
-Suppose an ant with objective-balancing parameter $\lambda$ is constructing the closed trail for robot $k$, $\rho_k$, and currently resides at node $v=\rho_k[i]$.
+Robot trail construction is achieved by iteratively applying a stochastic, partial trail extension rule. Suppose an ant with objective-balancing parameter $\lambda$ is constructing the closed trail for robot $k$, $\rho_k$, and currently resides at node $v=\rho_k[i]$.
 Namely, the ant has selected the first $i$ arc-hops for robot $k$, possessing the \emph{partial} trail $\tilde{\rho_k}=(v_b, \rho_k[1], ..., \rho_k[i]=v)$.
 The probability of next hopping to node $v^\prime$ across arc $(v, v^\prime)$ not yet traversed in the partial trail is:
  \begin{equation}
@@ -513,64 +514,50 @@ The probability of next hopping to node $v^\prime$ across arc $(v, v^\prime)$ no
 		 \left[\tau_R(v, v^\prime) \eta_R(v, v^\prime; \rho_1, ..., \rho_{k-1},\tilde{\rho_k}) \right]^{1-\lambda} \left[ \tau_S(v, v^\prime) \eta_S(v, v^\prime) \right]^\lambda.
 	 \label{eq:prob_x_y}
 \end{equation}
-The partial trail is more likely to be extended with $v^\prime=:\rho_k[i+1]$ if arc $(v, v^\prime)$ has more pheromone $\tau_{R, S}(v, v^\prime)$ and/or greedy heuristic appeal $\eta_{R, S}(v, v^\prime)$---with more or less emphasis on the reward or survivability pheromone/heuristic depending on the ant's $\lambda$. 
-While the pheromone maps $\tau_{R,S}$ encode the ants colony's past experiences and are dynamic over iterations, the static, heuristic, experience-independent maps $\eta_{R,S}(v, v^\prime)$ score the [greedy] appeal, in terms of maximizing $\mathbb{E}[R]$ and $\mathbb{E}[S]$, respectively, of hopping from $v$ to $v^\prime$. 
+The partial trail is more likely to be extended with $v^\prime=:\rho_k[i+1]$ if arc $(v, v^\prime)$ has more pheromone $\tau_{R, S}(v, v^\prime)$ and/or greedy heuristic appeal $\eta_{R, S}(v, v^\prime)$---with more or less emphasis on the reward or survivability pheromone/heuristic depending on the ant's $\lambda$.
+Iteratively extending the partial trail using eqn.~\ref{eq:prob_x_y}, the ant completes the trail for robot $k$ after it traverses the self-loop of the base node, $(v_b, v_b)$. Then, the ant begins trail construction for robot $k+1$ if $k<K$ or completes its team trail plan $\mathcal{P}$ if $k=K$. 
 
-\subparagraph{Heuristics.} The greedy and myopic heuristics $\eta_S: \mathcal{E} \rightarrow \mathbb{R}_+$ and $\eta_R:  \mathcal{E} \rightarrow \mathbb{R}_+$ serve to bias and guide ants' trail-building towards good solutions to accelerate the convergence of the ACO algorithm.
+Through this process, the ant colony generates a set of robot-team trail plans, then we compute the associated objectives via eqns.~\ref{eq:formula_obj2} and \ref{eq:formula_obj1}, giving $\{ (\mathcal{P}_i, \mathbb{E}[R(\mathcal{P}_i)], \mathbb{E}[S(\mathcal{P}_i)])\}_{i=1}^{N_{\text{ants}}}$.
+% While the pheromone maps $\tau_{R,S}$ encode the ants colony's past experiences and are dynamic over iterations, the static, heuristic, experience-independent maps $\eta_{R,S}(v, v^\prime)$ score the [greedy] appeal, in terms of maximizing $\mathbb{E}[R]$ and $\mathbb{E}[S]$, respectively, of hopping from $v$ to $v^\prime$. 
 
-For the survivability objective, we greedily score the desirability of arc $(v, v^\prime)$ with the probability of the robot surviving traversal of that arc:
-\begin{equation}
-	\eta_S(v, v^\prime):=\omega(v, v^\prime).
-\end{equation}
-This heuristic is myopic because it does not consider survivability of arcs later in the trail. 
-
+\paragraph{Heuristics.} 
+For the survivability objective, we score the desirability of arc $(v, v^\prime)$ with the probability of the robot surviving traversal of that arc, $\eta_S(v, v^\prime):=\omega(v, v^\prime)$---myopic because it does not consider survivability of arcs later in the trail. 
 For the reward objective, we greedily score the desirability of arc $(v, v^\prime)$ with the expected marginal reward the team receives by robot $k$ visiting node $v^\prime$ next, which is $r(v^\prime)$ if 
 (i) none of the previous $k-1$ robots visit node $v^\prime$, 
 (ii) node $v^\prime$ is not planned to be visited earlier in the trail of robot $k$, and
-(iii) robot $k$ survives its hop to node $v^\prime$,
+(iii) robot $k$ survives its hop to node $v^\prime$
 and zero otherwise:
 % Consequently, $\eta_R$ considers both the previous $k-1$ robots' trails and robot $k$'s partial trail $\tilde{\rho_{k}}$:
 \begin{equation}
 	\eta_R(v, v^\prime; \rho_1, ..., \rho_{k-1}, \tilde{\rho_k}) :=  
 	 \pi[ T_{v^\prime}(\{\rho_1, ..., \rho_{k-1}\}) = 0)] \mathcal{I}[v^\prime \notin \tilde{\rho_k}] \omega(v, v^\prime) r(v^\prime ) ,
 \end{equation}
-with $\mathcal{I}$ the indicator function.
-This heuristic is myopic because it does not account for rewards robot $k$ could collect further along the trail. 
+with $\mathcal{I}$ the indicator function---myopic because it does not account for rewards robot $k$ could collect further along the trail. 
 % {\color{red} handle negative rewards?}
-
 Note, to prevent either heuristic from being exactly zero (resulting in \emph{never} selecting that arc), we add a small number $\epsilon$ to each heuristic.
 
-\paragraph{Collaboration between the artificial ants.}
-The ants in the colony \emph{collaborate} in their search by, each iteration, after all ants finish constructing their robot-team trail plan:
-(i) comparing their trail plans and storing the iteration-Pareto-optimal set and
-(ii) showing their trail plans to the elitist ant, who maintains the set of, over \emph{all} past iterations, global-Pareto-optimal team trail plans.
 
-We denote a size-$P$ [global- or iteration-] Pareto-optimal set of team trail plans as $\{\mathcal{P}_1^*, ..., \mathcal{P}_P^*\}$, with $\mathcal{P}^*_p=\{\rho_1^{(p)}, ..., \rho_K^{(p)}\}$ the $p$th Pareto-optimal plan.
+\subsection{Pheromone update}
+At the end of each iteration, we update the pheromone maps $\tau_R$ and $\tau_S$ to capture the experience of the ants in finding Pareto-optimal robot-team trail plans, better-guide the ants' trail-building in the next iteration, and prevent stagnation (premature convergence). 
 
 
-\paragraph{Pheromone updates.} At the end of each iteration, we update the pheromone maps $\tau_R$ and $\tau_S$ to capture the experience of the ants in terms of finding Pareto-optimal robot-team trail plans, better-guide the ants' trail-building in the next iteration, and  prevent stagnation (premature convergence). Specifically, the pheromone update rule is:
+The pheromone update rule is:
 \begin{equation}
-	\tau_{R, S}(v, v^\prime) \leftarrow (1-\rho) \tau_{R,S}(v, v^\prime)  + \Delta \tau_{R,S}(v, v^\prime) \text{ for } (v, v^\prime) \in \mathcal{E} \label{eq:tau_update}
+	\tau_{R, S}(v, v^\prime) \leftarrow (1-\rho) \tau_{R,S}(v, v^\prime)  + \Delta \tau_{R,S}(v, v^\prime) \text{ for } (v, v^\prime) \in \mathcal{E}, \label{eq:tau_update}
 \end{equation}
-where the evaporation rate $\rho \in (0, 1)$ is a hyperparameter of ACO and $\Delta \tau_{R,S}(v, v^\prime)$ is the amount of new pheromone deposited on arc $(v, v^\prime)$ by the ants.
+with $\rho \in (0, 1)$ the evaporation rate (a hyperparameter) and $\Delta \tau_{R,S}(v, v^\prime)$ the amount of new pheromone deposited on arc $(v, v^\prime)$ by the ants.
 
-\subparagraph{Evaporation.} 
-As a negative feedback mechanism to prevent premature convergence to suboptimal trails and encourage continual exploration, the pheromone on every arc of the graph is reduced by proportion each iteration. This evaporation is accomplished by the first term in eqn.~\ref{eq:tau_update}.
+Evaporation, accomplished by the first term in eqn.~\ref{eq:tau_update}, removes a fraction of the pheromone on every arc. This negative feedback mechanism prevents premature convergence to suboptimal trails and encourages continual exploration.
 
-
-\subparagraph{Deposition.}
-As indirect communication to ants in future iterations about which arcs tend to belong to Pareto-optimal team trail plans, the ants deposit pheromone on arcs of the graph $G$ at the end of each iteration.
-Both (i) the subset of worker ants possessing the iteration-Pareto-optimal trail plans $\{\mathcal{P}_1^*, ..., \mathcal{P}_P^*\}$ and (ii) the elitist ant possessing the global-Pareto-optimal trail plans $\{\mathcal{P}_{P+1}^*, ..., \mathcal{P}_{P+P^\prime}^*\}$ deposit pheromone on the arcs belonging to these trails. 
-The amount of pheromone deposited on arc $(v, v^\prime)$ is:
+Deposition, accomplished by the second term in eqn.~\ref{eq:tau_update}, constitutes indirect communication to ants in future iterations about which arcs tend to belong to Pareto-optimal team trail plans.
+First, the ants \emph{collaborate} by 
+(i) comparing the objectives achieved by the team trail plans they constructed \emph{this} iteration to obtain an \emph{iteration}-Pareto-optimal set of plans and 
+(ii) sharing the team trail plans they constructed this iteration, and the associated objectives, to the elitist ant who then updates the \emph{global}-Pareto-optimal set.
+The iteration- and global-Pareto-optimal team trail plans are amalgamated into a multiset $\{(\mathcal{P}_i^*, \mathbb{E}[R(\mathcal{P}_i^*)], \mathbb{E}[R(\mathcal{P}_i^*)])\}_{i=1}^P$.
+Now, each time arc $(v, v^\prime)$ is traversed in a trail in $\mathcal{P}^*_p$, 
+an ant deposits pheromone on it in proportion to the objective value associated with $\mathcal{P}^*_p$:
 \begin{equation}
-	\Delta \tau_{R,S}(v, v^\prime):=\frac{1}{P+P^\prime} \sum_{p=1}^{P+P^\prime} \Delta \tau_{R,S}^{(p)}(v, v^\prime)
-\end{equation}
-where $\Delta \tau_{R,S}^{(p)}(v, v^\prime)$ is the amount deposited by the ant with Pareto-optimal team trail plan $\mathcal{P}^*_p$.
-Each time arc $(v, v^\prime)$ is traversed in a trail in $\mathcal{P}^*_p$ by the ant, 
-the ant deposits pheromone on it---an amount proportional to the objective value associated with $\mathcal{P}^*_p$:
-\begin{equation}
-	\Delta \tau_{R,S}^{(p)}(v, v^\prime) := 
-	\mathbb{E}[R(\mathcal{P}^*_p), S(\mathcal{P}^*_p)] 
+	 \Delta \tau_{R,S}(v, v^\prime) :=\sum_{p=1}^{P} \mathbb{E}[R(\mathcal{P}^*_p), S(\mathcal{P}^*_p)] 
 	% sum over trails in the plan
 	\sum_{k=1}^K 
 	% sum over arcs in the trail
@@ -578,29 +565,27 @@ the ant deposits pheromone on it---an amount proportional to the objective value
 	% indicator
 	\delta \left[ 
 		(v, v^\prime)=(\rho_k^{(p)}[i-1], \rho_k^{(p)}[i])
-	\right] 
+	\right].
 \end{equation}
-%with $\mathcal{I}$ the indicator function. 
 with $\delta$ the Kronecker delta function.
 The double sum counts the number of times the arc $(v, v^\prime)$ appears in $\mathcal{P}^*_p$.
 By construction, arcs that receive the most reward (survival) pheromone frequently belong to Pareto-optimal trails with high reward (survival).
+% TODO explain rho nottaion. gotta expand that. the rho_k^(p) not defined.
+
+
 
 % The elitist ant reinforces pheromone trails belonging to the global-Pareto-optimal set to encourage future ants to explore variations of them, while reinforcing the iteration-Pareto-optimal set helps promote exploration of variants of good trails.
   % TODO not quite, needs work
-%We base the pheromone depositions on the union of the iteration- and global-Pareto-optimal team trail plans. The corresponds to having an \emph{elitist ant} that, each iteration, deposits pheromone on the Pareto-optimal trails over \emph{all} past iterations instead of just over trails constructed this iteration \cite{dorigo1996ant}.
-% TODO say how often and why.
-% TODO explain better, what iteration and global best means.
 
-
-\paragraph{Area indicator for Pareto-set quality.}
-From iteration-to-iteration, we measure the quality of the global [approximate] set of Pareto-optimal robot-team trail plans using an area indicator \cite{cao2015using,guerreiro2020hypervolume}---loosely, the area in objective space enclosed between the origin and the [approximated] Pareto-front. Formally, the quality $q$ of a Pareto set $\{\mathcal{P}^*_1, ...,\mathcal{P}^*_P\}$ is the area of the union of rectangles
+\subsection{Area indicator for Pareto-set quality.}
+From iteration-to-iteration, we measure the quality of the global [approximate] set of Pareto-optimal robot-team trail plans using an area indicator \cite{cao2015using,guerreiro2020hypervolume}---loosely, the area in objective space enclosed between the origin and the [approximated] Pareto-front. Formally, the quality $q$ of a Pareto set $\{\mathcal{P}^*_1, ...,\mathcal{P}^*_P\}$ is the area of the union of rectangles in 2D objective space:
 \begin{equation}
 	q(\{\mathcal{P}^*_1, ...,\mathcal{P}^*_{P}\}):=
 	\Big \lvert 
 		\bigcup_{p=1}^P \{ o \in \mathbb{R}^2 : o \geq 0 \wedge  o \leq (\mathbb{E}[R(\mathcal{P}^*_p)], \mathbb{E}[S(\mathcal{P}^*_p)]) \} 
 	\Big \rvert \label{eq:q}
 \end{equation}
-illustrated with the shaded yellow area of objective space of Fig.~\ref{fig:pareto_optimal}.
+illustrated with the shaded yellow area in Fig.~\ref{fig:pareto_optimal}.
 
 \section{Results}
 We now implement and benchmark bi-objective ant colony optimization to search for Pareto-optimal robot-team trail plans for an instance of a team orienteering in a hazardous environment. 
@@ -609,7 +594,6 @@ Our modular Julia code to both reproduce our results and modify and build upon w
 
 \paragraph{Problem setup.} 
 A team of $K=3$ mobile robots are assigned an information-gathering mission in the San Diego Museum of Art. 
-
 %The robots are equipped with omnidirectional cameras and can transmit images of the art back to the command center outside of the museum. Suppose adversarial security guards in the museum seek to prevent imaging of the art. 
 %The command center wishes for the robots (i) to collect images of the art in each gallery and (ii) return from the mission. 
 %Hence, we formulate this as a BOTHE problem.
@@ -702,7 +686,7 @@ In the third plan, also utilizing two robots, the first robot plans to traverse 
 Finally, the fourth plan uses all three robots with much redundancy to achieve high expected reward. Still, the robots avoid taking the risk to enter the bottom left corner of the first floor, whose galleries offer only a small reward.
 
 \paragraph{Baselines (two ablation studies).}
-ACO searches for Pareto-optimal robot-team trail plans guided by (i) the static heuristics $\eta_R$ and $\eta_S$ that greedily score the appeal of traversing a given arc and (ii) the dynamic pheromone maps $\tau_R$ and $\tau_S$ that encapsulate the memory of the ant colony over previous iterations. Here, quantify how each of these components are contributing to the effectiveness of ACO by ablating each. 
+ACO searches for Pareto-optimal robot-team trail plans guided by (i) the static heuristics $\eta_R$ and $\eta_S$ that greedily score the appeal of traversing a given arc and (ii) the dynamic pheromone maps $\tau_R$ and $\tau_S$ that encapsulate the memory of the ant colony over previous iterations. Here, we quantify how each of these components are contributing to the effectiveness of ACO by ablating each. 
 First, we run ACO where heuristics are not used to bias the ants towards \emph{a priori} promising arcs by setting $\eta_R(v, v^\prime)=\eta_S(v, v^\prime)=1$ for all arcs $(v, v^\prime)\in \mathcal{E}$. Second, we run ACO where pheromone is not used to bias the ants towards promising arcs based on the history of the colony's search by setting $\tau_R(v, v^\prime)=\tau_S(v, v^\prime)=1$ for all arcs $(v, v^\prime)\in \mathcal{E}$.
 Fig.~\ref{fig:aco_progress} compares the search efficiency of these ablated runs with ordinary ACO (where both heuristics and pheromone are used).
 Compared to ordinary ACO, the search efficiency diminishes for each ablation study. 
