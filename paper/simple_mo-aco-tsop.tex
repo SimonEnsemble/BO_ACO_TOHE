@@ -469,7 +469,7 @@ The combination of positive feedback, negative feedback, and randomness in ants'
 %Simple models of ants laying and probabilistically following pheromone trails (some with evaporation) indeed reproduce salient features of ants foraging \cite{bonabeau1999swarm,goss1989self,jackson2006communication,edelstein1995trail,watmough1995modelling}.
 \end{mybox}
 
-In bi-objective ACO, we simulate a heterogenous colony of artificial ants walking on the graph $G$---under a lose analogy, foraging for food---over many iterations. 
+In bi-objective ACO, we simulate a heterogenous colony of artificial ants walking on the graph $G$---under a loose analogy, foraging for food---over many iterations. 
 At each iteration, each worker ant stochastically constructs a robot-team trail plan $\{\rho_1, ..., \rho_K\}$ robot-by-robot, arc-by-arc, biased by (i) the amounts of two species of pheromone on the arcs encoding the colony's past experiences and (ii) two heuristics that score the greedy, \emph{a priori} appeal of each arc for each objective. 
 Each worker ant specializes to searching for team trail plans belonging to a different region of the Pareto-front.
 Then, ants that found the Pareto-optimal team trail plans over that iteration deposit pheromone of each species on the arcs involved, proportionally to the value of the objective achieved by that plan.
@@ -535,7 +535,7 @@ and zero otherwise:
 	\eta_R(v, v^\prime; \rho_1, ..., \rho_{k-1}, \tilde{\rho_k}) :=  
 	 \pi[ T_{v^\prime}(\{\rho_1, ..., \rho_{k-1}\}) = 0)] \mathcal{I}[v^\prime \notin \tilde{\rho_k}] \omega(v, v^\prime) r(v^\prime ) ,
 \end{equation}
-with $\mathcal{I}$ the indicator function---myopic because it does not account for rewards robot $k$ could collect further along the trail. 
+with $\mathcal{I}(\cdot)$ the indicator function---myopic because it does not account for rewards robot $k$ could collect further along the trail. 
 % {\color{red} handle negative rewards?}
 Note, to prevent either heuristic from being exactly zero (resulting in \emph{never} selecting that arc), we add a small number $\epsilon$ to each heuristic.
 
@@ -570,11 +570,11 @@ Specifically, amalgamating the iteration- and global-Pareto-optimal team trail p
 	% sum over arcs in the trail
 	\sum_{i=1}^{\lvert \rho_k^{(p)}\rvert}
 	% indicator
-	\delta \left[ 
+	\mathcal{I} \left[ 
 		(v, v^\prime)=(\rho_k^{(p)}[i-1], \rho_k^{(p)}[i])
 	\right].
 \end{equation}
-with $\delta$ the Kronecker delta function.
+with $\mathcal{I}(\cdot)$ the indicator function.
 The sums are over, left-to-right, Pareto-optimal plans, robot trails in those plans, and arcs in those robot trails. 
 The latter two sums count the number of times the arc $(v, v^\prime)$ appears in $\mathcal{P}^*_p$.
 By construction, arcs that receive the most reward (survival) pheromone frequently belong to trails in the Pareto-optimal team trail plans with high reward (survival).
