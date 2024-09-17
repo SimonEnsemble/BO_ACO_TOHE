@@ -172,11 +172,11 @@ Through ablation studies, we quantify the contribution of the greedy heuristics 
 \begin{figure}[h!]
     \centering
      \begin{subfigure}[b]{0.62\textwidth}
-    	\includegraphics[width=\textwidth]{drawings/overview_2.pdf}
+    	\includegraphics[width=\textwidth]{overview_2.pdf}
 	\caption{} \label{fig:overview}
     \end{subfigure}
     \begin{subfigure}[b]{0.66\textwidth}
-    	\includegraphics[width=\textwidth]{drawings/toy_pareto_front2.pdf}
+    	\includegraphics[width=\textwidth]{toy_pareto_front2.pdf}
 	\caption{} \label{fig:pareto_optimal}
     \end{subfigure}
     \caption{
@@ -344,7 +344,7 @@ These formulas follow from the directed graph $G$, arc survival probability map 
 
 \begin{figure}[h!]
     \centering
-    	\includegraphics[width=0.6\textwidth]{drawings/notation_fig/notation.pdf}
+    	\includegraphics[width=0.6\textwidth]{notation.pdf}
     \caption{Illustrating notation for a particular robot trail plan.} \label{fig:notation}
 \end{figure}
 
@@ -650,7 +650,7 @@ The node reward map $r$ is visualized by the color assigned to each node.
 
 \begin{figure}[h!]
     \centering
-    	\includegraphics[width=0.6\textwidth]{../art_museum_full_setup.pdf}
+    	\includegraphics[width=0.6\textwidth]{art_museum_full_setup.pdf}
     \caption{Our TOHE problem instance. The directed graph represents a two-floor art museum with distinct rooms (nodes) connected by doorways or a stairway (arcs). The arcs are colored according to robot survival probabilities. The nodes are colored according to rewards offered to the team when a robot visits. The three robots (planes) initially reside at the base node. % TODO use robot emoji
     } \label{fig:ex_setup}
 \end{figure}
@@ -666,7 +666,7 @@ The runtime is $\sim$5\,min on an Apple M1 machine.
 
 \begin{figure}[h!]
     \centering
-    \includegraphics[width=0.4\textwidth]{../ACO_comparison.pdf}
+    \includegraphics[width=0.4\textwidth]{ACO_comparison.pdf}
     \caption{Progress of BO-ACO on our TOHE problem instance and comparison with baselines. 
     The quality of the Pareto-set of robot team trail plans, measured via the area indicator, is shown as a function of the number of iterations of ACO---for ordinary ACO, ACO without heuristics, and ACO without pheromone.
     } \label{fig:aco_progress}
@@ -687,11 +687,11 @@ Thus, the heuristic is more helpful than the pheromone in terms of finding a qua
 \begin{figure}[h!]
     \centering
     \begin{subfigure}[b]{0.59\textwidth}
-    	\includegraphics[width=\textwidth]{../pheremone.pdf}
+    	\includegraphics[width=\textwidth]{pheremone.pdf}
 	\caption{Pheromone trails} \label{fig:pheromone}
     \end{subfigure}
         \begin{subfigure}[b]{\textwidth}
-    	\includegraphics[width=\textwidth]{drawings/real_pareto_front.pdf}
+    	\includegraphics[width=\textwidth]{real_pareto_front.pdf}
 	\caption{Pareto-optimal solutions} \label{fig:pareto_front}
     \end{subfigure}
     \caption{Analysis of the BO-ACO solution to our TOHE problem instance. 
