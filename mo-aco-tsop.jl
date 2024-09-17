@@ -96,7 +96,7 @@ begin
 		end
 	end	
 	resize_to_layout!(fig)
-	save(problem_instance * "_full_setup.pdf", fig)
+	save("paper/" * problem_instance * "_full_setup.pdf", fig)
 	fig
 end
 
@@ -238,7 +238,7 @@ viz_soln(
 	res.global_pareto_solns[soln_id], top, show_𝔼=false, savename="a_soln", layout=layout, robot_radius=robot_radius)
 
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
-viz_pheremone(res.pheremone, top, savename="pheremone", layout=layout)
+viz_pheremone(res.pheremone, top, savename="paper/pheremone", layout=layout)
 
 # ╔═╡ 17c48342-f684-4149-b1ea-b626896a4691
 viz_soln(res.global_pareto_solns[soln_id], top, savename="example", robot_radius=robot_radius, layout=layout)
@@ -278,7 +278,7 @@ begin
 	lines!(1:res_heuristic_only.nb_iters, res_heuristic_only.areas, 
 		label="pheromone ablation", linewidth=3)
 	axislegend(position=:rb, labelsize=13)
-	save("ACO_comparison.pdf", fig)
+	save("paper/ACO_comparison.pdf", fig)
 	fig
 end
 
