@@ -58,11 +58,12 @@ Bi-objective trail-planning for a robot team orienteering in a hazardous environ
 }
 \author[1]{Cory M. Simon$^*$}
 \author[2]{Jeffrey Richley}
-\author[2]{Lucas Overbey}
+\author[2]{Lucas Overbey$^\ddagger$}
 \author[2]{Darleen Perez-Lavin$^\dagger$}
 \affil[1]{School of Chemical, Biological, and Environmental Engineering. Oregon State University. Corvallis, OR. USA.}
 \affil[$^*$]{\texttt{cory.simon@oregonstate.edu}}
 \affil[2]{Naval Information Warfare Center Atlantic. Charleston, SC. USA.}
+\affil[$^\ddagger$]{\texttt{lucas.a.overbey.civ@us.navy.mil}}
 \affil[$^\dagger$]{\texttt{darleen.s.perez-lavin.civ@us.navy.mil}}
 % \corrauthor[1]{Cory M. Simon}{cory.simon@oregonstate.edu}
 
@@ -102,7 +103,7 @@ As a case study, we illustrate with an information-gathering mission in an art m
 
 \section{Introduction}
 \subsection{Applications of a team of mobile robots}
-Mobile [aerial, ground, or aquatic] robots equipped with sensors, actuators, and/or cargo have applications in agriculture (e.g.\ planting and harvesting crops, spraying pesticide, monitoring crop health, destroying weeds) \cite{santos2020path,bawden2017robot,mcallister2018multi}, commerce (e.g.\ order fulfillment in warehouses) \cite{wurman2008coordinating}, the delivery of goods \cite{coelho2014thirty}, search-and-rescue \cite{queralta2020collaborative,rouvcek2020darpa}, chemical, biological, radiological, or nuclear incident response (e.g.\ safely localizing the source(s) and mapping the distribution of the hazard) \cite{murphy2012projected,hutchinson2019unmanned}, environmental monitoring \cite{dunbabin2012robots,hernandez2012mobile,yuan2020maritime}, safety monitoring in industrial chemical plants \cite{soldan2014towards,francis2022gas}, forest fire monitoring and fighting \cite{merino2012unmanned}, target tracking \cite{robin2016multi}, and military surveillance and reconnaissance. 
+Mobile [aerial \cite{leutenegger2016flying}, ground \cite{chung2016wheeled}, or aquatic \cite{choi2016underwater}] robots equipped with sensors, actuators, and/or cargo have applications in agriculture (e.g.\ planting and harvesting crops, spraying pesticide, monitoring crop health, destroying weeds) \cite{santos2020path,bawden2017robot,mcallister2018multi}, commerce (e.g.\ order fulfillment in warehouses) \cite{wurman2008coordinating}, the delivery of goods \cite{coelho2014thirty}, search-and-rescue \cite{queralta2020collaborative,rouvcek2020darpa}, chemical, biological, radiological, or nuclear incident response (e.g.\ safely localizing the source(s) and mapping the distribution of the hazard) \cite{murphy2012projected,hutchinson2019unmanned}, environmental monitoring \cite{dunbabin2012robots,hernandez2012mobile,yuan2020maritime}, safety monitoring in industrial chemical plants \cite{soldan2014towards,francis2022gas}, forest fire monitoring and fighting \cite{merino2012unmanned}, target tracking \cite{robin2016multi}, and military surveillance and reconnaissance. 
 
 Often, we wish for a team of mobile robots to coordinate their paths in an environment to cooperatively achieve a shared, team-level objective \cite{parker1995design,parker2007distributed}.
 Compared to a single robot, a team can increase spatial coverage, decrease the time to achieve the objectives, and make achievement of the objectives robust to the failure of robots \cite{schranz2020swarm,brambilla2013swarm}.
@@ -113,7 +114,7 @@ The environment, in which a team of robots are mobile, is modeled as a graph (no
 The TOP is to plan the paths of the robots between a source and destination node, subject to a per-robot travel budget, to accumulate the most rewards from the graph as a team. The TOP can be formulated as an integer program. Loosely, the orienteering problem combines the classic knapsack problem (selecting the nodes from which to collect rewards, under the travel budget) and traveling salesman problem (finding the shortest path that visits these nodes) \cite{vansteenwegen2011orienteering}.
 
 \subsection{Teams of mobile robots orienteering in risky environments} 
-In some applications, robots move in a hazardous environment and incur risks of failure, destruction, disablement, and/or capture. 
+In some applications, robots move in a hazardous environment \cite{trevelyan2016robotics} and incur risks of failure, destruction, disablement, and/or capture. 
 The hazards could originate from dangerous terrain, rough seas, strong winds, heat, radiation, corrosive chemicals, or mines---or an adversary with the capability to attack, disable, destroy, or capture robots \cite{agmon2017robotic}. 
 
 Robots traversing a hazardous environment should plan and coordinate their trails in consideration of risks of failure.
@@ -345,7 +346,7 @@ These formulas follow from the directed graph $G$, arc survival probability map 
 \begin{figure}[h!]
     \centering
     	\includegraphics[width=0.6\textwidth]{notation.pdf}
-    \caption{Illustrating notation for a particular robot trail plan.} \label{fig:notation}
+    \caption{Illustrating notation for a particular robot's trail plan.} \label{fig:notation}
 \end{figure}
 
 \subsubsection{The survival of a single robot along its followed trail}
@@ -651,7 +652,7 @@ The node reward map $r$ is visualized by the color assigned to each node.
 \begin{figure}[h!]
     \centering
     	\includegraphics[width=0.6\textwidth]{art_museum_full_setup.pdf}
-    \caption{Our TOHE problem instance. The directed graph represents a two-floor art museum with distinct rooms (nodes) connected by doorways or a stairway (arcs). The arcs are colored according to robot survival probabilities. The nodes are colored according to rewards offered to the team when a robot visits. The three robots (planes) initially reside at the base node. % TODO use robot emoji
+    \caption{Our TOHE problem instance. The directed graph represents the two-floor San Diego art museum with distinct rooms (nodes) connected by doorways or a stairway (arcs). The arcs are colored according to robot survival probabilities. The nodes are colored according to rewards offered to the team when a robot visits. The three robots (planes) initially reside at the base node. % TODO use robot emoji
     } \label{fig:ex_setup}
 \end{figure}
 
@@ -733,20 +734,20 @@ For the BOTOHE we have posed, we wish to (i) tackle the online version with ACO,
 Interesting and practical extensions of robot-team orienteering in adversarial/hazardous environments abstracted a graphs include treating (some of these ideas from Ref.~\cite{jorgensen2018team}): 
 (i) a heterogenous team of robots with different (a) capabilities to harvest rewards from nodes and (b) survival probabilities for each arc traversal owing to e.g.\ stealth;
 (ii) more complicated reward structures, e.g., time-dependent, stochastic, non-additive (correlated \cite{yu2014correlated}), multi-category, or multi-visit rewards;
-(iii) fuel/battery constraints of the robots and nodes representing refueling, recharging, or battery-switching stations \cite{asghar2023risk,khuller2011fill,liao2016electric}; 
+(iii) fuel/battery constraints of the robots and nodes representing refueling, recharging, or battery-switching stations \cite{asghar2023risk,khuller2011fill,liao2016electric,yu2019coverage}; 
 (iv) constraints on the rewards a robot can harvest e.g.\ for resource delivery applications where each robot holds limited cargo capacity \cite{coelho2014thirty};
 (v) non-binary surviving states of the robots due to various levels of damage;
 (vi) non-independent events of robots surviving arc-traversals;
 (vii) risk metrics different from the expected value \cite{majumdar2020should}.
 % TODO: cite green vehicle routing
 
-Another interesting direction is to learn the survival probabilities from feedback over repeated missions. 
+Another interesting direction is to learn/modify the survival probabilities associated with the edges of the graph from data over repeated missions (an inverse problem \cite{burton1992instance}). 
 Specifically, suppose we are uncertain about the survival probability $\omega(i, j)$ of each arc $(i,j)$. Within a Bayesian inference framework, we may impose a prior distribution on each $\omega(i,j)$. Then, when a robot survives or gets destroyed during a mission, we update the prior distribution. 
-The trail-planning of the robots over sequential missions must then balance (a) exploitation to harvest the most reward and take what appear to be, under uncertainty, the safest trails and (b) exploration to find even safer trails.
+The trail-planning of the robots over sequential missions may then balance (a) exploitation to harvest the most reward and take what appear to be, under uncertainty, the safest trails and (b) exploration to find even safer trails.
 
 Finally, instead of abstracting the environment as a graph, one could path-plan for robots in a continuous space with obstacles. 
 
-\section*{Acknowledgements.} CMS acknowledges the Office of Naval Research Summer Faculty Research Program.
+\section*{Acknowledgements} CMS acknowledges the Office of Naval Research Summer Faculty Research Program.
 
 \bibliography{refs}
 \bibliographystyle{unsrt}
