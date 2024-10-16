@@ -1,0 +1,10 @@
+mkdir -p minimal_submission
+cp simple_mo-aco-tsop.tex minimal_submission/
+cp refs.bib minimal_submission/
+cp overview_2.pdf minimal_submission/
+cp toy_pareto_front2.pdf minimal_submission/
+cp notation.pdf minimal_submission/
+cp art_museum_full_setup.pdf minimal_submission/
+cp ACO_comparison.pdf minimal_submission/
+cp pheremone.pdf minimal_submission/
+cp real_pareto_front.pdf minimal_submission/
