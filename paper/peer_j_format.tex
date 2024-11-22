@@ -1,0 +1,737 @@
+\documentclass[fleqn,10pt,lineno]{wlpeerj}
+
+
+
+
+
+\usepackage{amssymb}
+
+\usepackage{amsmath}
+
+% \usepackage{emoji}
+
+\usepackage{url}
+\usepackage{xspace}
+
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\definecolor{cool_blue}{RGB}{24, 132, 193}
+
+\usepackage{tcolorbox} 
+\tcbuselibrary{breakable}
+\newtcolorbox[auto counter
+%,number within=section
+]{mybox}[2][]{
+title=Box~\thetcbcounter: #2,#1,
+colback=white,
+colframe=gray,
+fonttitle=\bfseries,
+parbox=false
+}
+
+
+
+\title{Bi-objective trail-planning for a robot team orienteering in a hazardous environment}
+\author[1]{Cory M. Simon$^*$}
+\author[2]{Jeffrey Richley}
+\author[2]{Lucas Overbey$^\ddagger$}
+\author[2]{Darleen Perez-Lavin$^\dagger$}
+\affil[1]{School of Chemical, Biological, and Environmental Engineering. Oregon State University. Corvallis, OR. USA.}
+%\affil[$^*$]{\texttt{cory.simon@oregonstate.edu}}
+\affil[2]{Naval Information Warfare Center Atlantic. Charleston, SC. USA.}
+%\affil[$^\ddagger$]{\texttt{lucas.a.overbey.civ@us.navy.mil}}
+%\affil[$^\dagger$]{\texttt{darleen.s.perez-lavin.civ@us.navy.mil}}
+ \corrauthor[1]{Cory M. Simon}{cory.simon@oregonstate.edu}
+% \corrauthor[2]{Lucas Overbey}{lucas.a.overbey.civ@us.navy.mil}
+%  \corrauthor[2]{Darleen Perez-Lavin}{darleen.s.perez-lavin.civ@us.navy.mil}
+
+% \keywords{Keyword1, Keyword2, Keyword3}
+
+
+
+%\flushbottom
+% \maketitle
+%\thispagestyle{empty}
+
+
+%\affil[*]{}
+% \date{}							% Activate to display a given date or no date
+
+\begin{abstract}
+Teams of mobile [aerial, ground, or aquatic] robots have applications in resource delivery, patrolling, information-gathering, agriculture, forest fire fighting, chemical plume source localization and mapping, and search-and-rescue. Robot teams traversing hazardous environments---with e.g.\ rough terrain or seas, strong winds, or adversaries capable of attacking or capturing robots---should plan and coordinate their trails in consideration of risks of disablement, destruction, or capture. Specifically, the robots should take the safest trails, coordinate their trails to cooperatively achieve the team-level objective with robustness to robot failures, and balance the reward from visiting locations against risks of robot losses. \\
+
+Herein, we consider bi-objective trail-planning for a mobile team of robots orienteering in a hazardous environment. The hazardous environment is abstracted as a directed graph whose arcs, when traversed by a robot, present known probabilities of survival. Each node of the graph offers a reward to the team if visited by a robot (which e.g.\ delivers a good to or images the node). We wish to search for the Pareto-optimal robot-team trail plans that maximize two [conflicting] team objectives: the expected (i) team reward and (ii) number of robots that survive the mission. A human decision-maker can then select trail plans that balance, according to their values, reward and robot survival. We implement ant colony optimization, guided by heuristics, to search for the Pareto-optimal set of robot team trail plans. As a case study, we illustrate with an information-gathering mission in an art museum.
+% nuclear power plant from a Defense Advanced Research Projects Agency (DARPA) robots challenge.
+
+\end{abstract}
+
+\begin{document}
+
+\flushbottom
+\maketitle
+\thispagestyle{empty}
+
+
+
+\clearpage
+
+
+\section{Introduction}
+\subsection{Applications of a team of mobile robots}
+Mobile [aerial \cite{leutenegger2016flying}, ground \cite{chung2016wheeled}, or aquatic \cite{choi2016underwater}] robots equipped with sensors, actuators, and/or cargo have applications in agriculture (e.g.\ planting and harvesting crops, spraying pesticide, monitoring crop health, destroying weeds) \cite{santos2020path,bawden2017robot,mcallister2018multi}, commerce (e.g.\ order fulfillment in warehouses) \cite{wurman2008coordinating}, the delivery of goods \cite{coelho2014thirty}, search-and-rescue \cite{queralta2020collaborative,rouvcek2020darpa}, chemical, biological, radiological, or nuclear incident response (e.g.\ safely localizing the source(s) and mapping the distribution of the hazard) \cite{murphy2012projected,hutchinson2019unmanned}, environmental monitoring \cite{dunbabin2012robots,hernandez2012mobile,yuan2020maritime}, safety monitoring in industrial chemical plants \cite{soldan2014towards,francis2022gas}, forest fire monitoring and fighting \cite{merino2012unmanned}, target tracking \cite{robin2016multi}, and military surveillance and reconnaissance. 
+
+Often, we wish for a team of mobile robots to coordinate their paths in an environment to cooperatively achieve a shared, team-level objective \cite{parker1995design,parker2007distributed}.
+Compared to a single robot, a team can increase spatial coverage, decrease the time to achieve the objectives, and make achievement of the objectives robust to the failure of robots \cite{schranz2020swarm,brambilla2013swarm}.
+
+
+For example, consider the (NP-hard) team orienteering \cite{golden1987orienteering} problem (TOP) \cite{chao1996team,gunawan2016orienteering,vansteenwegen2011orienteering}. 
+The environment, in which a team of robots are mobile, is modeled as a graph (nodes: locations; edges: spatial connections between locations). Each node offers a reward to the team if visited by a robot.
+The TOP is to plan the paths of the robots between a source and destination node, subject to a per-robot travel budget, to accumulate the most rewards from the graph as a team. The TOP can be formulated as an integer program. Loosely, the orienteering problem combines the classic knapsack problem (selecting the nodes from which to collect rewards, under the travel budget) and traveling salesman problem (finding the shortest path that visits these nodes) \cite{vansteenwegen2011orienteering}.
+
+\subsection{Teams of mobile robots orienteering in hazardous environments} 
+In some applications, robots move in a hazardous environment \cite{trevelyan2016robotics} and incur risks of failure, destruction, disablement, and/or capture. 
+The hazards could originate from dangerous terrain, rough seas, strong winds, heat, radiation, corrosive chemicals, or mines---or an adversary with the capability to attack, disable, destroy, or capture robots \cite{agmon2017robotic}. 
+
+Robots traversing a hazardous environment should plan and coordinate their trails in consideration of risks of failure.
+First, robots should take the safest trails to visit their destination(s). 
+Second, the robots should coordinate their trails to make achievement of the team objective resilient to robot failures \cite{zhou2021multi}. 
+A \emph{resilient} team of robots \cite{prorok2021beyond}
+(i) anticipates failures and makes risk-aware plans that endow the team with \emph{robustness}---the ability to withstand failures with minimal concession of the objective,
+and/or
+(ii) adapts their trail plans during the mission, in response to realized robot failures, to recoup the anticipated loss in the objective. 
+Third, the trail plans must balance the rewards gained from visiting different locations against the risks incurred by the robots to reach those locations.
+
+Models and algorithms have been developed for path-planning for robot teams orienteering in hazardous environments abstracted as graphs \cite{zhou2021multi}. 
+In the Team Surviving Orienteers problem (TSOP) \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, each node of the graph offers a reward to the team when visited by a robot, and each edge-traversal by a robot incurs a probability of destruction. 
+The objective in the TSOP is to plan the paths of the robots (from a source to destination node) to maximize the expected team reward under the constraint that each robot survives the mission with a probability above a set threshold. 
+(In the \emph{offline} setting, the paths of the robots are set at the beginning of the mission, then followed without adaptation. In the \emph{online} setting, the paths are updated during the mission in response to realized robot failures.)
+%In the extended Matroid TSO problem \cite{jorgensen2017matroid,jorgensen2024matroid}, we seek to maximize the weighted
+%expected number of nodes visited by one or more robots.
+Relatedly, the Foraging Route with the Maximum Expected Utility problem \cite{di2022foraging} is to plan the foraging route of a robot collecting rewards in a hazardous environment, but the rewards are lost if the robot is destroyed before returning to the source node to deposit the goods it collected.
+In the Robust Multiple-path Orienteering Problem (RMOP) \cite{shi2023robust}, similarly, each node gives a reward to the team only if a robot visits it \emph{and} survives the mission; the paths of the $K$ robots are planned to maximize the team reward under the worst-case attacks of $\alpha<K$ of the robots by an adversary. 
+The offline version of RMOP constitutes a two-stage, sequential, one-step game with perfect information: (1) the robot team chooses a set of paths then (2) the adversary, knowing these paths, chooses the subset of robots to attack and destroy. 
+The optimal path plans for the robots must trade (i) redundancy in the nodes visited, to give robustness against attacks, and (ii) coverage of many nodes, to collect many rewards.
+Other work involving robot path-planning in hazardous environments includes 
+maximizing coverage of an area containing threats to robots \cite{korngut2023multi,yehoshua2016robotic}, 
+handling adversarial attacks on the sensors of the robots \cite{liu2021distributed,zhou2022distributed,mayya2022adaptive,zhou2018resilient}, 
+gathering information in an environment with unknown hazards \cite{schwager2017multi},
+finding the optimal formation for a robot team \cite{shapira2015path},
+and 
+multi-robot patrolling under adversarial attacks \cite{huang2019survey}.
+
+\subsection{Our contribution}
+Herein, our contribution is:
+(1) framing and intuiting a bi-objective variant of the offline TSOP \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, the bi-objective team orienteering in hazardous environments (BOTOHE) problem, then 
+(2) specifying a bi-objective ant colony optimization algorithm \cite{iredi2001bi}, guided by heuristics, to search for the Pareto-optimal set of robot-team trail plans, then
+(3) finally, solving and analyzing an example BOTOHE problem instance.
+
+In the BOTOHE problem, 
+%Then, we use a bi-objective ant colony optimization algorithm, guided by heuristics, to search for the Pareto-optimal robot-team trail plans.
+%For illustration, we solve a BOTOHE instance for an information-gathering mission in an art museum. % nuclear power plant in a Defense Advanced Research Projects Agency (DARPA) robots challenge.
+% \paragraph{The bi-objective team orienteering in hazardous environments problem (BOTOHE).} 
+a team of robots are mobile in a hazardous environment, modeled as a directed graph whose arcs present known probabilities of destruction to robots traversing them.
+Each node of the graph offers a reward to the team if visited by a robot.
+The BOTOHE problem is to plan the closed trails of the robots to maximize two team-level objectives: the expected
+(1) rewards accumulated by the team via visiting nodes and
+(2) number of robots that survive the mission. 
+(We focus on the offline setting, owing to the lack of communication with/between robots after the mission executes.)
+See Fig.~\ref{fig:overview}.
+
+Three interesting features of the BOTOHE are: 
+(1) for the survival objective, robots risk-aversely a) avoid visiting dangerous subgraphs despite rewards offered and b) take the safest closed trails to visit the nodes assigned to them;
+(2) for the reward objective, the robots daringly a) visit dangerous subgraphs to attempt collection of the rewards offered, b) visit the lower-risk and higher-reward subgraphs earlier in the mission, and c) build node-visit redundancy into their trail plans to make the team-reward robust to the loss of robots during the mission; and
+(3) comparing (1a) and (2a), the two objectives are inherently conflicting, as the robots must risk their survival while taking their trails to visit nodes and collect rewards.%\footnote{Two extremes: (1) to maximize survival, the robots never leave the base node no matter the rewards to be gained and (2) to maximize reward, each robot traverses the entire graph no matter the risks involved.}.
+
+To handle the conflict between the two objectives in the BOTOHE, we search for the Pareto-optimal set \cite{pardalos2017non,branke2008multiobjective} of robot-team trail plans. By definition, a Pareto-optimal trail plan cannot be altered to give higher expected rewards without lowering the expected number of robots that survive---and vice versa. 
+Fig.~\ref{fig:pareto_optimal} illustrates.
+We then can present the Pareto-optimal set to a human decision-maker to select the team trail plan that strikes some tradeoff between the two objectives, based on their value of rewards vs. robot survival. 
+
+We specify and implement a bi-objective ant colony optimization algorithm \cite{iredi2001bi}, guided by heuristics, to search for the Pareto-optimal set of robot-team trail plans.
+For illustration, we solve and analyze a BOTOHE problem instance for information-gathering in an art museum.
+Through ablation studies, we quantify the contribution of the greedy heuristics and pheromone to the search efficiency.
+
+\begin{figure}[h!]
+    \centering
+     \begin{subfigure}[b]{0.62\textwidth}
+    	\includegraphics[width=\textwidth]{overview_2.pdf}
+	\caption{} \label{fig:overview}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.66\textwidth}
+    	\includegraphics[width=\textwidth]{toy_pareto_front2.pdf}
+	\caption{} \label{fig:pareto_optimal}
+    \end{subfigure}
+    \caption{
+      The bi-objective team orienteering in hazardous environments (BOTHE) problem.
+      (a) A team of robots are mobile on a directed graph whose 
+      nodes offer a reward to the team if visited by a robot and 
+      arcs present a probability of destruction to robots that traverse them (tornado: 1/10 probability of destruction). The task is to plan the trails of the robots to maximize the expected reward collected and the expected number of robots that survive.
+      (b) Pareto-optimal and -dominated robot-team trail plans scattered in objective space, with two Pareto-optimal plans and one Pareto-dominated plan shown.}
+\end{figure}
+
+
+
+\section{The bi-objective team orienteering in hazardous environments (BOTHE) problem}
+%In the risky team orienteering problem (RTOP), our task is to plan the trails of a team of mobile robots on a directed graph whose (i) nodes offer rewards to the team depending on the number of robots that visit them and (ii) edges, when traversed by a robot, impose a risk of robot failure/destruction.
+%The trails are set at the beginning of the mission, then followed by the robots without updates during the mission---an offline setting. 
+%For the bi-objective RTOP (BO-RTOP), we wish to find the set of Pareto-optimal trail plans for the robot team that maximize the expected (i) rewards collected by the team and (ii) the number of robots that survive the mission.
+
+%A team of mobile robots must plan closed trails to follow on a directed graph, containing hazards, to collect rewards from nodes. The two conflicting objectives are to maximize the expected team-reward and number of robots that survive. We seek the Pareto-optimal set of robot-team trail plans.
+
+
+\subsection{Problem setup}
+Here, we frame the Bi-Objective robot-Team Orienteering in Hazardous Environments (BOTOHE) problem. 
+
+
+A homogenous team of $K$ robots are mobile in an environment modeled as a directed graph $G=(\mathcal{V}, \mathcal{E})$. Each node $v \in \mathcal{V}$ represents a location in the environment (e.g., a room in a building). Each arc $(v, v^\prime) \in\mathcal{E}$, an ordered pair of distinct nodes, represents a one-way, direct spatial connection (e.g.\ a door- or hall-way) to travel from node $v$ to node $v^\prime$. 
+\emph{Mobility} of the robots implies they may walk on the graph $G$, i.e. sequentially hop from a node $v$ to another node $v^\prime$ via traversing arc $(v, v^\prime)\in\mathcal{E}$.
+All $K$ robots begin at a base node $v_b \in \mathcal{V}$. 
+% TODO revisit
+% We include one self-loop $(v_b, v_b) \in \mathcal{E}$ to allow the possibility for a robot to never leave the base node.
+Regarding reachability, we assume $G$ is strongly connected---but, not necessarily complete. 
+
+Owing to unpredictable and/or uncertain hazards in the environment, a robot incurs a probability of destruction of $1 - \omega(v, v^\prime)$ when, beginning at node $v$, it attempts to traverse arc $(v, v^\prime) \in \mathcal{E}$ to visit node $v^\prime$.
+% following its trail $\rho$. 
+Each outcome (survival or destruction) is an independent event. 
+The arc survival probability map $\omega: \mathcal{E} \rightarrow (0, 1]$ is known, static over the course of the mission, and not necessarily symmetric (owing to e.g., [directional] air or water currents or bright sunlight or an adversary with limited range nearer one node than another).
+
+%\vspace{-\baselineskip}
+%\subparagraph{Interpretation.} 
+%Each node $v\in \mathcal{V}$ represents a distinct location in the environment (e.g., a room in a building or a house in a neighborhood).
+%Each arc $(v, v^\prime) \in \mathcal{E}$ represents a direct spatial connection (e.g., a doorway or a road) for traveling from location $v$ to location $v^\prime$.
+
+
+% the best (e.g., shortest or safest) path (in Euclidean space) for a mobile robot to take from the location represented by node $v$ to the location represented by $v^\prime$.
+% Note, we do not assume the graph is complete\footnote{i.e., not every pair of distinct nodes $\{v, v^\prime\}$ is joined by two edges $(v, v^\prime)$ and $(v^\prime, v)$. 
+% e.g., consider a building with node $v$ representing a room on the first floor, node $v^\prime$ a room on the second floor, and node $u$ as the staircase between the first and second floors. Traveling from node $v$ to node $v^\prime$ necessitates passing through node $u$ first.}.
+
+Each node $v\in \mathcal{V}$ of the graph $G$ offers a reward $r(v) \in  \mathbb{R}_{\geq 0}$ to the robot team if visited by one or more robots over the course of the mission.
+The reward $r(v)$ quantifies the utility gained by the team when a robot e.g.\ delivers a resource to node $v$, takes an image of node $v$ and transmits it back to the command center, or actuates some process (e.g.\ turns a valve) at node $v$. 
+The total reward collected by the team is additive among nodes of the graph. % The first objective of the BOTOHE is to maximize the team reward.
+Note, 
+(1) even if a robot is destroyed after leaving a node, the harvested reward from that node is still accumulated by the team; and
+(2) multiple visits to a node by the same or distinct robot(s) do not give marginal reward over a single visit. % I.e.\ the reward from a node is irrevocably collected by the team [only] by the first robot to visit it.
+%; and
+%(3) the reward offered by a node could be negative, i.e. there could be a penalty to visit a node instead of an incentive.
+
+
+
+%\paragraph{The probabilistic model of robot destruction during trail-following.} 
+
+% The second objective of the BOTOHE is to maximize the number of robots that s.
+
+%Thus, from the function  that assigns robot survival probabilities to each arc of the graph $G$, we can compute the survival probabilities of the $K$ robots following any given set of trails.
+% plans $\{\rho_1, ..., \rho_K\}$.% and (2) the expected utility of the rewards harvested by the robots along their paths, which we write next. 
+
+
+
+%\vspace{-\baselineskip}
+%\subparagraph{Interpretation.} The hazards in the environment could originate from obstacles the robot could crash into, rough terrain or seas, severe weather, mines, corrosive chemicals, or adversaries capable of attacking the robots at the arcs and/or nodes.
+%The stochasticity of the survival of a robot traversing an arc originates from e.g. (i) the unpredictability of an aerial robot crashing into an obstacle, a ground robot falling over rocks, or a surface aquatic robot succumbing to ocean waves, or (ii) adversaries with (a) an imperfect capability to detect and attack robots and/or (b) uncertain presence in the environment.
+
+%\vspace{-\baselineskip}
+%\subparagraph{Possible asymmetry.} We do not assume $\omega$ is symmetric, i.e., that $\omega(v, v^\prime) = \omega(v^\prime, v)$. The traversal from node $v$ to $v^\prime$ may be more dangerous than from $v^\prime$ to $v$ owing to e.g., (i) strong air or water currents in the direction $v^\prime$ to $v$ (asymmetric arc traversal) or (ii) an adversary with attack capability at node $v^\prime$ but not at $v$ (asymmetric dangers at nodes). %Even if edge traversal risks are symmetric, the action of visiting a node be risky, and node $v$ may be more or less dangerous than node $v^\prime$, breaking symmetry. 
+
+% \paragraph{The robot-team trail plan.}
+To collect rewards in this hazardous environment, the team of robots must plan a set\footnote{Since the robot team is homogenous, we consider the team trail plan as permutation-invariant and thus treat it as a set not a list.} of closed, directed trails $\mathcal{P}:=\{\rho_1, ..., \rho_K\}$ on the graph $G$ to follow.
+% obot $k$ on the team plans to execute/follow a closed, directed trail $\rho_k$ on the graph $G$.  
+% The set\footnote{Since the robot team is homogenous, we consider the optimal trail plans for the robots as permutation-invariant and thus track it as a set not a list.} of closed, directed trails $\mathcal{P}:=\{\rho_1, ..., \rho_K\}$ the robot-team plans to follow constitute the \emph{robot team trail plan} for the mission. 
+A \emph{directed trail} \cite{clark1991first,graphtheory2} is an ordered list of nodes $\rho = (\rho[0], \rho[1], ..., \rho[\lvert \rho \rvert])$ where
+(i) $\rho[i] \in \mathcal{V}$ is the $i$th node in the trail,  
+(ii) an arc exists from each node in $\rho$ to the subsequent node, i.e., $(\rho[i-1], \rho[i])\in\mathcal{E}$ for $1 \leq i  \leq \lvert \rho \rvert$,
+(iii) $\lvert \rho \rvert$ is the number of arcs traversed in the trail,
+and
+(iv) the arcs traversed in the trail are unique, i.e. each arc in the multiset $\{(\rho[i-1], \rho[i])\}_{i=1}^{\lvert \rho \rvert}$ has a multiplicity of one.
+Note, unlike a path, the nodes in a trail are not necessarily distinct \cite{wilson1979introduction}.
+A \emph{closed} trail begins and ends at the same node, i.e. $\rho [0]=\rho[\lvert \rho \rvert]$, which, here, $=v_b$.
+Each trail $\rho_k$ belonging to the robot-team trail plan $\mathcal{P}$ constitutes a \emph{plan} because robot $k$ may be destroyed in the process of following $\rho_k$ and thus not \emph{actually} visit all nodes in $\rho_k$. A robot \emph{survives} the mission if it visits all nodes in its planned trail and returns to the base node (without getting destroyed).
+%\vspace{-\baselineskip}
+%\subparagraph{The static/offline setting.} 
+%The robot-team trail plan $\mathcal{P}$ are set at the beginning of the mission, then followed by the robots without adaptation or updates during the mission in response to observing robot failure(s).
+%i.e., robots cannot communicate their survival status to the command center during the mission and/or the command center cannot send updated instructions to the robots after the mission executes.
+
+We wish to design the robot-team trail plan $\mathcal{P}$ to maximize two objectives: 
+(1) the expected team \underline{r}eward, $\mathbb{E}[R]$, and (2) the expected number of robots that \underline{s}urvive the mission, $\mathbb{E}[S]$. (Both $R$ and $S$ (i) are random variables owing to the stochasticity of robot survival while trail-following and (ii) depend on the robot-team trail plan $\mathcal{P}$ owing to different rewards among nodes and dangers among arcs.) 
+That is, the BOTHE problem is:
+\begin{equation}
+	\max_{\mathcal{P}=\{\rho_1, ..., \rho_K\}} \left( \mathbb{E}[R(\mathcal{P})], \mathbb{E}[S(\mathcal{P})] \right)
+	\label{eq:the_two_objs}
+\end{equation}
+when given the directed graph $G$ as a spatial abstraction of the environment, 
+the homogenous team of $K$ mobile robots starting at the base node $v_b$,
+the node reward map $r: \mathcal{V} \rightarrow \mathbb{R}_{\geq 0}$, and the arc survival probability map $\omega : \mathcal{E} \rightarrow (0, 1]$.
+% the BOTHE problem is to determine the optimal robot-team [closed] trail plan $\mathcal{P}$ that maximizes two-objectives, (1) the expected team-reward and (2) the expected number of robots that survive the mission:
+
+Because the bi-objective optimization problem in eqn.~\ref{eq:the_two_objs} presents a conflict between designing the robot-team trail plan to maximize the expected reward \emph{and} the number of surviving robots, we seek the \emph{Pareto-optimal set} \cite{pardalos2017non,branke2008multiobjective} of team-robot trail plans. 
+The conflict is: 
+(1) to maximize survival, a risk-averse robot team would not visit a dangerous region even if large rewards were contained therein, sacrificing reward for survival; 
+(2) to maximize reward, a daring robot team would visit a dangerous region even if only small rewards were contained therein, sacrificing survival for reward. 
+Hence, a utopian robot-team trail plan that simultaneously maximizes \emph{both} reward and survival objectives is unlikely to exist; the ultimate team trail plan selected for the mission must strike some tradeoff between reward and survival.
+By definition, a \emph{Pareto-optimal} \cite{pardalos2017non,branke2008multiobjective} robot-team trail plan $\mathcal{P}^*$ cannot be altered to increase the survival objective $\mathbb{E}[S(\mathcal{P}^*)]$ without compromising (decreasing) the reward objective $\mathbb{E}[R(\mathcal{P}^*)]$---and vice versa. See Fig.~\ref{fig:pareto_optimal} and the formal definition below.
+The Pareto-optimal set of team trail plans is valuable for presenting a \emph{portfolio} of team trail plans to a human decision-maker, who ultimately invokes their values---i.e., makes a team-reward vs.\  robot-survival tradeoff---by selecting a good team trail plan from the Pareto set.
+
+
+
+% TODO say later somehwere: For the reward objective, the daring robots \emph{all} plan to enter dangerous regions---regardless of the potential reward; such node-visitation redundancy endows the team reward with robustness to robot failures. 
+
+
+%\vspace{-\baselineskip}
+%\subparagraph{Objective \#1: the expected reward collected by the robots.}
+%Let $T_v(\mathcal{P}) $ be the number of robots on the team with trail plans $\mathcal{P}$ that ultimately visit node $v$.
+%Because of the stochasticity of robot survival while trail-following, and thus of which nodes in the trail plan each robots ultimately visits, $T_v$ is a random variable.
+%Then, the total team \underline{r}ewards collected by the robot-team following trail plans $\mathcal{P}$ is also a random variable:
+%\begin{equation}
+%R(\mathcal{P}) = \sum_{v\in\mathcal{V}} r_v\left ( T_v(\mathcal{P}) \right)
+%\end{equation}
+%that sums the rewards received from each node of the graph $G$.
+%
+%\vspace{-\baselineskip}
+%\subparagraph{Objective \#2: the expected number of robots that survive the mission.}
+%Let $S(\mathcal{P})$ be the number of robots, on a robot team with trail plans $\mathcal{P}$, that ultimately \underline{s}urvive the mission. Because of the stochasticity of robot survival while trail-following, $S$ is a random variable. 
+%
+%We wish to devise robot-team trail plans $\mathcal{P}$ to maximize both (1) the expected team reward, $\mathbb{E}[R(\mathcal{P})]]$, and (2) the expected number of robots that survive the mission, $\mathbb{E}[S(\mathcal{P})] \in (0, K]$. We derive formulas for the values of the two objectives in terms of the robot-team trail plans later (see eqns.~\ref{eq:formula_obj1} and \ref{eq:formula_obj2}). 
+
+
+
+%, and (iv) do not assume the team reward viewed as a function over the set of visited nodes is monotone because we allow for negative rewards.
+% {\color{red} k then make this happen in example, and how then does $\eta_r$ work if it can be negative? }
+
+
+
+%Given the conflict between the two objectives, 
+
+% A human decision-maker must invoke their values to make this tradeoff.% and determine if robots should plan to enter dangerous regions to attempt collection of large rewards there. 
+
+
+\paragraph{Formal definition of Pareto-optimality and Pareto-front.}
+Plan $\mathcal{P}^*$ belongs to the Pareto-optimal set of plans if and only if no other plan $\mathcal{P}^\prime$ \emph{Pareto-dominates} it. By definition, a plan $\mathcal{P}^\prime$ Pareto-dominates plan $\mathcal{P}^*$ if and only if both:
+\begin{align}
+	\left (\mathbb{E}[R(\mathcal{P}^\prime)] \geq \mathbb{E}[R(\mathcal{P}^*)]  \right) & \wedge \left( \mathbb{E}[S(\mathcal{P}^\prime)] \geq \mathbb{E}[S(\mathcal{P}^*)] \right) \\
+	\left( \mathbb{E}[R(\mathcal{P}^\prime)] > \mathbb{E}[R(\mathcal{P}^*)] \right) & \vee \left( \mathbb{E}[S(\mathcal{P}^\prime)] > \mathbb{E}[S(\mathcal{P}^*)] \right).
+\end{align}
+So, the Pareto-dominating plan $\mathcal{P}^\prime$ is not worse than plan $\mathcal{P}^*$ for reward nor for survivability, and is better for one or both of them.
+If a plan $\mathcal{P}^\prime$ were to Pareto-dominate another plan $\mathcal{P}^*$, one would objectively never choose plan $\mathcal{P}^*$ over plan $\mathcal{P}^\prime$, regardless of how they relatively value the two objectives. The \emph{Pareto front} is the set of objective vectors $\{(\mathbb{E}[R(\mathcal{P}^*)], \mathbb{E}[S(\mathcal{P}^*)])\}$ associated with the Pareto-optimal set of team trail plans $\{\mathcal{P}^*\}$.  
+
+\paragraph{Comparison with TSOP.}
+The BOTHE problem formulation follows the offline TSOP \cite{jorgensen2018team} with three modifications: we 
+(i) omit the constraints that each robot survives above a threshold probability\footnote{i.e., we accept if one [uncrewed] robot bears much more risk of destruction than another during the mission.},
+(ii) allow robots to follow trails instead of restricting to paths, as paths prevent robots from visiting a given node more than once and thus from e.g., harvesting reward from a leaf node having one in- and one out-degree involving the same node, 
+and
+(iii) have two objectives instead of one and seek the Pareto-optimal set of team trail plans.
+
+\subsection{Probability distributions and expectations of $R(\mathcal{P})$ and $S(\mathcal{P})$}
+We now write formulas for the two objectives---the expectations of the team reward $R(\mathcal{P})$ and of number of robots that survive the mission $S(\mathcal{P})$---as a function of the robot-team trail plan $\mathcal{P}$. 
+These formulas follow from the directed graph $G$, arc survival probability map $\omega$, and node reward map $r$. Fig.~\ref{fig:notation} illustrates our notation.
+% Given a proposed robot-team trail plan $\mathcal{P}$, we can calculate the two objectives $\mathbb{E}[R(\mathcal{P})]$ and $\mathbb{E}[S(\mathcal{P})]$ via eqns.~\ref{eq:formula_obj1} and \ref{eq:formula_obj2}, respectively.
+
+\begin{figure}[h!]
+    \centering
+    	\includegraphics[width=0.6\textwidth]{notation.pdf}
+    \caption{Illustrating notation for a particular robot's trail plan.} \label{fig:notation}
+\end{figure}
+
+\subsubsection{The survival of a single robot along its followed trail}
+Central to computing both $\mathbb{E}[S(\mathcal{P})]$ and $\mathbb{E}[R(\mathcal{P})]$ is the probability that a robot survives to reach a given node in its planned trail.
+Let $S_n(\rho)$ for $0 \leq n \leq \lvert \rho \rvert$ be the Bernoulli random variable that is one if a robot following trail $\rho$ survives to visit the $n$th node in the trail and zero otherwise. 
+For the event of survival, the robot must survive traversal of \emph{all} of the first $n$ arcs in its trail to visit node $\rho[n]$. So, since the survival of a robot over each arc traversal attempt is an independent event, the probability that a robot following trail $\rho$ successfully visits node $\rho[n]$ is the product of the survival probabilities of the first $n$ arc-hops in the trail:
+\begin{equation}
+	\pi[S_n(\rho) = 1] = \prod_{i=1}^n \omega(\rho[i-1], \rho[i]) 
+	% \text{ for } 0 \leq n \leq \lvert \rho \rvert \\%\in \{1, ..., \lvert \rho \rvert\} 
+	= 1 - \pi[S_n(\rho) = 0]. \label{eq:pi_S_n}
+\end{equation} %The factorization owes to the independence of the arc-traversal$+$node-visit survival events.
+The second equality follows because the complement of the event of survival is destruction.
+
+\subsubsection{Expected number of robots that survive}
+Now, we write a formula for the expected number of robots that survive the mission, $\mathbb{E}[S(\mathcal{P})]$. The event of survival of each robot is independent of the other robots.
+Consequently, the number of robots that survive the mission, $S$, is the sum of the Bernoulli random variables indicating the survival of each robot over its planned trail:
+\begin{equation}
+	S(\mathcal{P}=\{\rho_1, ..., \rho_K\})=\sum_{k=1}^K S_{\lvert \rho_k \rvert}(\rho_k). \label{eq:R_sum}
+\end{equation}
+Thus, $S$ follows the Poisson-Binomial distribution \cite{tang2023poisson}.
+%Specifically, the probability that $s$ robots survive the mission is:
+%\begin{multline}
+%	\pi[S(\mathcal{P})=s] = \sum_{\substack{\mathcal{R} \subseteq \{1, ..., K\}  \\ \lvert \mathcal{R} \rvert = s} } \,
+%	\prod_{k \in \mathcal{R}} \pi[S_{\lvert \rho_k \rvert}(\rho_k) = 1]
+%	\prod_{k^\prime \in \{1, ..., K\} \setminus \mathcal{R}}
+%	 \pi[S_{\lvert \rho_{k^\prime} \rvert}(\rho_{k^\prime}) = 0]
+%	 , \\ \text{ for } 0 \leq s \leq K.
+%	\label{eq:R_pb}
+%\end{multline}
+%Eqn.~\ref{eq:R_pb} sums over all $\binom{K}{s}$ possible size-$s$ surviving subsets $\mathcal{R}$ of the $K$ robots. The first product is the probability that all of those robots in $\mathcal{R}$ indeed survive their closed trails. The second product is the probability that the other robots outside of $\mathcal{R}$ indeed get destroyed somewhere along their closed trails.
+Seen from eqn.~\ref{eq:R_sum} and the linearity of the expectation operator, the expected number of robots that survive the mission is:
+\begin{equation}
+	\mathbb{E}[S(\mathcal{P}=\{\rho_1, ..., \rho_K\})]=\sum_{k=1}^K \mathbb{E}[S_{\lvert \rho_k \rvert}(\rho_k)] = \sum_{k=1}^K  \pi[S_{\lvert \rho_k \rvert}(\rho_k) = 1] \label{eq:formula_obj2}
+\end{equation} with $\pi[S_{\lvert \rho_k \rvert}(\rho_k) = 1]$ given in eqn.~\ref{eq:pi_S_n}.
+
+
+
+\subsubsection{Expected team reward}
+Now, we write a formula for the expected team reward, $\mathbb{E}[R(\mathcal{P})]$. 
+% Obviously, the outcome $S_n(\rho)=0$ implies $S_{n+i}(\rho)=0$ for $1 \leq i \leq \lvert \rho \rvert-n$ since, once a robot is destroyed at some node/arc along its trail, it cannot visit subsequent nodes in the planned trail.
+
+First, we calculate the probability that a robot following a given trail $\rho$ does not visit a given node $v\in \mathcal{V}$.
+Let the Bernoulli random variable $T_v(\rho)$ be one if a robot following trail $\rho$ visits node $v$ and zero if it does not.
+If node $v$ is not in the planned trail $\rho$, $T_v(\rho)=0$ with certainty. 
+Now, suppose node $v$ is in the planned trail $\rho$. Let $n^*$ be the index in the trail where the robot plans its first visit to node $v$:
+\begin{equation}
+n^*(\rho, v) = \min_{
+	\substack{n \in \{0, ..., \lvert \rho \rvert\} \\ \rho[n] = v}
+} n.
+\end{equation}
+Then, $T_v(\rho)$ is equal to the random variable $S_{n^*}(\rho)$ because the robot visits node $v$ if and only if it survives its first $n^*$ arc-hops to first land on node $v$. 
+So, the probability node $v$ is not visited by a robot following trail $\rho$ is:
+\begin{equation}
+	\pi[T_v(\rho) = 0] = 
+	\begin{cases}
+		1 & v\notin \rho\\
+		 \pi [S_{n^*(\rho, v)}(\rho)=0 ] & v \in \rho
+	\end{cases}
+	 \label{eq:pi_T_v}
+\end{equation}
+with $\pi[S_{n^*}(\rho)=0]$ calculated using eqn.~\ref{eq:pi_S_n}.
+
+Second, we calculate the probability that a given node $v\in\mathcal{V}$ is visited by one or more robots on a team following trail plans $\mathcal{P}=\{\rho_1, ..., \rho_K\}$; only then is the reward offered by that node, $r(v)$, accumulated by the team.
+Let $T_v(\mathcal{P})$ be the Bernoulli random variable that is one if one or more robots on the team with trail plans $\mathcal{P}$ visit node $v$ and zero otherwise (i.e.\ if and only if zero of the robots visit $v$).
+The complement of the event $T_v(\mathcal{P})=1$ is that all $K$ robots do not visit node $v$ (independent events), so:
+\begin{equation}
+	\pi [T_v( \{\rho_1, ..., \rho_K\} ) = 1] = 
+	1 - \prod_{k=1}^K \pi[T_v(\rho_k)=0].
+	\label{eq:pi_T_v_all}
+\end{equation} 
+with $\pi[T_v(\rho) = 0]$ in eqn.~\ref{eq:pi_T_v}.
+
+Finally, the total team reward collected by the robot-team following trail plan $\{\rho_1, ..., \rho_K\}$ is the sum of the rewards given to the team by each node:
+\begin{equation}
+R(\{\rho_1,...,\rho_K\}) = \sum_{v\in\mathcal{V}} r(v)  T_v(\{\rho_1, ..., \rho_K\}),
+\end{equation} where the reward from node $v$, $r(v)$, is accumulated if and only if node $v$ is visited by one or more robots (i.e. iff $T_v(\mathcal{P})=1$).
+The expected reward accumulated over the mission by a robot-team following trail plans $\{\rho_1, ..., \rho_K\}$ is:
+\begin{equation}
+	\mathbb{E}[R(\{\rho_1,...,\rho_K\})]= \sum_{v\in\mathcal{V}} r(v) \pi[T_v(\{\rho_1, ..., \rho_K\}) = 1] \label{eq:formula_obj1}
+\end{equation}
+with $ \pi[T_v(\{\rho_1, ..., \rho_K\}) = 1]$ given in eqn.~\ref{eq:pi_T_v_all}.
+
+
+% harvest risk different from visit risk. once harvested, then no longer risk for other robots to visit that node.
+
+\section{Bi-objective ant colony optimization to search for the Pareto-optimal robot-team trail plans}
+To efficiently search for the Pareto-optimal set of robot-team trail plans defined by eqn.~\ref{eq:the_two_objs}, we employ bi-objective (BO) ant colony optimization (ACO) \cite{iredi2001bi}. ACO \cite{dorigo2006ant,bonabeau1999swarm,blum2005ant} is a meta-heuristic for combinatorial optimization problems framed as a search for an optimal path (or trail) on a graph. As a swarm intelligence method \cite{bonabeau1999swarm}, 
+ACO is inspired by the behavior of ants efficiently foraging for food \cite{bonabeau2000inspiration}. See Box~\ref{box:ants}. 
+As precedent, variants of the single-robot- and team-orienteering problem have been efficiently and effectively solved by ACO \cite{ke2008ants,chen2015multiobjective,verbeeck2017time,sohrabi2021acs,chen2022environment,montemanni2011enhanced} (as well as other [meta-]heuristics \cite{gavalas2014survey,dang2013effective,chao1996fast,butt1994heuristic}), but not the TSOP.
+
+\begin{mybox}[label=box:ants, breakable]{Pheromone trail laying and following by foraging ants}
+Largely (but not exclusively \cite{evison2008combined,czaczkes2015trail,robinson2005no}) via laying and following pheromone trails \cite{czaczkes2015trail}, 
+some species of foraging ant colonies advantageously \cite{deneubourg1983probabilistic} can collectively select 
+(i) the shortest path from the nest to a food source \cite{goss1989self}
+and
+(ii) the highest quality food source among multiple options equidistant from the nest \cite{beckers1993modulation}. 
+
+Pheromone, a relatively volatile chemical \cite{david2009trail}, serves as an olfactory cue for ants \cite{knaden2016sensory}, allowing for \emph{indirect} communication between ants in the colony. 
+On the way back to the nest from a food source, ants deposit pheromone on the ground---an amount modulated by the quality of the food source \cite{beckers1993modulation}.
+Shorter paths to higher quality food sources accumulate pheromone more quickly.
+Since ants are recruited to and follow pheromone \cite{beckers1993modulation,czaczkes2015trail}, these paths recruit more ants and get reinforced. Via this positive feedback, the colony can collectively select the shortest path or highest-quality food source \cite{jackson2006communication,czaczkes2015trail,bonabeau1999swarm}.
+The pheromone trails laid by the colony form a \emph{collective memory}---a local guide for ants to high-quality food sources and short paths to them \cite{jackson2006communication}.
+Some species of ants can deposit multiple species of pheromone (from different glands) with e.g.\ different longevities \cite{czaczkes2015trail}, allowing for more complex indirect communication \cite{jackson2006communication,robinson2005no}.
+
+As negative feedback mechanisms, 
+(i) pheromone evaporates over time \cite{jackson2006communication,david2009trail,van2011temperature}, allowing the ant colony to ``forget'' trails to exhausted food sources,
+and 
+(ii) ants deposit less pheromone on trails a) with already-high pheromone concentrations \cite{czaczkes2013ant} or b) leading to food sources already occupied by their nestmates \cite{wendt2020negative}.
+
+Ants select among pheromone trails with some degree of stochasticity \cite{deneubourg1990self}, which is beneficial for 
+(i) continual exploration to find even shorter paths and even higher-quality food sources, 
+(ii) exploiting multiple food sources in parallel, 
+and 
+(iii) plasticity in a dynamic environment \cite{deneubourg1983probabilistic,shiraishi2019diverse,deneubourg1986random,dussutour2009noise,edelstein1995trail}.
+
+
+
+%In summary, pheromone trails of an ant colony abstractly constitute a collective memory for the colony, a local guide for ants to high-quality food sources and short paths to them, and a medium for indirect communication \cite{jackson2006communication}. 
+The combination of positive feedback, negative feedback, and randomness in ants' pheromone-laying and -following can give rise to complex collective behavior despite simple interactions among decentralized individuals \cite{bonabeau1997self,bonabeau1999swarm,goss1989self,jackson2006communication,edelstein1995trail,watmough1995modelling}.
+%Simple models of ants laying and probabilistically following pheromone trails (some with evaporation) indeed reproduce salient features of ants foraging \cite{bonabeau1999swarm,goss1989self,jackson2006communication,edelstein1995trail,watmough1995modelling}.
+\end{mybox}
+
+In bi-objective ACO, we simulate a heterogenous colony of artificial ants walking on the graph $G$---under a loose analogy, foraging for food---over many iterations. 
+At each iteration, each worker ant stochastically constructs a robot-team trail plan $\{\rho_1, ..., \rho_K\}$ robot-by-robot, arc-by-arc, biased by (i) the amounts of two species of pheromone on the arcs encoding the colony's past experiences and (ii) two heuristics that score the greedy, \emph{a priori} appeal of each arc for each objective. 
+As a division of labor, each worker ant specializes by searching for team trail plans belonging to a different region of the Pareto-front.
+Then, ants that found the Pareto-optimal team trail plans over that iteration deposit pheromone of each species on the arcs involved, proportionally to the value of the objective achieved by that plan.
+An elitist ant \cite{dorigo1996ant} maintains a set of global (i.e, over all iterations) Pareto-optimal team trail plans and also deposits pheromone on arcs.
+Finally, to prevent stagnation and promote continual exploration, a fraction of the pheromone evaporates. After many iterations, the ACO algorithm returns the [approximate\footnote{The ACO meta-heuristic is not guaranteed to find all Pareto-optimal solutions nor neglect to include a Pareto-dominated solution.}] Pareto-optimal set of robot-team trail plans maintained by the elitist ant. 
+
+
+\subsection{The heterogenous artificial colony of ants, pheromone, and heuristics}
+Our heterogenous artificial ant colony consists of (i) $N_{\text{ants}}$ worker ants and (ii) an elitist ant.
+Worker ant $i\in\{1, ..., N_{\text{ants}}\}$ in the colony is assigned a parameter $\lambda_i := (i-1) / (N_{\text{ants}}-1)$ dictating its balance of the two objectives when searching for Pareto-optimal team trail plans.
+A $\lambda$ closer to zero (one) implies the ant prioritizes maximizing the expected reward $\mathbb{E}[R]$ (robot survivals $\mathbb{E}[S]$). 
+So, different ants seek team trail plans belonging to different regions of the Pareto front.
+The elitist ant maintains the global-Pareto-optimal set of team trail plans.
+
+% \subsection{Pheromone levels and heuristic scores on the arcs of the graph}
+Each arc $(v, v^\prime)\in\mathcal{E}$ of the graph is associated with 
+(i) amounts of two distinct species of pheromone, $\tau_R(v, v^\prime)$ and $\tau_S(v, v^\prime)$, and 
+(ii) heuristic scores $\eta_R(v, v^\prime)$ and $\eta_S(v, v^\prime)$.
+Both $\tau_{R,S}(v, v^\prime)>0$ and $\eta_{R,S}(v, v^\prime)>0$ score the promise of arc $(v, v^\prime)$ for belonging to Pareto-optimal team trail plans that maximize $\mathbb{E}[R]$ and $\mathbb{E}[S]$, respectively, and guide worker ants' construction of robot-team trail plans.
+The pheromone is learned, reflecting the past collective experience/memory of the ant colony. 
+% The pheromone constitutes a collective memory of the propensity the arcs to belong to trails contained in Pareto-optimal team trail plans and the objectives achieved with those plans.
+Due to deposition and evaporation, the pheromone is dynamic over iterations.
+By contrast, the heuristic is static and scores the \emph{a priori}, greedy/myopic appeal of each arc to accelerate the convergence of ACO.
+%
+%
+%The ants lay and [probabilistically] follow two distinct species of artificial pheromone on the arcs of the graph $G$---one species associated with each objective. 
+%
+%The pheromone maps $\tau_R:\mathcal{E}\rightarrow \mathbb{R}_+$ and $\tau_S:\mathcal{E}\rightarrow \mathbb{R}_+$ give the amount of reward and survivability pheromone, respectively, on each arc of $G$.
+%The value $\tau_R(v, v^\prime)$ ($\tau_S(v, v^\prime)$) scores the promise of arc $(v, v^\prime)$, learned from all past experience of the ant colony, for belonging to Pareto-optimal team trail plans that maximize the expected reward $\mathbb{E}[R]$ (number of robots that survive $\mathbb{E}[S]$).
+%As opposed to being static, the pheromone maps $\tau_{R,S}$ change from iteration-to-iteration due to deposition by the ants and evaporation. 
+% Together, the pheromone maps $\tau_{R,S}$ represent a [fading] memory of the artificial ant colony about the propensity of each arc to belong to Pareto-optimal robot-team trail plan and, vaguely, where along the Pareto-front the plan might li.e.
+% vaguely, through laying and following \emph{two} species of pheromone, .
+
+\subsection{Constructing robot-team trail plans}
+Each iteration, every worker ant stochastically constructs a team trail plan $\mathcal{P}=\{\rho_1, ..., \rho_K\}$ by sequentially allocating trails to the robots and [conceptually] following the closed trail the ant designs for each robot. Computing the objectives achieved under each plan via eqns.~\ref{eq:formula_obj2} and \ref{eq:formula_obj1} gives data $\{ (\mathcal{P}_i, \mathbb{E}[R(\mathcal{P}_i)], \mathbb{E}[S(\mathcal{P}_i)])\}_{i=1}^{N_{\text{ants}}}$ used to deposit pheromone (worker ant) and update the global Pareto-optimal set (elitist ant). 
+% It assigns trails to the robots sequentially, robot-by-robot. 
+% i.e. fully constructs the closed trail for robot 1, $\rho_1$, then $\rho_2$ for robot 2, and so on, up to robot $K$.
+% For each robot trail it constructs, the ant starts at the base node $v_b$, then, arc-hop by arc-hop, constructs the closed trail on the graph that the robot will follow. 
+
+A robot trail is constructed by iteratively applying a stochastic, partial-trail extension rule until the closed trail is complete. Suppose an ant with objective-balancing parameter $\lambda$ is constructing the closed trail for robot $k$, $\rho_k$, and currently resides at node $v=\rho_k[i]$.
+Namely, the ant has selected (i) the trails for the previous $k-1$ robots, $(\rho_1, ..., \rho_{k-1})$, and (ii) an incomplete/partial trail for robot $k$, $\tilde{\rho_k}=(v_b, \rho_k[1], ..., \rho_k[i]=v)$, giving its first $i$ arc-hops.
+The probability of next hopping to node $v^\prime$ across arc $(v, v^\prime)\in\mathcal{E}$ not yet traversed in the partial trail $\tilde{\rho_k}$ is:
+ \begin{equation}
+	\pi(v^\prime \mid \rho_1, ..., \rho_{k-1}, \tilde{\rho_k}) \propto 
+		 \left[\tau_R(v, v^\prime) \eta_R(v, v^\prime; \rho_1, ..., \rho_{k-1},\tilde{\rho_k}) \right]^{1-\lambda} \left[ \tau_S(v, v^\prime) \eta_S(v, v^\prime) \right]^\lambda.
+	 \label{eq:prob_x_y}
+\end{equation}
+The partial trail is more likely to be extended with $v^\prime=:\rho_k[i+1]$ if arc $(v, v^\prime)$ has more pheromone $\tau_{R, S}(v, v^\prime)$ and/or greedy heuristic appeal $\eta_{R, S}(v, v^\prime)$---with more or less emphasis on the reward or survivability pheromone/heuristic depending on the ant's $\lambda$.
+Iteratively extending the partial trail using eqn.~\ref{eq:prob_x_y}, the ant completes the trail for robot $k$ after it traverses the self-loop of the base node, $(v_b, v_b)$. Then, the ant begins trail construction for robot $k+1$ if $k<K$ or completes its team trail plan $\mathcal{P}$ if $k=K$. 
+
+
+% While the pheromone maps $\tau_{R,S}$ encode the ants colony's past experiences and are dynamic over iterations, the static, heuristic, experience-independent maps $\eta_{R,S}(v, v^\prime)$ score the [greedy] appeal, in terms of maximizing $\mathbb{E}[R]$ and $\mathbb{E}[S]$, respectively, of hopping from $v$ to $v^\prime$. 
+
+\paragraph{Heuristics.} 
+For the survivability objective, we score the desirability of arc $(v, v^\prime)$ with the probability of the robot surviving traversal of that arc, $\eta_S(v, v^\prime):=\omega(v, v^\prime)$---myopic because it does not consider survivability of arcs later in the trail. 
+For the reward objective, we greedily score the desirability of arc $(v, v^\prime)$ with the expected marginal reward the team receives by robot $k$ visiting node $v^\prime$ next, which is $r(v^\prime)$ if 
+(i) none of the previous $k-1$ robots visit node $v^\prime$, 
+(ii) node $v^\prime$ is not planned to be visited earlier in the trail of robot $k$, and
+(iii) robot $k$ survives its hop to node $v^\prime$
+and zero otherwise:
+% Consequently, $\eta_R$ considers both the previous $k-1$ robots' trails and robot $k$'s partial trail $\tilde{\rho_{k}}$:
+\begin{equation}
+	\eta_R(v, v^\prime; \rho_1, ..., \rho_{k-1}, \tilde{\rho_k}) :=  
+	 \pi[ T_{v^\prime}(\{\rho_1, ..., \rho_{k-1}\}) = 0)] \mathcal{I}[v^\prime \notin \tilde{\rho_k}] \omega(v, v^\prime) r(v^\prime ) ,
+\end{equation}
+with $\mathcal{I}(\cdot)$ the indicator function---myopic because it does not account for rewards robot $k$ could collect further along the trail. 
+% {\color{red} handle negative rewards?}
+Note, to prevent either heuristic from being exactly zero (resulting in \emph{never} selecting that arc), we add a small number $\epsilon$ to each heuristic.
+
+
+\subsection{Pheromone update}
+At the end of each iteration, we update the pheromone maps $\tau_R$ and $\tau_S$ to capture the experience of the ants in finding Pareto-optimal robot-team trail plans, better-guide the ants' trail-building in the next iteration, and prevent stagnation (premature convergence). 
+
+
+The pheromone update rule is:
+\begin{equation}
+	\tau_{R, S}(v, v^\prime) \leftarrow (1-\rho) \tau_{R,S}(v, v^\prime)  + \Delta \tau_{R,S}(v, v^\prime) \text{ for } (v, v^\prime) \in \mathcal{E}, \label{eq:tau_update}
+\end{equation}
+with $\rho \in (0, 1)$ the evaporation rate (a hyperparameter) and $\Delta \tau_{R,S}(v, v^\prime)$ the amount of new pheromone deposited on arc $(v, v^\prime)$ by the ants.
+
+Evaporation, accomplished by the first term in eqn.~\ref{eq:tau_update}, removes a fraction of the pheromone on every arc. This negative feedback mechanism prevents premature convergence to suboptimal trails and encourages continual exploration.
+
+Deposition, accomplished by the second term in eqn.~\ref{eq:tau_update}, constitutes indirect communication to ants in future iterations about which arcs tend to belong to Pareto-optimal team trail plans and the objectives achieved under those plans.
+First, the ants \emph{collaborate} by 
+(i) among the worker ants, comparing the solutions constructed \emph{this} iteration to obtain the \emph{iteration}-Pareto-optimal set of plans
+and 
+(ii) worker ants sharing the solutions constructed this iteration with the elitist ant, who then updates the \emph{global}-Pareto-optimal set.
+Second, the worker ants with an iteration-Pareto-optimal team trail plan execute their constructed plan while depositing pheromone on the arcs.
+Third, the elitist ant executes all global-Pareto-optimal team trail plans while depositing pheromone on the arcs. Each ant deposits both reward and survival pheromone in proportion to the reward and survival objectives, respectively, achieved under the plan they are following. (The objective is analogous with food quality). 
+Specifically, amalgamating the iteration- and global-Pareto-optimal team trail plans into a multiset $\{(\mathcal{P}_p^*, \mathbb{E}[R(\mathcal{P}_p^*)], \mathbb{E}[R(\mathcal{P}_p^*)])\}_{p=1}^P$, arc $(v, v^\prime)$ receives pheromone:
+%Now, each time arc $(v, v^\prime)$ is traversed in trails of a [iteration- or global-]Pareto-optimal plan $\mathcal{P}^*_p$, 
+%this [worker- or elitist-] ant deposits pheromone of each species on it in proportion to the objective achieved with $\mathcal{P}^*_p$:
+\begin{equation}
+	 \Delta \tau_{R,S}(v, v^\prime) := 
+	\frac{1}{P} \sum_{p=1}^{P} \mathbb{E}[R(\mathcal{P}^*_p), S(\mathcal{P}^*_p)] 
+	% sum over trails in the plan
+	\sum_{k=1}^K 
+	% sum over arcs in the trail
+	\sum_{i=1}^{\lvert \rho_k^{(p)}\rvert}
+	% indicator
+	\mathcal{I} \left[ 
+		(v, v^\prime)=(\rho_k^{(p)}[i-1], \rho_k^{(p)}[i])
+	\right].
+\end{equation}
+with $\mathcal{I}(\cdot)$ the indicator function.
+The sums are over, left-to-right, Pareto-optimal plans, robot trails in those plans, and arcs in those robot trails. 
+The latter two sums count the number of times the arc $(v, v^\prime)$ appears in $\mathcal{P}^*_p$.
+By construction, arcs that receive the most reward (survival) pheromone frequently belong to trails in the Pareto-optimal team trail plans with high reward (survival).
+
+
+We initialize the pheromone on all arcs with $\tau_{R,S}(v, v\prime)=1$, to allow the heuristic to completely guide the first iteration. 
+% TODO explain rho nottaion. gotta expand that. the rho_k^(p) not defined.
+
+
+
+% The elitist ant reinforces pheromone trails belonging to the global-Pareto-optimal set to encourage future ants to explore variations of them, while reinforcing the iteration-Pareto-optimal set helps promote exploration of variants of good trails.
+  % TODO not quite, needs work
+
+\subsection{Area indicator for Pareto-set quality}
+From iteration-to-iteration, we measure the quality of the global [approximate] set of Pareto-optimal robot-team trail plans tracked by the elitist ant using an area indicator \cite{cao2015using,guerreiro2020hypervolume}---loosely, the area in objective space enclosed between the origin and the [approximated] Pareto-front. Formally, the quality $q$ of a Pareto set $\{\mathcal{P}^*_1, ...,\mathcal{P}^*_P\}$ is the area of the union of rectangles in 2D objective space:
+\begin{equation}
+	q(\{\mathcal{P}^*_1, ...,\mathcal{P}^*_{P}\}):=
+	\Big \lvert 
+		\bigcup_{p=1}^P \{ o \in \mathbb{R}^2 : o \geq 0 \wedge  o \leq (\mathbb{E}[R(\mathcal{P}^*_p)], \mathbb{E}[S(\mathcal{P}^*_p)]) \} 
+	\Big \rvert \label{eq:q}
+\end{equation}
+illustrated with the shaded yellow area in Fig.~\ref{fig:pareto_optimal}.
+
+\section{Results}
+We now implement bi-objective ant colony optimization to search for Pareto-optimal robot-team trail plans for an instance of bi-objective team orienteering in a hazardous environment. 
+We visualize the pheromone trail and some of the Pareto-optimal solutions to gain intuition. We also conduct an ablation study to quantify the importance of the pheromone and heuristics for guiding the search.
+Our Julia code to reproduce our results and modify and build upon with more complexity is available at \url{github.com/SimonEnsemble/BO_ACO_TOHE}.
+
+\subsection{Problem setup} 
+A team of $K=3$ mobile robots are assigned an information-gathering mission in the San Diego Museum of Art. 
+We selected this art museum for (i) its rich connectivity between galleries, giving an interesting example, and (ii) its small size, allowing us to visualize, interpret, and intuit the solution to a BOTOHE problem on it.
+%The robots are equipped with omnidirectional cameras and can transmit images of the art back to the command center outside of the museum. Suppose adversarial security guards in the museum seek to prevent imaging of the art. 
+%The command center wishes for the robots (i) to collect images of the art in each gallery and (ii) return from the mission. 
+%Hence, we formulate this as a BOTHE problem.
+% Suppose these images have a gallery-dependent value to the command center.
+We spatially model the art museum as a directed graph $G=(\mathcal{V}, \mathcal{E})$.
+%  the art museum exhibits a rich topology.
+%Each node represents an art gallery (room). 
+%Each arc represents a passage, doorway, or stairway. 
+% The museum has two floors connected by a single stairway.
+The set of 27 nodes $\mathcal{V}$ represents the 23 art galleries (rooms), the outside entrance to the building (base node $v_b$), the main entrance rooms on the first and second floors, and the stairway.
+The set of arcs $\mathcal{E}$ represents direct passages/doorways between the rooms. % For each pair of rooms connected by a passage/doorway, we allocate two arcs in each direction. 
+
+Suppose traversing the art museum is hazardous for the robots, owing to
+(i) adversarial security guards that (a) seek to prevent the robots from imaging the art and (b) possess the ability attack and/or capture the robots, and
+(ii) obstacles that the robots could (a) crash into or (b) become entangled in.
+To model risks of destruction or capture, we assign survival probabilities $\omega(i,j)$ for the arc(s)
+(i) traversing the staircase of 0.8,
+(ii) inside and in/out of the main entrance room of 0.9,
+(iii) on the right side of the first floor of 0.97,
+(iv) on the left side of the first floor of 0.95,
+and
+(v) on the second floor of 0.9.
+
+Suppose, when a robot visits an art gallery in the museum, it images the art there and transmits this image back to the command center, providing utility to the command center. 
+The utility of each image to the command center is scored by
+% Note, (i) even if the robot that took this image is later destroyed or captured, the image irrevocably provides utility to the command center, and (ii) multiple visits by robot(s) to a gallery do not provide further marginal reward because the command center already has an image from the first robot visit.
+the node reward map $r$ assigning rewards of
+(i) 2/3 for large galleries,
+(ii) 1/3 for medium-sized galleries,
+(iii) 1 for small galleries that we suppose contain the most valuable art, and
+(iv) 1/10 for five galleries that are in corners of the museum or behind the stairway.
+
+The two objectives of the command center are to plan the trails of the robots in the art museum to maximize the (1) expected reward, via robots visiting art galleries, imaging them, then transmitting the images back to the command center, and (2) expected number of robots that return from the mission. 
+
+We visualize this BOTOHE problem instance in Fig.~\ref{fig:ex_setup}. 
+The topology of the directed graph is shown, with a layout reflecting the spatial location of the rooms in the San Diego Museum of Art. The nodes on the first and second floor are grouped together.
+The base node is marked by the three robots near it.
+The arc survival probability map $\omega$ is visualized by the color assigned to each arc.
+The stairway is the most dangerous arc.
+The node reward map $r$ is visualized by the color assigned to each node. 
+
+% As a hazardous environment containing locations that offer rewards to a robot team, we use the graph model of the Satsop Nuclear Power Plant in Elma, Washington from the Defense Advanced Research Projects Agency (DARPA) Subterranean (SubT) robotics challenge \cite{chung2023into} (Alpha course of the Urban Circuit Network \cite{github_darpa_subt}).
+
+\begin{figure}[h!]
+    \centering
+    	\includegraphics[width=0.6\textwidth]{art_museum_full_setup.pdf}
+    \caption{Our TOHE problem instance. The directed graph represents the two-floor San Diego art museum with distinct rooms (nodes) connected by doorways or a stairway (arcs). The arcs are colored according to robot survival probabilities. The nodes are colored according to rewards offered to the team when a robot visits. The three robots (planes) initially reside at the base node. % TODO use robot emoji
+    } \label{fig:ex_setup}
+\end{figure}
+
+
+
+
+
+\subsection{Computational results}
+We now employ our bi-objective ant optimization algorithm to search for the Pareto-optimal robot-team trail plans for our problem instance.
+We use a colony of $N_{ants}=100$ artificial ants, a pheromone evaporation rate of $\rho=0.04$, and 10\,000 iterations. We initialize the pheromone maps with one unit of pheromone on each arc.
+The runtime is $\sim$5\,min on an Apple M1 machine.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.4\textwidth]{ACO_comparison.pdf}
+    \caption{Progress of BO-ACO on our TOHE problem instance and comparison with baselines. 
+    The quality of the Pareto-set of robot team trail plans, measured via the area indicator, is shown as a function of the number of iterations of ACO---for ordinary ACO, ACO without heuristics, and ACO without pheromone.
+    } \label{fig:aco_progress}
+\end{figure}
+
+Fig.~\ref{fig:aco_progress} shows the quality (area indicator) of the Pareto-set ($q$ in eqn.~\ref{eq:q}) over iterations. As the ACO algorithm progresses, the quality of the Pareto-set improves, but with diminishing returns. The saturation of the progress over iterations indicates satisfactory convergence.
+
+ACO searches for Pareto-optimal robot-team trail plans,
+guided by (i) the static heuristics $\eta_{R,S}$ that greedily score the appeal of traversing a given arc and (ii) the dynamic pheromone maps $\tau_{R,S}$ that encapsulate the memory of the ant colony over previous iterations. 
+Next, we quantify how each of these components are contributing to the effectiveness of ACO by ablating each. 
+First, we run ACO where heuristics are not used to bias the ants towards \emph{a priori} promising arcs by setting $\eta_{R,S}(v, v^\prime)=1$ for all arcs $(v, v^\prime)\in \mathcal{E}$. Second, we run ACO where pheromone is not used to bias the ants towards promising arcs based on the history of the colony's search by setting $\tau_{R,S}(v, v^\prime)=1$ for all arcs $(v, v^\prime)\in \mathcal{E}$.
+Fig.~\ref{fig:aco_progress} compares the search efficiency of these ablated runs with ordinary ACO (where both heuristics and pheromone are used).
+Compared to ordinary ACO, the search efficiency diminishes for each ablation study. 
+Thus, both heuristic and pheromone contribute to the search efficiency.
+However, the search efficiency drops more dramatically when the heuristic is ablated. 
+Thus, the heuristic is more helpful than the pheromone in terms of finding a quality Pareto-set in few iterations. 
+
+\begin{figure}[h!]
+    \centering
+    \begin{subfigure}[b]{0.59\textwidth}
+    	\includegraphics[width=\textwidth]{pheremone.pdf}
+	\caption{Pheromone trails} \label{fig:pheromone}
+    \end{subfigure}
+        \begin{subfigure}[b]{\textwidth}
+    	\includegraphics[width=\textwidth]{real_pareto_front.pdf}
+	\caption{Pareto-optimal solutions} \label{fig:pareto_front}
+    \end{subfigure}
+    \caption{Analysis of the BO-ACO solution to our TOHE problem instance. 
+    (a) The pheromone trails and distribution of the amount of pheromone on the arcs at the end of the ACO algorithm. 
+    (b) The [approximate] Pareto-front of robot-team team trail plans at the end of the ACO algorithm with four select plans shown. The indicator of the Pareto-set quality is the area of the highlighted, yellow region.
+    }
+\end{figure}
+
+At the end of the ACO algorithm, Fig.~\ref{fig:pheromone} visualizes the pheromone maps $\tau_{R}$ and $\tau_S$.
+ Note the clock-wise vs.\ counter-close-wise preferences in some cycles of high pheromone to pursue high-reward nodes earlier in the trails to maximize expected reward.
+ 
+ 
+
+Fig.~\ref{fig:pareto_front} shows the [approximate] Pareto-front of 167 solutions found by BO-ACO. 
+Walking down the Pareto-front trades larger expected team reward for a smaller expected number of robots that return from the mission. The key motivation for treating the \emph{bi-objective} TOHE problem is to present this Pareto-front to a human decision-maker who ultimately chooses a robot-team trail plan that balances reward with robot survival.
+
+Finally, Fig.~\ref{fig:pareto_front} shows four Pareto-optimal trail plans belonging to different regions of the Pareto-front. 
+As we move down the front, plans offer larger expected reward but lower robot survival.
+In the first plan, only a single robot enters the museum to image galleries offering the highest rewards on the left side of the first floor---avoiding the more dangerous right side of the second floor and the very dangerous staircase to the second floor. 
+In the second plan, two robots are utilized: the first plans to cover much of the left side of the first floor, while the second plans to cover much of the right side of the first floor.
+In the third plan, also utilizing two robots, the first robot plans to traverse most of the first floor and the second floor later. The second robot traverses much of the first floor. This redundancy in first-floor coverage builds robustness into the plans: even if the first robot gets destroyed early on, the second robot can still image most of the galleries on the first floor.
+Finally, the fourth plan uses all three robots with much redundancy to achieve high expected reward. Still, the robots avoid taking the risk to enter the bottom left corner of the first floor, whose galleries offer only a small reward.
+
+
+\section{Discussion}
+Many applications for mobile robot teams---ranging from information-gathering, resource-delivery, chemical plume source localization, forest fire fighting, to resource delivery---involve traversing environments with hazards e.g., corrosive chemicals, attacking adversaries, obstacles, or rough terrain/seas. 
+For each application, the robots must coordinate their trails for the team-level objective in a risk-aware manner: select the subset of locations to visit, assign the safest trails to the robots, balance reward and risk to the robots, and build redundancy into the plans to make the objective robust to the failure of robots on the team. 
+
+Heavily inspired by the Team Surviving Orienteers Problem \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, we posed the bi-objective team orienteering in a hazardous environment (BOTHE) problem. 
+By finding the Pareto-optimal set of robot-team trail plans, we can present them to a human decision-maker who ultimately chooses the robot trail plans for the mission according to how he or she values the expected reward collected by the robot team compared with the expected number of robots that survive the dangerous mission.
+
+We employed bi-objective ant colony optimization to search for the Pareto-optimal team trail plans. Despite lacking theoretical guarantees to find the Pareto-optimal set, ACO was effective and can be readily adapted to handle extensions to the TOHE problem.
+
+\paragraph{Future work.}
+%Much future work remains for path-planning of robots in adversarial/hazardous environments.
+% harvesting the reward is dangerous. not visiting. 
+For the BOTOHE we have posed, we wish to (i) tackle the online version with ACO, where the robots adapt their planned trails during the mission, in response to observed failures of robots, (ii) devise local search methods to improve the robot trails the ants found, accelerating the convergence of ACO \cite{dorigo2006ant}, (iii) benchmark non-sequential methods to allocate trails to robots with ACO \cite{ke2008ants}, and (iv) employ multi-colony ant optimization \cite{iredi2001bi}.
+
+Interesting and practical extensions of robot-team orienteering in adversarial/hazardous environments abstracted a graphs include treating (some of these ideas from Ref.~\cite{jorgensen2018team}): 
+(i) a heterogenous team of robots with different (a) capabilities to harvest rewards from nodes and (b) survival probabilities for each arc traversal owing to e.g.\ stealth;
+(ii) more complicated reward structures, e.g., time-dependent, stochastic, non-additive (correlated \cite{yu2014correlated}), multi-category, or multi-visit rewards;
+(iii) fuel/battery constraints of the robots and nodes representing refueling, recharging, or battery-switching stations \cite{asghar2023risk,khuller2011fill,liao2016electric,yu2019coverage}; 
+(iv) constraints on the rewards a robot can harvest e.g.\ for resource delivery applications where each robot holds limited cargo capacity \cite{coelho2014thirty};
+(v) non-binary surviving states of the robots due to various levels of damage;
+(vi) non-independent events of robots surviving arc-traversals;
+(vii) risk metrics different from the expected value \cite{majumdar2020should}.
+% TODO: cite green vehicle routing
+
+Another interesting direction is to learn/modify the survival probabilities associated with the edges of the graph from data over repeated missions (an inverse problem \cite{burton1992instance}). 
+Specifically, suppose we are uncertain about the survival probability $\omega(i, j)$ of each arc $(i,j)$. Within a Bayesian inference framework, we may impose a prior distribution on each $\omega(i,j)$. Then, when a robot survives or gets destroyed during a mission, we update the prior distribution. 
+The trail-planning of the robots over sequential missions may then balance (a) exploitation to harvest the most reward and take what appear to be, under uncertainty, the safest trails and (b) exploration to find even safer trails.
+
+Finally, instead of abstracting the environment as a graph, one could path-plan for robots in a continuous space with obstacles. 
+
+\section*{Acknowledgements} CMS acknowledges the Office of Naval Research Summer Faculty Research Program.
+
+\bibliographystyle{unsrt}
+\bibliography{refs}
+
+
+\end{document}  

@@ -1,5 +1,5 @@
 mkdir -p minimal_submission
-cp simple_mo-aco-tsop.tex minimal_submission/
+cp peer_j_format..tex minimal_submission/
 cp refs.bib minimal_submission/
 cp overview_2.pdf minimal_submission/
 cp toy_pareto_front2.pdf minimal_submission/
