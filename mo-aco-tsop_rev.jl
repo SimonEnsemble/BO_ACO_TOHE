@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.11
+# v0.20.13
 
 using Markdown
 using InteractiveUtils
@@ -67,6 +67,9 @@ end
 # ╔═╡ 21ef0739-9c36-4825-b965-b99cd984b9d2
 nv(top.g)
 
+# ╔═╡ efeeb427-9061-4c77-b1c0-50b26abdb6a6
+top.nb_robots
+
 # ╔═╡ f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 md"## viz setup"
 
@@ -115,9 +118,9 @@ md"## MO-ACO 🐜
 # ╔═╡ b9a9808e-8631-45e1-9e31-516565c804a3
 md"
 
-\# of iterations: $(@bind nb_iters Select([10000, 250], default=250))
+\# of iterations: $(@bind nb_iters Select([10, 250, 500, 1000, 5000, 10000], default=250))
 
-\# of runs: $(@bind n_runs Select([2, 5, 10], default=2))
+\# of runs: $(@bind n_runs Select([1, 2, 5, 10], default=2))
 
 run checks? $(@bind run_checks CheckBox(default=true))
 "
@@ -229,6 +232,21 @@ ress_pheremone_only = [
 	for r=1:n_runs
 ]
 
+# ╔═╡ 2400b72e-2d1a-4c2e-91c7-14c8ac92cc11
+ress_random = [
+	mo_aco(
+		top, 
+		verbose=false, 
+		nb_ants=100, 
+		nb_iters=nb_iters,
+		use_heuristic=false,
+		use_pheremone=false,
+		run_checks=run_checks,
+		my_seed=my_seeds[r]
+	)
+	for r=1:n_runs
+]
+
 # ╔═╡ 0808a99f-1f55-4b0a-81e9-3f511c9f55d5
 begin
 	local fig = Figure(resolution=(375, 300))
@@ -251,6 +269,10 @@ begin
 			1:ress_heuristic_only[r].nb_iters, ress_heuristic_only[r].areas, 
 			label="pheromone ablation", linewidth=3, color=(wongcolors()[3], 0.5)
 		)
+		lines!(
+			1:ress_random[r].nb_iters, ress_random[r].areas, 
+			label="random", linewidth=3, color=(wongcolors()[4], 0.5)
+		)
 	end
 	axislegend(position=:rb, labelsize=13, unique=true)
 	save("paper/ACO_comparison.pdf", fig)
@@ -264,6 +286,7 @@ end
 # ╟─7e4e838c-0e42-4925-9ddf-4c3601466b64
 # ╠═bdb5d550-13f6-4d8d-9a74-14b889efe7a2
 # ╠═21ef0739-9c36-4825-b965-b99cd984b9d2
+# ╠═efeeb427-9061-4c77-b1c0-50b26abdb6a6
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 # ╠═e3946d78-b7d4-4484-9e00-dc20d0457293
 # ╠═74ce2e45-8c6c-40b8-8b09-80d97f58af2f
@@ -289,4 +312,5 @@ end
 # ╠═17c48342-f684-4149-b1ea-b626896a4691
 # ╠═67c9334e-1155-4ef3-8d75-030dcfc1e570
 # ╠═3b94a9a8-93c8-4e46-ae23-63374d368b16
+# ╠═2400b72e-2d1a-4c2e-91c7-14c8ac92cc11
 # ╠═0808a99f-1f55-4b0a-81e9-3f511c9f55d5

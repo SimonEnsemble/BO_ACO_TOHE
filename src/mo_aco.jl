@@ -30,6 +30,7 @@ function mo_aco(
     global_pareto_solns = Soln[]
 
     # track growth of area indicator
+    reward_sum = sum([get_r(top.g, v) for v = 1:nv(top.g)]) # for scaling
     areas = zeros(nb_iters)
     for i = 1:nb_iters # iterations
         #=
@@ -94,7 +95,7 @@ function mo_aco(
         #=
         track quality of Pareto set
         =#
-        areas[i] = area_indicator(global_pareto_solns)
+        areas[i] = area_indicator(global_pareto_solns, reward_sum, top.nb_robots)
     end
     @info "found $(length(global_pareto_solns)) Pareto-optimal solns"
     # sort by obj

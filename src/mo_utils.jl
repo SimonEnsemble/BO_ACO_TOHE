@@ -127,15 +127,12 @@ function nondominated(soln::Soln, solns::Vector{Soln})
 end
 
 """
-    area_indicator(pareto_solns)
+    area_indicator(pareto_solns, reward_sum, nb_robots)
 
 compute area indicator, with reference point = the origin, characterizing the quality of a pareto set of solutions.
 """
-function area_indicator(pareto_solns::Vector{Soln})
+function area_indicator(pareto_solns::Vector{Soln}, reward_sum::Float64, nb_robots::Int)
     @assert all([nondominated(p, pareto_solns) for p in pareto_solns])
-    
-    # normalize reward by # of robots
-    n_robots = length(pareto_solns[1].robots)
 
 	# important to only have the unique ones to avoid inflating the area.
     pareto_solns = unique_solns(pareto_solns, :objs)
@@ -144,11 +141,11 @@ function area_indicator(pareto_solns::Vector{Soln})
 
 	# imagine r on the x-axis and s on the y-axis.
     # initialize area as area of first box
-    area = pareto_solns[1].objs.s * pareto_solns[1].objs.r / n_robots
+    area = pareto_solns[1].objs.s * pareto_solns[1].objs.r / (reward_sum * nb_robots)
     # i = index of the box.
     for i = 2:length(pareto_solns) # i = the box
-        Δr = (pareto_solns[i].objs.r - pareto_solns[i-1].objs.r) / n_robots
-        area += pareto_solns[i].objs.s * Δr
+        Δr = (pareto_solns[i].objs.r - pareto_solns[i-1].objs.r) / reward_sum
+        area += pareto_solns[i].objs.s * Δr / nb_robots
         @assert Δr > 0
         @assert pareto_solns[i].objs.s < pareto_solns[i-1].objs.s
     end

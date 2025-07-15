@@ -22,10 +22,8 @@ end
 visualization of the Pareto set
 =#
 function _viz_objectives!(ax, solns::Vector{Soln}; label=nothing, markersize=14)
-    n_robots = length(solns[1].robots)
-
     scatter!(ax,
-        [soln.objs.r / n_robots for soln in solns],
+        [soln.objs.r for soln in solns],
         [soln.objs.s for soln in solns],
         label=label,
         markersize=markersize,
@@ -35,28 +33,25 @@ function _viz_objectives!(ax, solns::Vector{Soln}; label=nothing, markersize=14)
 end
 
 function _viz_area_indicator!(ax, _pareto_solns::Vector{Soln})
-    # normalize reward by number of robots
-    n_robots = length(_pareto_solns[1].robots)
-
     pareto_solns = sort(_pareto_solns, by=s -> s.objs.r)
     linecolor = "gray"
     shadecolor = ("yellow", 0.2)
     for i = 1:length(pareto_solns)-1
         # vertical line
         lines!(ax,
-            [pareto_solns[i].objs.r, pareto_solns[i].objs.r] / n_robots,
+            [pareto_solns[i].objs.r, pareto_solns[i].objs.r],
             [pareto_solns[i].objs.s, pareto_solns[i+1].objs.s],
             color=linecolor
         )
         # horizontal line
         lines!(ax,
-            [pareto_solns[i].objs.r, pareto_solns[i+1].objs.r] / n_robots,
+            [pareto_solns[i].objs.r, pareto_solns[i+1].objs.r],
             [pareto_solns[i+1].objs.s, pareto_solns[i+1].objs.s],
             color=linecolor
         )
         # shade
         fill_between!(ax,
-            [pareto_solns[i].objs.r, pareto_solns[i+1].objs.r] / n_robots,
+            [pareto_solns[i].objs.r, pareto_solns[i+1].objs.r],
             zeros(2),
             [pareto_solns[i+1].objs.s, pareto_solns[i+1].objs.s],
             color=shadecolor
@@ -64,20 +59,20 @@ function _viz_area_indicator!(ax, _pareto_solns::Vector{Soln})
     end
     # first horizontal line
     lines!(ax,
-        [0, pareto_solns[1].objs.r / n_robots],
+        [0, pareto_solns[1].objs.r],
         [pareto_solns[1].objs.s, pareto_solns[1].objs.s],
         color=linecolor
     )
     # first shade
     fill_between!(ax,
-        [0, pareto_solns[1].objs.r / n_robots],
+        [0, pareto_solns[1].objs.r],
         zeros(2),
         [pareto_solns[1].objs.s, pareto_solns[1].objs.s],
         color=shadecolor
     )
     # last vertical line
     lines!(ax,
-        [pareto_solns[end].objs.r, pareto_solns[end].objs.r] / n_robots,
+        [pareto_solns[end].objs.r, pareto_solns[end].objs.r],
         [pareto_solns[end].objs.s, 0.0],
         color=linecolor
     )
@@ -94,12 +89,10 @@ function viz_Pareto_front(
         upper_xlim=nothing,
         incl_legend::Bool=true
     )
-    n_robots = length(solns[1].robots)
-
     fig = Figure(size=size)
     ax = Axis(
         fig[1, 1],
-        xlabel="𝔼[team rewards] / robot",
+        xlabel="𝔼[team rewards]",
         ylabel="𝔼[# robots survive]"
     )
     xlims!(0, upper_xlim)
@@ -113,7 +106,7 @@ function viz_Pareto_front(
     end
     if length(ids_hl) > 0
         scatter!(
-            ax, [s.objs.r / n_robots for s in solns[ids_hl]], [s.objs.s for s in solns[ids_hl]],
+            ax, [s.objs.r for s in solns[ids_hl]], [s.objs.s for s in solns[ids_hl]],
             color=Cycled(3), strokewidth=2
         )
     end
