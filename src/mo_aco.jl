@@ -15,13 +15,18 @@ function mo_aco(
     #min_max::Bool=true,
     use_heuristic::Bool=true,
     use_pheremone::Bool=true,
-    my_seed::Int=1337
+    my_seed::Int=1337,
+    one_pheromone_trail_per_robot::Bool=false
 )
     Random.seed!(my_seed)
 
     # initialize ants and pheremone
     ants = Ants(nb_ants)
-    pheremone = Pheremone(top)
+    if one_pheromone_trail_per_robot
+        pheremone = [Pheremone(top) for r = 1:top.nb_robots]
+    else
+        pheremone = Pheremone(top)
+    end
 
     # for computing τ_min, τ_max
     avg_nb_choices_soln_components = mean(degree(top.g)) / 2

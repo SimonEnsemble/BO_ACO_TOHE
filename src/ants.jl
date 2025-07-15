@@ -54,6 +54,12 @@ function evaporate!(pheremone::Pheremone, ρ::Float64)
 	return nothing
 end
 
+function evaporate!(pheremones::Vector{Pheremone}, ρ::Float64)
+    for pheremone in pheremones
+        evaporate!(pheremone, ρ)
+    end
+end
+
 """
     lay!(pheremone, pareto_solns)
 
@@ -70,19 +76,22 @@ function lay!(pheremone::Pheremone, pareto_solns::Vector{Soln})
 	for pareto_soln in pareto_solns
 		# loop over robots
 		for robot in pareto_soln.robots
-			# loop over robot trail
-			for i = 1:length(robot.trail)-1
-				# step u -> v
-				u = robot.trail[i]
-				v = robot.trail[i+1]
-				# lay it!
-				# TODO: doesn't scaling here matter?
-				pheremone.τ_r[u, v] += pareto_soln.objs.r / ℓ
-				pheremone.τ_s[u, v] += pareto_soln.objs.s / ℓ
-			end
+            _lay_trail!(pheromone, robot, pareto_soln.objs, ℓ)
 		end
 	end
 	return nothing
+end
+
+function _lay_trail!(pheromone::Pheremone, objs::Objs, ℓ::Int)
+    # loop over robot trail
+    for i = 1:length(robot.trail)-1
+        # step u -> v
+        u = robot.trail[i]
+        v = robot.trail[i+1]
+        # lay it!
+        pheremone.τ_r[u, v] += objs.r / ℓ
+        pheremone.τ_s[u, v] += objs.s / ℓ
+    end
 end
 
 #"""
