@@ -133,18 +133,21 @@ compute area indicator, with reference point = the origin, characterizing the qu
 """
 function area_indicator(pareto_solns::Vector{Soln})
     @assert all([nondominated(p, pareto_solns) for p in pareto_solns])
+    
+    # normalize reward by # of robots
+    n_robots = length(pareto_solns[1].robots)
 
 	# important to only have the unique ones to avoid inflating the area.
     pareto_solns = unique_solns(pareto_solns, :objs)
-	 # sort by first objective, 𝔼[reward].
+	# sort by first objective, 𝔼[reward].
     sort!(pareto_solns, by=s -> s.objs.r)
 
 	# imagine r on the x-axis and s on the y-axis.
     # initialize area as area of first box
-    area = pareto_solns[1].objs.s * pareto_solns[1].objs.r
+    area = pareto_solns[1].objs.s * pareto_solns[1].objs.r / n_robots
     # i = index of the box.
     for i = 2:length(pareto_solns) # i = the box
-        Δr = pareto_solns[i].objs.r - pareto_solns[i-1].objs.r
+        Δr = (pareto_solns[i].objs.r - pareto_solns[i-1].objs.r) / n_robots
         area += pareto_solns[i].objs.s * Δr
         @assert Δr > 0
         @assert pareto_solns[i].objs.s < pareto_solns[i-1].objs.s

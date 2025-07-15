@@ -1,33 +1,35 @@
 ### A Pluto.jl notebook ###
-# v0.19.40
+# v0.20.11
 
 using Markdown
 using InteractiveUtils
 
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
-    quote
+    #! format: off
+    return quote
         local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
     end
+    #! format: on
 end
 
 # ╔═╡ d04e8854-3557-11ee-3f0a-2f68a1123873
 begin
-	import Pkg; Pkg.activate()
+	import Pkg; Pkg.activate("aco")
 	using Revise, Graphs, GraphMakie, MetaGraphs, CairoMakie, ColorSchemes, Distributions, NetworkLayout, Random, PlutoUI, StatsBase
 
 	import AlgebraOfGraphics: set_aog_theme!, firasans
 	set_aog_theme!(fonts=[firasans("Light"), firasans("Light")])
-	the_resolution = (500, 380)
+	the_size = (600, 500)
 	update_theme!(
 		fontsize=20, 
 		linewidth=2,
 		markersize=14,
 		titlefont=firasans("Light"),
-		# resolution=the_resolution
+		size=the_size
 	)
 
 	push!(LOAD_PATH, "src")
@@ -223,10 +225,10 @@ soln_id
 viz_soln(res.global_pareto_solns[soln_id], top, show_𝔼=true, layout=layout, robot_radius=robot_radius, elabels=true, only_first_elabel=true)
 
 # ╔═╡ aca53592-e8d5-4640-951a-7acca6241ea3
-ids_hl = [13, 61, 133, 178]
+ids_hl = [13, 61]#, 133, 178]
 
 # ╔═╡ 4769582f-6498-4f14-a965-ed109b7f97d1
-viz_Pareto_front(res.global_pareto_solns, resolution=(300, 300), ids_hl=ids_hl, savename="pareto_front", incl_legend=false)
+viz_Pareto_front(res.global_pareto_solns, size=(300, 300), ids_hl=ids_hl, savename="pareto_front", incl_legend=false)
 
 # ╔═╡ 60917dfc-8342-4bae-abec-d64eab350c15
 for soln_id in ids_hl
@@ -307,7 +309,7 @@ begin
 end
 
 # ╔═╡ c25acc19-8475-40fd-bef8-522e848a4ea6
-viz_setup(toy_top, radius=0.3, layout=toy_layout)
+viz_setup(toy_top, robot_radius=0.3, layout=toy_layout)
 
 # ╔═╡ 84f19f64-bc92-4d08-9d5a-14d5668c34cb
 md"find Pareto-optimal solutions"
@@ -323,7 +325,7 @@ toy_res = mo_aco(
 )
 
 # ╔═╡ 4907dfa8-c40a-41c1-873b-f241b7f6da99
-viz_progress(toy_res)
+viz_progress(toy_res, the_size=the_size)
 
 # ╔═╡ 2df0e4be-c832-4aa8-ba82-036d9262a564
 @bind toy_soln_id PlutoUI.Slider(1:length(toy_res.global_pareto_solns), show_value=true)
@@ -392,11 +394,14 @@ toy_solns_to_show = select_toy_solutions()
 # ╔═╡ bc10c308-ad48-4c05-9ea0-a601f2b260d5
 toy_solns_to_show[end].objs
 
+# ╔═╡ 196ee335-fa70-4971-a01a-edb7aedfb12c
+all_toy_solns
+
 # ╔═╡ 7b6a097f-8cac-4370-a09d-38f156edfbda
 begin
 	local fig = viz_Pareto_front(
 		all_toy_solns, 
-		resolution=(300, 300), 
+		size=(300, 300), 
 		upper_xlim=10, 
 		savename="toy_Pareto_front"
 	)
@@ -406,6 +411,12 @@ begin
 		[toy_solns_to_show[end].objs.r], [toy_solns_to_show[end].objs.s], color="black", marker=:x, markersize=3)
 	fig
 end
+
+# ╔═╡ d24782dc-aa11-4a92-ba0d-6a44eac378b6
+viz_Pareto_front(all_toy_solns)
+
+# ╔═╡ 51149485-5991-4f83-90ac-008db17cab4e
+typeof(all_toy_solns)
 
 # ╔═╡ 61efbac2-2c41-4adb-8fb3-5e94efc2367d
 md"visualize the robot trails."
@@ -495,7 +506,10 @@ viz_robot_trail(toy_top, [Robot(toy_top), Robot(toy_top), Robot([1, 3, 4, 2, 3, 
 # ╠═a8cebbb2-b9e5-4255-baf4-0c06dc96d623
 # ╠═8341da6a-0756-4b24-aa92-f6c4068cdd42
 # ╠═bc10c308-ad48-4c05-9ea0-a601f2b260d5
+# ╠═196ee335-fa70-4971-a01a-edb7aedfb12c
 # ╠═7b6a097f-8cac-4370-a09d-38f156edfbda
+# ╠═d24782dc-aa11-4a92-ba0d-6a44eac378b6
+# ╠═51149485-5991-4f83-90ac-008db17cab4e
 # ╟─61efbac2-2c41-4adb-8fb3-5e94efc2367d
 # ╠═67518659-c654-4fea-9878-a9585c77474a
 # ╠═25322609-8f3a-4fd6-bd9e-4010718af529

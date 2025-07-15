@@ -1,3 +1,5 @@
+the_size = (500, 400)
+
 """
     trail_to_digraph(robot, top)
 
@@ -20,8 +22,10 @@ end
 visualization of the Pareto set
 =#
 function _viz_objectives!(ax, solns::Vector{Soln}; label=nothing, markersize=14)
+    n_robots = length(solns[1].robots)
+
     scatter!(ax,
-        [soln.objs.r for soln in solns],
+        [soln.objs.r / n_robots for soln in solns],
         [soln.objs.s for soln in solns],
         label=label,
         markersize=markersize,
@@ -31,25 +35,28 @@ function _viz_objectives!(ax, solns::Vector{Soln}; label=nothing, markersize=14)
 end
 
 function _viz_area_indicator!(ax, _pareto_solns::Vector{Soln})
+    # normalize reward by number of robots
+    n_robots = length(_pareto_solns[1].robots)
+
     pareto_solns = sort(_pareto_solns, by=s -> s.objs.r)
     linecolor = "gray"
     shadecolor = ("yellow", 0.2)
     for i = 1:length(pareto_solns)-1
         # vertical line
         lines!(ax,
-            [pareto_solns[i].objs.r, pareto_solns[i].objs.r],
+            [pareto_solns[i].objs.r, pareto_solns[i].objs.r] / n_robots,
             [pareto_solns[i].objs.s, pareto_solns[i+1].objs.s],
             color=linecolor
         )
         # horizontal line
         lines!(ax,
-            [pareto_solns[i].objs.r, pareto_solns[i+1].objs.r],
+            [pareto_solns[i].objs.r, pareto_solns[i+1].objs.r] / n_robots,
             [pareto_solns[i+1].objs.s, pareto_solns[i+1].objs.s],
             color=linecolor
         )
         # shade
         fill_between!(ax,
-            [pareto_solns[i].objs.r, pareto_solns[i+1].objs.r],
+            [pareto_solns[i].objs.r, pareto_solns[i+1].objs.r] / n_robots,
             zeros(2),
             [pareto_solns[i+1].objs.s, pareto_solns[i+1].objs.s],
             color=shadecolor
@@ -57,20 +64,20 @@ function _viz_area_indicator!(ax, _pareto_solns::Vector{Soln})
     end
     # first horizontal line
     lines!(ax,
-        [0, pareto_solns[1].objs.r],
+        [0, pareto_solns[1].objs.r / n_robots],
         [pareto_solns[1].objs.s, pareto_solns[1].objs.s],
         color=linecolor
     )
     # first shade
     fill_between!(ax,
-        [0, pareto_solns[1].objs.r],
+        [0, pareto_solns[1].objs.r / n_robots],
         zeros(2),
         [pareto_solns[1].objs.s, pareto_solns[1].objs.s],
         color=shadecolor
     )
     # last vertical line
     lines!(ax,
-        [pareto_solns[end].objs.r, pareto_solns[end].objs.r],
+        [pareto_solns[end].objs.r, pareto_solns[end].objs.r] / n_robots,
         [pareto_solns[end].objs.s, 0.0],
         color=linecolor
     )
@@ -83,14 +90,16 @@ function viz_Pareto_front(
         solns::Vector{Soln}; 
         ids_hl::Vector{Int}=[],
         savename::Union{Nothing, String}=nothing,
-        resolution=the_resolution,
+        size=the_size,
         upper_xlim=nothing,
         incl_legend::Bool=true
     )
-    fig = Figure(resolution=resolution)
+    n_robots = length(solns[1].robots)
+
+    fig = Figure(size=size)
     ax = Axis(
         fig[1, 1],
-        xlabel="𝔼[team rewards]",
+        xlabel="𝔼[team rewards] / robot",
         ylabel="𝔼[# robots survive]"
     )
     xlims!(0, upper_xlim)
@@ -103,7 +112,10 @@ function viz_Pareto_front(
         axislegend(labelsize=12, framevisible=true, framecolor="lightgray")
     end
     if length(ids_hl) > 0
-        scatter!(ax, [s.objs.r for s in solns[ids_hl]], [s.objs.s for s in solns[ids_hl]], color=Cycled(3), strokewidth=2)
+        scatter!(
+            ax, [s.objs.r / n_robots for s in solns[ids_hl]], [s.objs.s for s in solns[ids_hl]],
+            color=Cycled(3), strokewidth=2
+        )
     end
     if ! isnothing(savename)
         save(savename * ".pdf", fig)
@@ -275,7 +287,7 @@ function viz_robot_trail(
     robots::Vector{Robot},
     robot_id::Int;
     layout::Union{Nothing, Vector{Point2{Float64}}}=nothing,
-    resolution::Tuple{Int, Int}=the_resolution,
+    size::Tuple{Int, Int}=the_size,
     pad::Float64=0.1,
     elabels::Bool=true,
     savename::Union{Nothing, String}=nothing,
@@ -288,7 +300,7 @@ function viz_robot_trail(
         layout = _g_layout(top, C=2.0)
     end
 
-    fig = Figure(resolution=resolution, backgroundcolor=:transparent)
+    fig = Figure(size=size, backgroundcolor=:transparent)
     ax = Axis(fig[1, 1], aspect=DataAspect())
     hidespines!(ax)
     hidedecorations!(ax)
@@ -353,7 +365,7 @@ function viz_soln(
         layout = _g_layout(top)
     end
     
-    fig = Figure(resolution=(300 * top.nb_robots, 400))
+    fig = Figure(size=(300 * top.nb_robots, 400))
     axs = [
         Axis(
             fig[1, r], 
@@ -528,11 +540,17 @@ end
 
 view area indicator vs iteration.
 """
-function viz_progress(res::MO_ACO_run; savename::String="")
-    fig = Figure(resolution=the_resolution)
+function viz_progress(res::MO_ACO_run; savename::String="", the_size::Tuple{Int, Int}=(500, 500))
+    viz_progress([res], savename=savename, the_size=the_size)
+end
+
+function viz_progress(ress::Vector{MO_ACO_run}; savename::String="", the_size::Tuple{Int, Int}=(500, 500))
+    fig = Figure(size=the_size)
     ax  = Axis(fig[1, 1], xlabel="iteration", ylabel="area indicator")
-    lines!(1:res.nb_iters, res.areas, linewidth=3)
-    xlims!(0, 1.02 * res.nb_iters)
+    for res in ress
+            lines!(1:res.nb_iters, res.areas, linewidth=3)
+    end
+    xlims!(0, 1.02 * ress[1].nb_iters)
     if savename != ""
         save(savename * ".pdf", fig)
     end
