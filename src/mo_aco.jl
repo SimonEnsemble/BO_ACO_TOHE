@@ -50,9 +50,10 @@ function mo_aco(
 
         #=
         compute non-dominated solutions.
-        keep redundant solutions b/c these trails still deserve pheremone.
+        keep redundant solutions b/c these trails still deserve pheremone if unique trails
         =#
         iter_pareto_solns = get_pareto_solns(solns, true) # keep redundant ones
+        iter_pareto_solns = unique_solns(iter_pareto_solns, :robot_trails)
 
         #=
         update global pool of non-dominated solutions
@@ -63,6 +64,7 @@ function mo_aco(
             vcat(global_pareto_solns, iter_pareto_solns), true
         )
         if verbose
+            println("\t# iter-best solutions: ", length(iter_pareto_solns))
             println("\t# global sol'ns b4 unique!: ", length(global_pareto_solns))
         end
         global_pareto_solns = unique_solns(global_pareto_solns, :robot_trails)

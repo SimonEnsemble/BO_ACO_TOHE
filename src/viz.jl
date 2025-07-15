@@ -519,8 +519,10 @@ function viz_pheremone(
     hist!(axs_hist[2], τ_s, color="red")
     axs_hist[1].xlabel = rich("τ", subscript("R"))
     axs_hist[2].xlabel = rich("τ", subscript("S"))
-    xlims!(axs_hist[1], 0.0, nothing)
-    xlims!(axs_hist[2], 0.0, nothing)
+    for ax_hist in axs_hist
+        xlims!(ax_hist, 0.0, nothing)
+        ylims!(ax_hist, 0.0, nothing)
+    end
     rowgap!(fig.layout, 1, Relative(-0.2))
     if ! isnothing(savename)
         save(savename * ".pdf", fig)

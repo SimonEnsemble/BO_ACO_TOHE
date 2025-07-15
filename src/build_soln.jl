@@ -63,6 +63,7 @@ function extend_trail!(
         end
         if use_pheremone
             transition_probs[i] *= pheremone.τ_s[u, v] ^ ant.λ * pheremone.τ_r[u, v] ^ (1 - ant.λ)
+            # note: scaling here irrelevant.
         end
     end
 	# sample a new node

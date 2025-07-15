@@ -33,9 +33,11 @@ end
 # initialize
 function Pheremone(top::TOP)
     nb_nodes = nv(top.g)
+    τ₀_r = sum(get_r(top, v) for v = 1:nv(top.g))
+    τ₀_s = top.nb_robots
     return Pheremone(
-        1.0 * ones(nb_nodes, nb_nodes),
-        1.0 * ones(nb_nodes, nb_nodes)
+        τ₀_r * ones(nb_nodes, nb_nodes),
+        τ₀_s * ones(nb_nodes, nb_nodes)
     )
 end
 

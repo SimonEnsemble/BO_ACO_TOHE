@@ -57,7 +57,7 @@ RTOHE = robot team orienteering in a hazardous environment
 
 # ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
 if problem_instance == "power_plant"
-	top = darpa_urban_environment(3)
+	top = darpa_urban_environment(2)
 elseif problem_instance == "art_museum"
 	top = art_museum(3)
 elseif problem_instance == "starish"
@@ -125,8 +125,23 @@ md"
 run checks? $(@bind run_checks CheckBox(default=true))
 "
 
+# ╔═╡ 8a6c6d9a-e15a-4f22-9d86-00e591b15693
+md"set seeds same to give each the same initial condition for fair comparison."
+
 # ╔═╡ 17117efa-c63e-4193-a99b-c7423367fc06
 my_seeds = [rand(1:typemax(Int)) for r = 1:n_runs]
+
+# ╔═╡ 70f8f70f-83ad-4d2b-a40f-7e616462a9c1
+mo_aco(
+	top, 
+	verbose=true, 
+	nb_ants=100, 
+	nb_iters=5,
+	use_heuristic=true,
+	use_pheremone=true,
+	run_checks=run_checks,
+	my_seed=my_seeds[1]
+)
 
 # ╔═╡ a8e27a0e-89da-4206-a7e2-94f796cac8b4
 @time ress = [
@@ -196,6 +211,9 @@ length(ress[run_id].global_pareto_solns[1].robots)
 
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 viz_pheremone(ress[run_id].pheremone, top, savename="paper/pheremone", layout=layout)
+
+# ╔═╡ 3d7c6d35-f730-4dc8-a3be-b415e3276013
+sort(rand(23), rev=true)
 
 # ╔═╡ 17c48342-f684-4149-b1ea-b626896a4691
 viz_soln(
@@ -293,6 +311,8 @@ end
 # ╠═79dd4f91-8a4a-4be1-8013-c9b6dfa56a75
 # ╟─9d44f37d-8c05-450a-a448-7be50387499c
 # ╟─b9a9808e-8631-45e1-9e31-516565c804a3
+# ╠═70f8f70f-83ad-4d2b-a40f-7e616462a9c1
+# ╟─8a6c6d9a-e15a-4f22-9d86-00e591b15693
 # ╠═17117efa-c63e-4193-a99b-c7423367fc06
 # ╠═a8e27a0e-89da-4206-a7e2-94f796cac8b4
 # ╟─3a1caac3-dd55-42fb-91b2-2f9c3001c22c
@@ -309,6 +329,7 @@ end
 # ╠═751c4203-88b1-40dd-9a96-926cd614aef8
 # ╠═282b9a15-f2d3-4dd8-8944-758b5d0d3bb7
 # ╠═197ea13f-b460-4457-a2ad-ae8d63c5e5ea
+# ╠═3d7c6d35-f730-4dc8-a3be-b415e3276013
 # ╠═17c48342-f684-4149-b1ea-b626896a4691
 # ╠═67c9334e-1155-4ef3-8d75-030dcfc1e570
 # ╠═3b94a9a8-93c8-4e46-ae23-63374d368b16
