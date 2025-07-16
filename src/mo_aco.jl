@@ -1,7 +1,7 @@
 struct MO_ACO_run
     global_pareto_solns::Vector{Soln}
     areas::Vector{Float64}
-    pheremone::Pheremone
+    pheremone::Union{Pheremone, Vector{Pheremone}}
     nb_iters::Int
 end
 
@@ -93,10 +93,12 @@ function mo_aco(
             println("iter $i:")
             println("\t$(length(iter_pareto_solns)) nd-solns")
             println("\tglobally $(length(global_pareto_solns)) nd-solns")
-            println("max τs = ", maximum(pheremone.τ_s))
-            println("min τs = ", minimum(pheremone.τ_s))
-            println("max τr = ", maximum(pheremone.τ_r))
-            println("min τr = ", minimum(pheremone.τ_r))
+            if ! one_pheromone_trail_per_robot
+                println("max τs = ", maximum(pheremone.τ_s))
+                println("min τs = ", minimum(pheremone.τ_s))
+                println("max τr = ", maximum(pheremone.τ_r))
+                println("min τr = ", minimum(pheremone.τ_r))
+            end
         end
 
         #=

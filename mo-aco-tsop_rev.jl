@@ -132,7 +132,7 @@ md"set seeds same to give each the same initial condition for fair comparison."
 my_seeds = [rand(1:typemax(Int)) for r = 1:n_runs]
 
 # ╔═╡ 70f8f70f-83ad-4d2b-a40f-7e616462a9c1
-mo_aco(
+test_run = mo_aco(
 	top, 
 	verbose=true, 
 	nb_ants=100, 
@@ -140,7 +140,8 @@ mo_aco(
 	use_heuristic=true,
 	use_pheremone=true,
 	run_checks=run_checks,
-	my_seed=my_seeds[1]
+	my_seed=my_seeds[1], 
+	one_pheromone_trail_per_robot=true
 )
 
 # ╔═╡ a8e27a0e-89da-4206-a7e2-94f796cac8b4
@@ -220,6 +221,34 @@ viz_soln(
 	ress[run_id].global_pareto_solns[soln_id], top, savename="example", robot_radius=robot_radius, layout=layout
 )
 
+# ╔═╡ 514851fe-da59-4885-9dc8-0c9fb0c02223
+md"### baselines"
+
+# ╔═╡ 2442f18e-9a4c-4a0f-bdf7-6fe1d1517a6b
+ress_multiple_trails = [
+	mo_aco(
+		top, 
+		verbose=false, 
+		nb_ants=100, 
+		nb_iters=nb_iters,
+		use_heuristic=true,
+		use_pheremone=true,
+		run_checks=run_checks,
+		my_seed=my_seeds[r],
+		one_pheromone_trail_per_robot=true
+	)
+	for r = 1:n_runs
+]
+
+# ╔═╡ 42590ba8-bca3-4309-a9cf-dad307124463
+begin
+	local k = 3 # robot ID
+	viz_pheremone(
+		ress_multiple_trails[run_id].pheremone[k], top, 
+		savename="paper/pheremone_$k", layout=layout
+	)
+end
+
 # ╔═╡ 67c9334e-1155-4ef3-8d75-030dcfc1e570
 ress_heuristic_only = [
 	mo_aco(
@@ -280,6 +309,11 @@ begin
 			label="ACO", linewidth=3, color=(wongcolors()[1], 0.5)
 		)
 		lines!(
+			1:ress_multiple_trails[r].nb_iters, ress_multiple_trails[r].areas, 
+			label="ACO (one trail / robot)", 
+			linewidth=3, color=(wongcolors()[5], 0.5)
+		)
+		lines!(
 			1:ress_pheremone_only[r].nb_iters, ress_pheremone_only[r].areas, 
 			label="heuristic ablation", linewidth=3, color=(wongcolors()[2], 0.5)
 		)
@@ -331,6 +365,9 @@ end
 # ╠═197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 # ╠═3d7c6d35-f730-4dc8-a3be-b415e3276013
 # ╠═17c48342-f684-4149-b1ea-b626896a4691
+# ╟─514851fe-da59-4885-9dc8-0c9fb0c02223
+# ╠═2442f18e-9a4c-4a0f-bdf7-6fe1d1517a6b
+# ╠═42590ba8-bca3-4309-a9cf-dad307124463
 # ╠═67c9334e-1155-4ef3-8d75-030dcfc1e570
 # ╠═3b94a9a8-93c8-4e46-ae23-63374d368b16
 # ╠═2400b72e-2d1a-4c2e-91c7-14c8ac92cc11

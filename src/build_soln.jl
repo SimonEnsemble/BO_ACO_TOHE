@@ -83,7 +83,7 @@ one robot at-a-time (they are independent anyway).
 """
 function construct_soln(
         ant::Ant, 
-        pheremone::Pheremone, 
+        pheremone::Union{Pheremone, Vector{Pheremone}},
         top::TOP;
         use_heuristic::Bool=true,
         use_pheremone::Bool=true
@@ -94,8 +94,10 @@ function construct_soln(
 	# ant builds a solution
     for (k, robot) in enumerate(robots)
 		while ! robot.done
-            extend_trail!(robot, ant, pheremone, robots[1:k-1], top, 
-                          use_pheremone=use_pheremone, use_heuristic=use_heuristic)
+            extend_trail!(
+                robot, ant, isa(pheremone, Pheremone) ? pheremone : pheremone[k], robots[1:k-1], top, 
+                use_pheremone=use_pheremone, use_heuristic=use_heuristic
+            )
 		end
 	end
 
