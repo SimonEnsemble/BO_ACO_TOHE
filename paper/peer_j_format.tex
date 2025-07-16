@@ -79,19 +79,33 @@ Herein, we consider bi-objective trail-planning for a mobile team of robots orie
 
 \section{Introduction}
 \subsection{Applications of a team of mobile robots}
-Mobile [aerial \cite{leutenegger2016flying}, ground \cite{chung2016wheeled}, or aquatic \cite{choi2016underwater}] robots equipped with sensors, actuators, and/or cargo have applications in agriculture (e.g.\ planting and harvesting crops, spraying pesticide, monitoring crop health, destroying weeds) \cite{santos2020path,bawden2017robot,mcallister2018multi}, commerce (e.g.\ order fulfillment in warehouses) \cite{wurman2008coordinating}, the delivery of goods \cite{coelho2014thirty}, search-and-rescue \cite{queralta2020collaborative,rouvcek2020darpa}, chemical, biological, radiological, or nuclear incident response (e.g.\ safely localizing the source(s) and mapping the distribution of the hazard) \cite{murphy2012projected,hutchinson2019unmanned}, environmental monitoring \cite{dunbabin2012robots,hernandez2012mobile,yuan2020maritime}, safety monitoring in industrial chemical plants \cite{soldan2014towards,francis2022gas}, forest fire monitoring and fighting \cite{merino2012unmanned}, target tracking \cite{robin2016multi}, and military surveillance and reconnaissance. 
+Mobile [aerial \cite{leutenegger2016flying}, ground \cite{chung2016wheeled}, or aquatic \cite{choi2016underwater}] robots equipped with sensors, actuators, and/or cargo have applications in agriculture 
+% (e.g.\ planting and harvesting crops, spraying pesticide, monitoring crop health, destroying weeds) 
+\cite{santos2020path,bawden2017robot,mcallister2018multi}, 
+commerce % (e.g.\ order fulfillment in warehouses)
+ \cite{wurman2008coordinating}, 
+the delivery of goods \cite{coelho2014thirty}, 
+search-and-rescue \cite{queralta2020collaborative,rouvcek2020darpa}, 
+chemical, biological, radiological, or nuclear incident response %(e.g.\ safely localizing the source(s) and mapping the distribution of the hazard)
+ \cite{murphy2012projected,hutchinson2019unmanned}, 
+ environmental monitoring \cite{dunbabin2012robots,hernandez2012mobile,yuan2020maritime}, 
+ safety monitoring in industrial chemical plants \cite{soldan2014towards,francis2022gas}, 
+ forest fire monitoring and fighting \cite{merino2012unmanned}, 
+ wildlife conservation \cite{kamminga2018poaching},
+ patrolling \cite{basilico2022recent},
+ target tracking \cite{robin2016multi}, and 
+ military surveillance and reconnaissance. 
 
 Often, we wish for a team of mobile robots to coordinate their paths in an environment to cooperatively achieve a shared, team-level objective \cite{parker1995design,parker2007distributed}.
 Compared to a single robot, a team can increase spatial coverage, decrease the time to achieve the objectives, and make achievement of the objectives robust to the failure of robots \cite{schranz2020swarm,brambilla2013swarm}.
 
-
-For example, consider the (NP-hard) team orienteering \cite{golden1987orienteering} problem (TOP) \cite{chao1996team,gunawan2016orienteering,vansteenwegen2011orienteering}. 
-The environment, in which a team of robots are mobile, is modeled as a graph (nodes: locations; edges: spatial connections between locations). Each node offers a reward to the team if visited by a robot.
-The TOP is to plan the paths of the robots between a source and destination node, subject to a per-robot travel budget, to accumulate the most rewards from the graph as a team. The TOP can be formulated as an integer program. Loosely, the orienteering problem combines the classic knapsack problem (selecting the nodes from which to collect rewards, under the travel budget) and traveling salesman problem (finding the shortest path that visits these nodes) \cite{vansteenwegen2011orienteering}.
+In the (NP-hard) team orienteering \cite{golden1987orienteering} problem (TOP) \cite{chao1996team,gunawan2016orienteering,vansteenwegen2011orienteering}, a team of robots are mobile in an environment modeled as a graph (nodes: locations; edges: spatial connections between locations), and each node gives a reward to the team if visited by a robot.
+The TOP is to plan the paths of the robots, from a source to destination node, to gather the most rewards as a team under a travel budget for each robot. 
+Loosely, the TOP problem, which can be formulated as an integer program, combines aspects of the classic knapsack problem (selecting the nodes from which to collect rewards, under the travel budget) and the traveling salesman problem (finding the shortest path that visits these nodes) \cite{vansteenwegen2011orienteering}.
 
 \subsection{Teams of mobile robots orienteering in hazardous environments} 
 In some applications, robots move in a hazardous environment \cite{trevelyan2016robotics} and incur risks of failure, destruction, disablement, and/or capture. 
-The hazards could originate from dangerous terrain, rough seas, strong winds, heat, radiation, corrosive chemicals, or mines---or an adversary with the capability to attack, disable, destroy, or capture robots \cite{agmon2017robotic}. 
+The hazards could originate from dangerous terrain, rough seas, strong winds, heat, radiation, corrosive chemicals, or mines---or, an adversary with the capability to attack, disable, destroy, or capture robots \cite{agmon2017robotic}. 
 
 Robots traversing a hazardous environment should plan and coordinate their trails in consideration of risks of failure.
 First, robots should take the safest trails to visit their destination(s). 
@@ -99,7 +113,7 @@ Second, the robots should coordinate their trails to make achievement of the tea
 A \emph{resilient} team of robots \cite{prorok2021beyond}
 (i) anticipates failures and makes risk-aware plans that endow the team with \emph{robustness}---the ability to withstand failures with minimal concession of the objective,
 and/or
-(ii) adapts their trail plans during the mission, in response to realized robot failures, to recoup the anticipated loss in the objective. 
+(ii) changes their trail plans during the mission, adapting in response to realized robot failures, to recoup the otherwise anticipated loss in the objective. 
 Third, the trail plans must balance the rewards gained from visiting different locations against the risks incurred by the robots to reach those locations.
 
 Models and algorithms have been developed for path-planning for robot teams orienteering in hazardous environments abstracted as graphs \cite{zhou2021multi}. 
@@ -109,9 +123,12 @@ The objective in the TSOP is to plan the paths of the robots (from a source to d
 %In the extended Matroid TSO problem \cite{jorgensen2017matroid,jorgensen2024matroid}, we seek to maximize the weighted
 %expected number of nodes visited by one or more robots.
 Relatedly, the Foraging Route with the Maximum Expected Utility problem \cite{di2022foraging} is to plan the foraging route of a robot collecting rewards in a hazardous environment, but the rewards are lost if the robot is destroyed before returning to the source node to deposit the goods it collected.
-In the Robust Multiple-path Orienteering Problem (RMOP) \cite{shi2023robust}, similarly, each node gives a reward to the team only if a robot visits it \emph{and} survives the mission; the paths of the $K$ robots are planned to maximize the team reward under the worst-case attacks of $\alpha<K$ of the robots by an adversary. 
+In the Robust Multiple-path Orienteering Problem (RMOP) \cite{shi2023robust}, similarly, each node gives a reward to the team only if a robot visits it \emph{and} survives the mission to deposit the reward, and the paths of the $K$ robots are planned to maximize the team reward under the worst-case attacks of $\alpha<K$ of the robots by an adversary. 
 The offline version of RMOP constitutes a two-stage, sequential, one-step game with perfect information: (1) the robot team chooses a set of paths then (2) the adversary, knowing these paths, chooses the subset of robots to attack and destroy. 
 The optimal path plans for the robots must trade (i) redundancy in the nodes visited, to give robustness against attacks, and (ii) coverage of many nodes, to collect many rewards.
+In the hazardous orienteering problem \cite{santini2023hazardous,montemanni2025exact}, robots incur a risk of destruction when visiting a node, and the reward is received only if the robot returns safely to the depot node.
+The time-bomb knapsack problem aims to maximize the expected profit of the items in the knapsack under a knapsack capacity when each item has a probability of exploding and causing the profit to be lost \cite{monaci2022exact}.
+Notably, Subramanian (1997) was among the first to model stochastic hazards along a path in a graph \cite{sherali1997low}.
 Other work involving robot path-planning in hazardous environments includes 
 maximizing coverage of an area containing threats to robots \cite{korngut2023multi,yehoshua2016robotic}, 
 handling adversarial attacks on the sensors of the robots \cite{liu2021distributed,zhou2022distributed,mayya2022adaptive,zhou2018resilient}, 
