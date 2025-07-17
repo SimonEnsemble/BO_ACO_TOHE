@@ -37,7 +37,7 @@ function mo_aco(
     # track growth of area indicator
     reward_sum = sum([get_r(top.g, v) for v = 1:nv(top.g)]) # for scaling
     areas = zeros(nb_iters)
-    for i = 1:nb_iters # iterations
+    @progress for i = 1:nb_iters # iterations
         #=
         🐜s construct solutions
         =#

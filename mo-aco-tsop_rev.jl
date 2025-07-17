@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.13
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -52,7 +52,7 @@ RTOHE = robot team orienteering in a hazardous environment
 
 # ╔═╡ 7e4e838c-0e42-4925-9ddf-4c3601466b64
 @bind problem_instance Select(
-	["power_plant", "art_museum", "starish"], default="art_museum"
+	["power_plant", "art_museum", "random", "multi-component"], default="art_museum"
 )
 
 # ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
@@ -60,8 +60,12 @@ if problem_instance == "power_plant"
 	top = darpa_urban_environment(2)
 elseif problem_instance == "art_museum"
 	top = art_museum(3)
-elseif problem_instance == "starish"
-	top = toy_starish_top(5)
+elseif problem_instance == "random"
+	top = generate_random_top(30, 5)
+elseif problem_instance == "multi-component"
+	top = generate_multi_component_top(
+		12, 3, 2, p=0.4, rewards=[0.2, 0.4, 0.9], ωs=[0.9, 0.75, 0.6]
+	)
 end
 
 # ╔═╡ 21ef0739-9c36-4825-b965-b99cd984b9d2
@@ -242,7 +246,7 @@ ress_multiple_trails = [
 
 # ╔═╡ 42590ba8-bca3-4309-a9cf-dad307124463
 begin
-	local k = 3 # robot ID
+	local k = 1 # robot ID
 	viz_pheremone(
 		ress_multiple_trails[run_id].pheremone[k], top, 
 		savename="paper/pheremone_$k", layout=layout
@@ -296,7 +300,7 @@ ress_random = [
 
 # ╔═╡ 0808a99f-1f55-4b0a-81e9-3f511c9f55d5
 begin
-	local fig = Figure(resolution=(375, 300))
+	local fig = Figure(size=(700, 400))
 	local ax = Axis(
 		fig[1, 1], 
 		xlabel="# iterations", 
@@ -326,7 +330,9 @@ begin
 			label="random", linewidth=3, color=(wongcolors()[4], 0.5)
 		)
 	end
-	axislegend(position=:rb, labelsize=13, unique=true)
+	fig[1, 2] = Legend(
+		fig, ax, "search algorithm", framevisible = false, unique=true
+	)
 	save("paper/ACO_comparison.pdf", fig)
 	fig
 end
@@ -335,7 +341,7 @@ end
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
 # ╠═e136cdee-f7c1-4add-9024-70351646bf24
 # ╟─613ad2a0-abb7-47f5-b477-82351f54894a
-# ╟─7e4e838c-0e42-4925-9ddf-4c3601466b64
+# ╠═7e4e838c-0e42-4925-9ddf-4c3601466b64
 # ╠═bdb5d550-13f6-4d8d-9a74-14b889efe7a2
 # ╠═21ef0739-9c36-4825-b965-b99cd984b9d2
 # ╠═efeeb427-9061-4c77-b1c0-50b26abdb6a6

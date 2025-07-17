@@ -124,7 +124,7 @@ end
 #=
 viz of the TOP setup and soln
 =#
-robot_colors = ColorSchemes.Accent_4
+robot_colors = ColorSchemes.Accent_8
 
 """
     viz_setup(TOP; nlabels=true, robots=nothing, show_robots=true, robot_radius=1.0, C=2.0)
@@ -161,7 +161,7 @@ function viz_setup(
     # assign edge color based on probability of survival
     survival_color_scheme = reverse(ColorSchemes.inferno)
     edge_surivival_probs = [get_ω(top, ed.src, ed.dst) for ed in edges(g)]
-    crangescale_s = (minimum(edge_surivival_probs) - 0.05, 1.0)
+    crangescale_s = (maximum([0.0, minimum(edge_surivival_probs) - 0.05]), 1.0)
     if depict_ω
         edge_color = [get(survival_color_scheme, p, crangescale_s) for p in edge_surivival_probs]
     else

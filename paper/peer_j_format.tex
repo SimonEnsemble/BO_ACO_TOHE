@@ -95,13 +95,17 @@ chemical, biological, radiological, or nuclear incident response %(e.g.\ safely 
  patrolling \cite{basilico2022recent},
  target tracking \cite{robin2016multi}, and 
  military surveillance and reconnaissance. 
+ 
+Path-planning for mobile robots in static, dynamic, or unknown environments under various objectives (e.g., least-cost paths) and constraints (e.g., collision avoidance) \cite{karur2021survey,sanchez2021path,yang2023path,costa2019survey} is important for task performance, efficiency, safety, and autonomy.
 
 Often, we wish for a team of mobile robots to coordinate their paths in an environment to cooperatively achieve a shared, team-level objective \cite{parker1995design,parker2007distributed}.
 Compared to a single robot, a team can increase spatial coverage, decrease the time to achieve the objectives, and make achievement of the objectives robust to the failure of robots \cite{schranz2020swarm,brambilla2013swarm}.
 
-In the (NP-hard) team orienteering \cite{golden1987orienteering} problem (TOP) \cite{chao1996team,gunawan2016orienteering,vansteenwegen2011orienteering}, a team of robots are mobile in an environment modeled as a graph (nodes: locations; edges: spatial connections between locations), and each node gives a reward to the team if visited by a robot.
+For example, in the (NP-hard) team orienteering \cite{golden1987orienteering} problem (TOP) \cite{chao1996team,gunawan2016orienteering,vansteenwegen2011orienteering}, a team of robots are mobile in an environment modeled as a graph (nodes: locations; edges: spatial connections between locations), and each node gives a reward to the team if visited by a robot.
 The TOP is to plan the paths of the robots, from a source to destination node, to gather the most rewards as a team under a travel budget for each robot. 
 Loosely, the TOP problem, which can be formulated as an integer program, combines aspects of the classic knapsack problem (selecting the nodes from which to collect rewards, under the travel budget) and the traveling salesman problem (finding the shortest path that visits these nodes) \cite{vansteenwegen2011orienteering}.
+
+
 
 \subsection{Teams of mobile robots orienteering in hazardous environments} 
 In some applications, robots move in a hazardous environment \cite{trevelyan2016robotics} and incur risks of failure, destruction, disablement, and/or capture. 
