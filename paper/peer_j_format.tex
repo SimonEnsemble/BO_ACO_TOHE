@@ -96,7 +96,7 @@ chemical, biological, radiological, or nuclear incident response %(e.g.\ safely 
  target tracking \cite{robin2016multi}, and 
  military surveillance and reconnaissance. 
  
-Path-planning for mobile robots in static, dynamic, or unknown environments under various objectives (e.g., least-cost paths) and constraints (e.g., collision avoidance) \cite{karur2021survey,sanchez2021path,yang2023path,costa2019survey} is important for task performance, efficiency, safety, and autonomy.
+Path-planning for mobile robots in static, dynamic, or unknown environments under various objectives (e.g., take least-cost paths) and constraints (e.g., collision avoidance) \cite{karur2021survey,sanchez2021path,yang2023path,costa2019survey} is important for good performance on tasks, efficiency, safety, and autonomy.
 
 Often, we wish for a team of mobile robots to coordinate their paths in an environment to cooperatively achieve a shared, team-level objective \cite{parker1995design,parker2007distributed}.
 Compared to a single robot, a team can increase spatial coverage, decrease the time to achieve the objectives, and make achievement of the objectives robust to the failure of robots \cite{schranz2020swarm,brambilla2013swarm}.
@@ -145,30 +145,31 @@ multi-robot patrolling under adversarial attacks \cite{huang2019survey}.
 Herein, our contribution is:
 (1) framing and intuiting a bi-objective variant of the offline TSOP \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, the bi-objective team orienteering in hazardous environments (BOTOHE) problem, then 
 (2) specifying a bi-objective ant colony optimization algorithm \cite{iredi2001bi}, guided by heuristics, to search for the Pareto-optimal set of robot-team trail plans, then
-(3) finally, solving and analyzing an example BOTOHE problem instance.
+(3) finally, solving and analyzing several examples of BOTOHE problem instances for insights.
 
 In the BOTOHE problem, 
 %Then, we use a bi-objective ant colony optimization algorithm, guided by heuristics, to search for the Pareto-optimal robot-team trail plans.
 %For illustration, we solve a BOTOHE instance for an information-gathering mission in an art museum. % nuclear power plant in a Defense Advanced Research Projects Agency (DARPA) robots challenge.
 % \paragraph{The bi-objective team orienteering in hazardous environments problem (BOTOHE).} 
 a team of robots are mobile in a hazardous environment, modeled as a directed graph whose arcs present known probabilities of destruction to robots traversing them.
-Each node of the graph offers a reward to the team if visited by a robot.
+Each node of the graph offers a reward to the team if a robot visits it.
 The BOTOHE problem is to plan the closed trails of the robots to maximize two team-level objectives: the expected
 (1) rewards accumulated by the team via visiting nodes and
 (2) number of robots that survive the mission. 
-(We focus on the offline setting, owing to the lack of communication with/between robots after the mission executes.)
+(We focus on the offline setting, corresponding with a lack of communication with/between robots after the mission executes.)
 See Fig.~\ref{fig:overview}.
 
 Three interesting features of the BOTOHE are: 
-(1) for the survival objective, robots risk-aversely a) avoid visiting dangerous subgraphs despite rewards offered and b) take the safest closed trails to visit the nodes assigned to them;
-(2) for the reward objective, the robots daringly a) visit dangerous subgraphs to attempt collection of the rewards offered, b) visit the lower-risk and higher-reward subgraphs earlier in the mission, and c) build node-visit redundancy into their trail plans to make the team-reward robust to the loss of robots during the mission; and
+(1) for the survival objective, robots a) risk-aversely avoid visiting dangerous subgraphs despite rewards offered by nodes therein and b) take the safest closed trails to visit the nodes assigned to them;
+(2) for the reward objective, the robots a) daringly visit dangerous subgraphs to attempt collection of the rewards offered by nodes therein, b) visit the lower-risk and higher-reward subgraphs earlier in the mission, and c) build node-visit redundancy into their trail plans (i.e., multiple robots visit the same node) to make the team-reward robust to the loss of robots during the mission; and
 (3) comparing (1a) and (2a), the two objectives are inherently conflicting, as the robots must risk their survival while taking their trails to visit nodes and collect rewards.%\footnote{Two extremes: (1) to maximize survival, the robots never leave the base node no matter the rewards to be gained and (2) to maximize reward, each robot traverses the entire graph no matter the risks involved.}.
 
-To handle the conflict between the two objectives in the BOTOHE, we search for the Pareto-optimal set \cite{pardalos2017non,branke2008multiobjective} of robot-team trail plans. By definition, a Pareto-optimal trail plan cannot be altered to give higher expected rewards without lowering the expected number of robots that survive---and vice versa. 
+To handle the conflict between the reward and survival objectives in the BOTOHE, we search for the Pareto-optimal set \cite{pardalos2017non,branke2008multiobjective} of robot-team trail plans. By definition, a Pareto-optimal trail plan cannot be altered to give a higher expected reward without lowering the expected number of robots that survive---and vice versa. 
 Fig.~\ref{fig:pareto_optimal} illustrates.
 We then can present the Pareto-optimal set to a human decision-maker to select the team trail plan that strikes some tradeoff between the two objectives, based on their value of rewards vs. robot survival. 
 
-We specify and implement a bi-objective ant colony optimization algorithm \cite{iredi2001bi}, guided by heuristics, to search for the Pareto-optimal set of robot-team trail plans.
+To search for the Pareto-optimal set of robot-team trail plans in the BOTOHE, we specify and implement a bi-objective ant colony optimization (ACO) algorithm \cite{iredi2001bi}, guided by heuristics.
+We adopt ACO \cite{dorigo2006ant,bonabeau1999swarm,blum2005ant} because it is naturally-suited for searching for trail sets on graphs, 
 For illustration, we solve and analyze a BOTOHE problem instance for information-gathering in an art museum.
 Through ablation studies, we quantify the contribution of the greedy heuristics and pheromone to the search efficiency.
 
