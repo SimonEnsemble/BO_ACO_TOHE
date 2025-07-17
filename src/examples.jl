@@ -374,13 +374,19 @@ end
 function generate_random_top(
 	nb_nodes::Int,
 	nb_robots::Int;
-	survival_model=:random,
-	p=0.3
+	survival_model::Symbol=:random,
+	p::Float64=0.3
 )
 	@assert survival_model in [:random, :binary]
 
 	# generate structure of the graph
 	g_er = erdos_renyi(nb_nodes, p, is_directed=false)
+    if ! is_connected(g_er)
+        @warn "not connected, trying again. consider increasing p"
+        return generate_random_top(
+            nb_nodes, nb_robots, survival_model=survival_model, p=p
+        )
+    end
 	g = MetaDiGraph(nb_nodes)
 
 	for ed in edges(g_er)
@@ -397,18 +403,9 @@ function generate_random_top(
 
 	# assign rewards
 	for v in vertices(g)
-		set_prop!(g, v, :r, 0.1 + rand()) # reward too small, heuristic won't take it there.
+		set_prop!(g, v, :r, 0.1 + rand())
 	end
 
-	# compute max one-hop 𝔼[reward]
-    one_hop_𝔼_r = zeros(nv(g))
-    for v = 1:nv(g)
-        us = neighbors(g_er, v)
-        one_hop_𝔼_r[v] = maximum(get_prop(g, u, v, :ω) * get_prop(g, v, :r) for u in us)
-    end
-
-	# for base node
-	# set_prop!(g, 1, :r, 0.001)
 	return TOP(
                nv(g),
                g,
@@ -516,4 +513,111 @@ function toy_starish_top(nb_nodes::Int; seed::Int=1337)
 	end
 
 	return TOP(nv(g), g, 1)
+end
+
+# join a vector graphs.
+function manual_disjoint_union(gs)
+    ns = [nv(g) for g in gs]
+    g_tot = SimpleGraph(sum(ns))
+
+    # Add edges from g1 (unchanged)
+	for (i, g) in enumerate(gs)
+	    for e in edges(g)
+			shift = (i == 1) ? 0 : sum(ns[1:i-1])
+	        add_edge!(
+				g_tot,
+				src(e) + shift,
+				dst(e) + shift
+			)
+	    end
+	end
+
+    return g_tot
+end
+
+# easy way to make a graph connected.
+function remove_isolated_nodes(g)
+    non_isolated = [v for v in vertices(g) if degree(g, v) > 0]
+    return induced_subgraph(g, non_isolated)[1]  # Returns (new_graph, vertex_map)
+end
+
+function generate_multi_component_top(
+    nb_nodes_per_component::Int,
+    nb_interconnections::Int,
+    nb_robots::Int;
+	rewards::Vector{Float64}=[],
+	ωs::Vector{Float64}=[],
+    p::Float64=0.3
+)
+    # generate each component
+    g_components = [
+        erdos_renyi(nb_nodes_per_component, p, is_directed=false)
+        for c = 1:nb_robots
+    ]
+
+	# assign reward and ω
+	σ_r = 0.1
+	σ_ω = 0.1
+	ω_interconnect = rand()
+
+	g = MetaDiGraph(nb_nodes_per_component * nb_robots + 1)
+	for c = 1:nb_robots
+		# this component
+		g_component = g_components[c]
+
+		# add edges
+		for ed in edges(g_component)
+			i = 1 + ed.src + (c-1) * nb_nodes_per_component
+			j = 1 + ed.dst + (c-1) * nb_nodes_per_component
+
+			add_edge!(g, i, j)
+			add_edge!(g, j, i)
+
+			ω = rand(Truncated(Normal(ωs[c], σ_ω), 0.0, 1.0))
+
+			set_prop!(g, i, j, :ω, ω)
+			set_prop!(g, j, i, :ω, ω)
+		end
+	end
+
+	for c = 1:nb_robots
+		for v = 1:nb_nodes_per_component
+			i = 1 + v + (c-1) * nb_nodes_per_component
+			r = rand(Truncated(Normal(rewards[c], σ_r), 0.0, Inf))
+			set_prop!(g, i, :r, r)
+		end
+	end
+	set_prop!(g, 1, :r, 0.0)
+
+	# add interconnects between components
+    for c₁ = 1:nb_robots
+        for c₂ = c₁+1:nb_robots
+            for k = 1:nb_interconnections
+				i = 1 + k + (c₁-1) * nb_nodes_per_component
+				j = 1 + k + (c₂-1) * nb_nodes_per_component
+
+				ω = rand(Truncated(Normal(ω_interconnect, σ_ω), 0.0, 1.0))
+
+                add_edge!(g, i, j)
+				add_edge!(g, j, i)
+
+				set_prop!(g, i, j, :ω, ω)
+				set_prop!(g, j, i, :ω, ω)
+            end
+        end
+    end
+
+	# depot node
+	for c = 1:nb_robots
+		i = 1 + rand(1:nb_nodes_per_component) + (c-1) * nb_nodes_per_component
+		add_edge!(g, 1, i)
+		add_edge!(g, i, 1)
+
+		set_prop!(g, i, 1, :ω, 1.0)
+		set_prop!(g, 1, i, :ω, ωs[c])
+	end
+
+	g = remove_isolated_nodes(g)
+
+    return TOP(nv(g), g, nb_robots)
 end
