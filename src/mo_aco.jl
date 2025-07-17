@@ -83,7 +83,8 @@ function mo_aco(
         =#
         if use_pheremone
             evaporate!(pheremone, ρ)
-            lay!(pheremone, vcat(global_pareto_solns, iter_pareto_solns))   # other ants
+            lay!(pheremone, global_pareto_solns) # elite ant
+            lay!(pheremone, iter_pareto_solns) 
          end
 #        if min_max
 #            min_max!(pheremone, global_pareto_solns, ρ, avg_nb_choices_soln_components)

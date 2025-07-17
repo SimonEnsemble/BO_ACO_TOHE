@@ -52,7 +52,7 @@ RTOHE = robot team orienteering in a hazardous environment
 
 # ╔═╡ 7e4e838c-0e42-4925-9ddf-4c3601466b64
 @bind problem_instance Select(
-	["power_plant", "art_museum", "random", "multi-component"], default="art_museum"
+	["power_plant", "art_museum", "random", "block model"], default="art_museum"
 )
 
 # ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
@@ -62,9 +62,26 @@ elseif problem_instance == "art_museum"
 	top = art_museum(3)
 elseif problem_instance == "random"
 	top = generate_random_top(30, 5)
-elseif problem_instance == "multi-component"
-	top = generate_multi_component_top(
-		12, 3, 2, p=0.4, rewards=[0.2, 0.4, 0.9], ωs=[0.9, 0.75, 0.6]
+elseif problem_instance == "block model"
+	Random.seed!(3)
+	top = block_model(
+		# number of nodes
+		[10, 8], 
+		
+		# connection probabilities
+		[
+			0.5 0.02; 
+		 	0.02 0.7
+		],
+		
+		# reward dist'n
+		[Normal(1.0, 0.5), Normal(3.0, 1.0)],
+		
+		# survival prob dist'n
+		[
+			Normal(0.7, 0.3) Normal(0.2, 0.1);
+			Normal(0.2, 0.1) Normal(0.9, 0.3);
+		],
 	)
 end
 
@@ -122,12 +139,15 @@ md"## MO-ACO 🐜
 # ╔═╡ b9a9808e-8631-45e1-9e31-516565c804a3
 md"
 
-\# of iterations: $(@bind nb_iters Select([10, 250, 500, 1000, 5000, 10000], default=250))
+\# of iterations: $(@bind nb_iters Select([2, 10, 250, 500, 1000, 5000, 10000], default=2))
 
-\# of runs: $(@bind n_runs Select([1, 2, 5, 10], default=2))
+\# of runs: $(@bind n_runs Select([1, 2, 5, 10], default=1))
 
 run checks? $(@bind run_checks CheckBox(default=true))
 "
+
+# ╔═╡ cdfdf924-d0f5-452f-9c94-eef7592c374d
+ρ = 0.9 # evaporation rate
 
 # ╔═╡ 8a6c6d9a-e15a-4f22-9d86-00e591b15693
 md"set seeds same to give each the same initial condition for fair comparison."
@@ -140,7 +160,7 @@ test_run = mo_aco(
 	top, 
 	verbose=true, 
 	nb_ants=100, 
-	nb_iters=5,
+	nb_iters=25,
 	use_heuristic=true,
 	use_pheremone=true,
 	run_checks=run_checks,
@@ -158,6 +178,7 @@ test_run = mo_aco(
 		use_heuristic=true,
 		use_pheremone=true,
 		run_checks=run_checks,
+		ρ=ρ,
 		my_seed=my_seeds[r]
 	)
 	for r = 1:n_runs
@@ -239,19 +260,23 @@ ress_multiple_trails = [
 		use_pheremone=true,
 		run_checks=run_checks,
 		my_seed=my_seeds[r],
-		one_pheromone_trail_per_robot=true
+		one_pheromone_trail_per_robot=true,
+		ρ=ρ
 	)
 	for r = 1:n_runs
 ]
 
 # ╔═╡ 42590ba8-bca3-4309-a9cf-dad307124463
 begin
-	local k = 1 # robot ID
+	local k = 2 # robot ID
 	viz_pheremone(
 		ress_multiple_trails[run_id].pheremone[k], top, 
 		savename="paper/pheremone_$k", layout=layout
 	)
 end
+
+# ╔═╡ 72ae4f16-173d-4e22-b338-c6781143fa5f
+ress_multiple_trails[run_id].pheremone[1]
 
 # ╔═╡ 67c9334e-1155-4ef3-8d75-030dcfc1e570
 ress_heuristic_only = [
@@ -278,6 +303,7 @@ ress_pheremone_only = [
 		use_heuristic=false,
 		use_pheremone=true,
 		run_checks=run_checks,
+		ρ=ρ,
 		my_seed=my_seeds[r]
 	)
 	for r=1:n_runs
@@ -351,6 +377,7 @@ end
 # ╠═79dd4f91-8a4a-4be1-8013-c9b6dfa56a75
 # ╟─9d44f37d-8c05-450a-a448-7be50387499c
 # ╟─b9a9808e-8631-45e1-9e31-516565c804a3
+# ╠═cdfdf924-d0f5-452f-9c94-eef7592c374d
 # ╠═70f8f70f-83ad-4d2b-a40f-7e616462a9c1
 # ╟─8a6c6d9a-e15a-4f22-9d86-00e591b15693
 # ╠═17117efa-c63e-4193-a99b-c7423367fc06
@@ -374,6 +401,7 @@ end
 # ╟─514851fe-da59-4885-9dc8-0c9fb0c02223
 # ╠═2442f18e-9a4c-4a0f-bdf7-6fe1d1517a6b
 # ╠═42590ba8-bca3-4309-a9cf-dad307124463
+# ╠═72ae4f16-173d-4e22-b338-c6781143fa5f
 # ╠═67c9334e-1155-4ef3-8d75-030dcfc1e570
 # ╠═3b94a9a8-93c8-4e46-ae23-63374d368b16
 # ╠═2400b72e-2d1a-4c2e-91c7-14c8ac92cc11

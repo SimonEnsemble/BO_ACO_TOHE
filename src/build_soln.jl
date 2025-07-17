@@ -66,6 +66,10 @@ function extend_trail!(
             # note: scaling here irrelevant.
         end
     end
+    
+    # to keep exploration, ensure none are zero
+    transition_probs .+= 0.01 * mean(transition_probs) / length(transition_probs)
+
 	# sample a new node
     v = sample(vs, ProbabilityWeights(transition_probs))
 
