@@ -169,9 +169,19 @@ Fig.~\ref{fig:pareto_optimal} illustrates.
 We then can present the Pareto-optimal set to a human decision-maker to select the team trail plan that strikes some tradeoff between the two objectives, based on their value of rewards vs. robot survival. 
 
 To search for the Pareto-optimal set of robot-team trail plans in the BOTOHE, we specify and implement a bi-objective ant colony optimization (ACO) algorithm \cite{iredi2001bi}, guided by heuristics.
-We adopt ACO \cite{dorigo2006ant,bonabeau1999swarm,blum2005ant} because it is naturally-suited for searching for trail sets on graphs, 
-For illustration, we solve and analyze a BOTOHE problem instance for information-gathering in an art museum.
-Through ablation studies, we quantify the contribution of the greedy heuristics and pheromone to the search efficiency.
+We adopt the ACO meta-heuristic \cite{dorigo2006ant,bonabeau1999swarm,blum2005ant} because it 
+(i) excels at searching for [near-]optimal trail sets on graphs by balancing exploration and exploitation through (a) stochastic decision-making and (b) swarm intelligence where simulated ants collectively learn from experience via laying pheromone trails then follow pheromone trails to leverage that experience;
+(ii) allows incorporation of BOTHE-specific heuristics to guide the search and accelerate convergence;
+(iii) scales more effectively to larger problems compared to integer program solvers;
+(iiii) is embarssingly parallelizable, as each ant can be allocated to an independent thread;
+(iv) is straightforward to implement and computationally efficient;
+(v) can be extended to handle dynamic or online BOTHE problem variants.
+
+For illustration, we solve and analyze a series of three BOTOHE problem instances for an e.g.\ information-gathering mission on:
+(1) a random block graph with three communities;
+(2) a real graph modeling (2a) the San Diego art museum and (2b) the Satsop Nuclear Power Plant.
+We benchmark bi-objective ACO against random search; quantify the contribution of the greedy heuristics and pheromone to the search efficiency of ACO through two ablation studies; and compare performance of ACO when granted a single pheromone trail (for each objective), shared among robots, versus granting each robot its own pheromone trail.
+% from the Defense Advanced Research Projects Agency (DARPA) Subterranean (SubT) robotics challenge \cite{chung2023into} (Alpha course of the Urban Circuit Network \cite{github_darpa_subt}).
 
 \begin{figure}[h!]
     \centering
