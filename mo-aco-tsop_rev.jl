@@ -55,24 +55,6 @@ RTOHE = robot team orienteering in a hazardous environment
 	["power_plant", "art_museum", "random", "block model", "complete"], default="art_museum"
 )
 
-# ╔═╡ 37508da4-9175-47d0-a6a9-3c104d566d90
-function complete_graph_top(
-    nb_nodes::Int, nb_robots::Int, r_distn::Distribution, w_distn::Distribution
-)
-    r_distn = Truncated(r_distn, 0.0, Inf)
-    w_distn = Truncated(w_distn, 0.0, 1.0)
-
-    g = MetaDiGraph(complete_graph(nb_nodes))
-    for v = 1:nv(g)
-        set_prop!(g, v, :r, rand(r_distn))
-    end
-    for ed in edges(g)
-        set_prop!(g, ed.src, ed.dst, :ω, rand(w_distn))
-        set_prop!(g, ed.dst, ed.src, :ω, rand(w_distn))
-    end
-    return TOP(nv(g), g, nb_robots)
-end
-
 # ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
 if problem_instance == "power_plant"
 	top = darpa_urban_environment(2)
@@ -121,9 +103,6 @@ end
 function get_unvisited_nodes(trail::Vector{Int}, nb_nodes::Int)
 	return [v for v = 1:nb_nodes if ! (v in trail)]
 end
-
-# ╔═╡ 8b729e7e-9871-4ed9-83e4-5c85c8ac7ef7
-typeof(top)
 
 # ╔═╡ f9d57f37-60ef-482e-9266-afbcb567be08
 get_ω(top.g, 1, 1)
@@ -305,7 +284,9 @@ begin
 	
 
 	eg_robot = ress[1].global_pareto_solns[5].robots[2]
-	perturb_trail(eg_robot, top)
+	for i = 1:100
+		perturb_trail(eg_robot, top)
+	end
 end
 
 # ╔═╡ 9adc9690-6436-4ba6-a813-8883aa0f3aca
@@ -497,9 +478,7 @@ end
 # ╟─7e4e838c-0e42-4925-9ddf-4c3601466b64
 # ╠═bdb5d550-13f6-4d8d-9a74-14b889efe7a2
 # ╠═76ecc4c1-39b7-4b3c-b98c-cdb1cdcf7eba
-# ╠═37508da4-9175-47d0-a6a9-3c104d566d90
 # ╠═0d37a5b6-042f-4951-9dfe-7b7082561c46
-# ╠═8b729e7e-9871-4ed9-83e4-5c85c8ac7ef7
 # ╠═0f66c200-8478-4d8c-a2e2-69425b04e5f2
 # ╠═9adc9690-6436-4ba6-a813-8883aa0f3aca
 # ╠═f9d57f37-60ef-482e-9266-afbcb567be08

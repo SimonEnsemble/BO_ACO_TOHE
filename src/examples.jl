@@ -221,6 +221,7 @@ function darpa_urban_environment(nb_robots::Int; seed::Int=97330)
 		r = (v in keys(artifact_type)) ? artifact_reward[artifact_type[v]] : 0.0
 		set_prop!(g, v, :r, r)
 	end
+	set_prop!(g, 1, :r, 0.0)
 	return TOP(
                nv(g),
                g,
@@ -363,6 +364,7 @@ function art_museum(nb_robots::Int)
             set_prop!(g, v, :r, 0.0)
         end
     end
+	set_prop!(g, 1, :r, 0.0)
 
 	return TOP(
                nv(g),
@@ -405,6 +407,7 @@ function generate_random_top(
 	for v in vertices(g)
 		set_prop!(g, v, :r, 0.1 + rand())
 	end
+	set_prop!(g, 1, :r, 0.0)
 
 	return TOP(
                nv(g),
@@ -447,6 +450,7 @@ function generate_manual_top(nb_robots::Int)
 	for v = 1:nv(g)
 		set_prop!(g, v, :r, 1.0*reward_dict[v])
 	end
+	set_prop!(g, 1, :r, 0.0)
 
 	return TOP(
                nv(g),
@@ -481,6 +485,7 @@ function toy_problem()
 	for v = 1:nv(g)
 		set_prop!(g, v, :r, rewards[v])
 	end
+	set_prop!(g, 1, :r, 0.0)
 
 	return TOP(
                nv(g),
@@ -523,6 +528,7 @@ end
 
 function block_model(
 	nb_vertices::Vector{Int},
+    nb_robots::Int,
 	P::Matrix{Float64},
 	r_distn::Vector{<:Distribution},
 	ω_distn::Matrix{<:Distribution}
@@ -580,5 +586,23 @@ function block_model(
         return block_model(nb_vertices, P, r_distn, ω_distn)
     end
 
-	return TOP(nv(g), g, length(nb_vertices))
+    return TOP(nv(g), g, nb_robots)
+end
+
+function complete_graph_top(
+	nb_nodes::Int, nb_robots::Int, r_distn::Distribution, w_distn::Distribution
+)
+	r_distn = Truncated(r_distn, 0.0, Inf)
+	w_distn = Truncated(w_distn, 0.0, 1.0)
+
+	g = MetaDiGraph(complete_graph(nb_nodes))
+	for v = 1:nv(g)
+		set_prop!(g, v, :r, rand(r_distn))
+	end
+	for ed in edges(g)
+		set_prop!(g, ed.src, ed.dst, :ω, rand(w_distn))
+		set_prop!(g, ed.dst, ed.src, :ω, rand(w_distn))
+	end
+	set_prop!(g, 1, :r, 0.0)
+    return TOP(nv(g), g, nb_robots)
 end
