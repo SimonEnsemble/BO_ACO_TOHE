@@ -52,8 +52,26 @@ RTOHE = robot team orienteering in a hazardous environment
 
 # ╔═╡ 7e4e838c-0e42-4925-9ddf-4c3601466b64
 @bind problem_instance Select(
-	["power_plant", "art_museum", "random", "block model"], default="art_museum"
+	["power_plant", "art_museum", "random", "block model", "complete"], default="art_museum"
 )
+
+# ╔═╡ 37508da4-9175-47d0-a6a9-3c104d566d90
+function complete_graph_top(
+    nb_nodes::Int, nb_robots::Int, r_distn::Distribution, w_distn::Distribution
+)
+    r_distn = Truncated(r_distn, 0.0, Inf)
+    w_distn = Truncated(w_distn, 0.0, 1.0)
+
+    g = MetaDiGraph(complete_graph(nb_nodes))
+    for v = 1:nv(g)
+        set_prop!(g, v, :r, rand(r_distn))
+    end
+    for ed in edges(g)
+        set_prop!(g, ed.src, ed.dst, :ω, rand(w_distn))
+        set_prop!(g, ed.dst, ed.src, :ω, rand(w_distn))
+    end
+    return TOP(nv(g), g, nb_robots)
+end
 
 # ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
 if problem_instance == "power_plant"
@@ -63,27 +81,52 @@ elseif problem_instance == "art_museum"
 elseif problem_instance == "random"
 	top = generate_random_top(30, 5)
 elseif problem_instance == "block model"
-	Random.seed!(3)
+	Random.seed!(5)
+	local p_interconnect = 0.05
+	# complicated graph with few robots
+	# to showcase when multiple robot trails better.
 	top = block_model(
 		# number of nodes
-		[10, 8], 
+		[10, 8, 12, 6], 
+
+		# number of robots
+		2,
 		
 		# connection probabilities
 		[
-			0.5 0.02; 
-		 	0.02 0.7
+			0.5 p_interconnect p_interconnect p_interconnect; 
+			p_interconnect 0.5 p_interconnect p_interconnect;
+			p_interconnect p_interconnect 0.4 p_interconnect;
+			p_interconnect p_interconnect p_interconnect 0.8;
 		],
 		
 		# reward dist'n
-		[Normal(1.0, 0.5), Normal(3.0, 1.0)],
+		[Normal(1.0, 0.5), Normal(5.0, 2.0), Normal(6.0, 1.0), Normal(6.0, 3.0)],
 		
 		# survival prob dist'n
 		[
-			Normal(0.7, 0.3) Normal(0.2, 0.1);
-			Normal(0.2, 0.1) Normal(0.9, 0.3);
+			Normal(0.9, 0.3) for i = 1:4, j = 1:4
 		],
 	)
+elseif problem_instance == "complete"
+	top = complete_graph_top(
+		25, 2, Normal(1.0, 1.0), Normal(0.75, 0.2)
+	)	
 end
+
+# ╔═╡ 76ecc4c1-39b7-4b3c-b98c-cdb1cdcf7eba
+@assert get_ω(top.g, 1, 1) == 1.0
+
+# ╔═╡ 0d37a5b6-042f-4951-9dfe-7b7082561c46
+function get_unvisited_nodes(trail::Vector{Int}, nb_nodes::Int)
+	return [v for v = 1:nb_nodes if ! (v in trail)]
+end
+
+# ╔═╡ 8b729e7e-9871-4ed9-83e4-5c85c8ac7ef7
+typeof(top)
+
+# ╔═╡ f9d57f37-60ef-482e-9266-afbcb567be08
+get_ω(top.g, 1, 1)
 
 # ╔═╡ 21ef0739-9c36-4825-b965-b99cd984b9d2
 nv(top.g)
@@ -184,6 +227,90 @@ test_run = mo_aco(
 	for r = 1:n_runs
 ]
 
+# ╔═╡ 0f66c200-8478-4d8c-a2e2-69425b04e5f2
+begin	
+	function perturb_trail(
+		robot::Robot, top::TOP
+	)
+		# create copy of trail (will not necessarily accept perturbation)
+		new_trail = deepcopy(robot.trail)
+		@assert new_trail[1] == new_trail[end] == new_trail[end-1] == 1
+		
+		# current number of non-depot-node visits
+		n = length(robot.trail) - 3
+
+		@show robot.trail
+
+		# candidate perturbations
+		if n == 0 # stay at depot node
+			trail_perturbations = [:insert]
+		elseif n == nv(top.g) - 1 # all nodes visisted
+			trail_perturbations = [:swap, :delete, :rev_subseq]
+		elseif n == 1
+			trail_perturbations = [:insert, :delete, :substitute]
+		else
+			trail_perturbations = [:swap, :insert, :delete, :substitute, :rev_subseq]
+		end
+		
+		perturbation = sample(trail_perturbations)
+		@show perturbation
+		
+		if perturbation == :insert
+			# where to insert?
+			i = 1 + rand(1:(n+1)) # 1 b/c first node stays depot
+
+			# list of candidate nodes to insert
+			unvisited_nodes = get_unvisited_nodes(new_trail, nv(top.g))
+
+			# pick a node to insert
+			new_v =  rand(unvisited_nodes)
+
+			# do it!
+			insert!(new_trail, i, new_v)
+		elseif perturbation == :swap
+			# sample two non-depot nodes to swap
+			i, j = sample(2:(n+1), 2, replace=false) # positions
+			u, v = new_trail[i], new_trail[j]    # actual node IDs
+	
+			# swap
+			new_trail[i] = v
+			new_trail[j] = u
+		elseif perturbation == :delete
+			i = rand(2:(n+1))
+			deleteat!(new_trail, i)
+		elseif perturbation == :substitute
+			# choose node to substitute
+			unvisited_nodes = get_unvisited_nodes(new_trail, nv(top.g))
+			v = rand(unvisited_nodes)
+			
+			# node index to eliminate
+			i = rand(2:(n+1))
+
+			# substitute
+			new_trail[i] = v
+		elseif perturbation == :rev_subseq
+			i, j = sample(2:(n+1), 2, replace=false) # positions
+			ids = (j > i) ? (i:j) : (j:i)
+			@show ids
+			new_trail[ids] = reverse(new_trail[ids])
+		end
+			
+		# end
+		@show new_trail
+		@assert new_trail != robot.trail
+		@assert new_trail[1] == new_trail[end] == new_trail[end-1] == 1
+		
+		return new_trail
+	end
+	
+
+	eg_robot = ress[1].global_pareto_solns[5].robots[2]
+	perturb_trail(eg_robot, top)
+end
+
+# ╔═╡ 9adc9690-6436-4ba6-a813-8883aa0f3aca
+reverse(eg_robot.trail)
+
 # ╔═╡ 3a1caac3-dd55-42fb-91b2-2f9c3001c22c
 md"area indicator at end of search:"
 
@@ -268,7 +395,7 @@ ress_multiple_trails = [
 
 # ╔═╡ 42590ba8-bca3-4309-a9cf-dad307124463
 begin
-	local k = 2 # robot ID
+	local k = 4 # robot ID
 	viz_pheremone(
 		ress_multiple_trails[run_id].pheremone[k], top, 
 		savename="paper/pheremone_$k", layout=layout
@@ -367,8 +494,15 @@ end
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
 # ╠═e136cdee-f7c1-4add-9024-70351646bf24
 # ╟─613ad2a0-abb7-47f5-b477-82351f54894a
-# ╠═7e4e838c-0e42-4925-9ddf-4c3601466b64
+# ╟─7e4e838c-0e42-4925-9ddf-4c3601466b64
 # ╠═bdb5d550-13f6-4d8d-9a74-14b889efe7a2
+# ╠═76ecc4c1-39b7-4b3c-b98c-cdb1cdcf7eba
+# ╠═37508da4-9175-47d0-a6a9-3c104d566d90
+# ╠═0d37a5b6-042f-4951-9dfe-7b7082561c46
+# ╠═8b729e7e-9871-4ed9-83e4-5c85c8ac7ef7
+# ╠═0f66c200-8478-4d8c-a2e2-69425b04e5f2
+# ╠═9adc9690-6436-4ba6-a813-8883aa0f3aca
+# ╠═f9d57f37-60ef-482e-9266-afbcb567be08
 # ╠═21ef0739-9c36-4825-b965-b99cd984b9d2
 # ╠═efeeb427-9061-4c77-b1c0-50b26abdb6a6
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
