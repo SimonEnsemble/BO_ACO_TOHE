@@ -70,6 +70,22 @@ Robot(top::TOP) = Robot(
         false  # trail not complete
 )
 
+# for SA
+function Robot(trail::Vector{Int}, top::TOP)
+    edge_visit = [false for i = 1:top.nb_nodes, j = 1:top.nb_nodes]
+    for i = 1:length(trail)-1
+        u = trail[i]
+        v = trail[i+1]
+        edge_visit[u, v] = true
+    end
+    if length(trail) < 3
+        done = false
+    else
+        done = (trail[1] == trail[end] == trail[end-1] == 1)
+    end
+    return Robot(trail, edge_visit, done)
+end
+
 """
     hop_to!(robot, v)
 
@@ -90,14 +106,13 @@ function hop_to!(robot::Robot, v::Int, top::TOP)
     return nothing
 end
 
-function Robot(trail::Vector{Int}, top::TOP)
-    robot = Robot(top)
-    @assert trail[1] == 1
-    for i = 2:length(trail)
-        hop_to!(robot, trail[i], top)
-    end
-    robot.done = (trail[end] == 1) && length(trail) != 1
-    return robot
+"""
+    proper_trail(robot) # true or false
+
+are the edges visisted by the robot unique?
+"""
+function proper_trail(robot::Robot)
+    return sum(robot.edge_visit) == length(robot.trail) - 1
 end
 
 """

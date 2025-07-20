@@ -83,7 +83,7 @@ end
 """
 function viz_Pareto_front(
         solns::Vector{Soln}; 
-        ids_hl::Vector{Int}=[],
+        ids_hl::Vector{Int}=Int[],
         savename::Union{Nothing, String}=nothing,
         size=the_size,
         upper_xlim=nothing,

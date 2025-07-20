@@ -1,26 +1,27 @@
 ### A Pluto.jl notebook ###
-# v0.19.27
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
 
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
-    quote
+    #! format: off
+    return quote
         local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
     end
+    #! format: on
 end
 
 # ╔═╡ d493a41c-3879-11ee-32aa-052ae56d5240
 begin
-	import Pkg; Pkg.activate()
+	import Pkg; Pkg.activate(joinpath("..", "aco"))
 	push!(LOAD_PATH, joinpath("..", "src"))
 
-	using Revise
-	using MOACOTOP, Graphs, MetaGraphs, Random, Test, CairoMakie, ColorSchemes, PlutoUI
+	using Revise, MOACOTOP, Graphs, MetaGraphs, Random, Test, CairoMakie, ColorSchemes, PlutoUI, Distributions
 
 	import AlgebraOfGraphics: set_aog_theme!, firasans
 	set_aog_theme!(fonts=[firasans("Light"), firasans("Light")])
@@ -341,7 +342,7 @@ md"area indicator"
 
 # ╔═╡ a8403660-c62f-4e2e-a3f9-909c47b1c86a
 # when a single solution, jsut a rectangle
-@test area_indicator([Soln([robot], Objs(0.3, 0.7))]) ≈ 0.3 * 0.7
+@test area_indicator([Soln([robot], Objs(0.3, 0.7))], 1.0, 1) ≈ 0.3 * 0.7
 
 # ╔═╡ a3a90171-369d-4cd4-b254-bd751daec913
 # a few rectangles. included redundancies
@@ -363,7 +364,7 @@ some_pareto_solns = shuffle(
 viz_Pareto_front(some_pareto_solns)
 
 # ╔═╡ 0fe1cf66-476c-442e-bb9e-185e48c214b5
-@test area_indicator(some_pareto_solns) ≈ 0.2 * 0.8 + 0.2 * 0.6 + 0.4 * 0.2
+@test area_indicator(some_pareto_solns, 1.0, 1) ≈ 0.2 * 0.8 + 0.2 * 0.6 + 0.4 * 0.2
 
 # ╔═╡ 5939d13c-8d55-4acb-939c-1aad2273256e
 md"ants"
@@ -380,13 +381,14 @@ md"pheremone"
 # ╔═╡ 0368e00b-7219-4a22-8b82-4d653d5352ab
 begin
 	pheremone = Pheremone(top)
-	τ₀ = pheremone.τ_r[1, 1]
+	τ₀_r = pheremone.τ_r[1, 1]
+	τ₀_s = pheremone.τ_s[1, 1]
 	ρ = 0.8
 
 	evaporate!(pheremone, ρ)
 	evaporate!(pheremone, ρ)
-	@test all(pheremone.τ_r .≈ ρ ^ 2 * τ₀)
-	@test all(pheremone.τ_s .≈ ρ ^ 2 * τ₀)
+	@test all(pheremone.τ_r .≈ ρ ^ 2 * τ₀_r)
+	@test all(pheremone.τ_s .≈ ρ ^ 2 * τ₀_s)
 end
 
 # ╔═╡ 8b7f40ac-4897-408f-82db-738e30dd6a21
@@ -501,6 +503,65 @@ begin
 	fig
 end
 
+# ╔═╡ 6e3131d5-3499-4b42-8e4f-4d38472424a8
+md"## simulated annealing moves"
+
+# ╔═╡ e1c9e8d9-773b-4713-a770-95edd56ea8cd
+nb_nodes_sa = 5
+
+# ╔═╡ 11905c84-4de9-4a50-a3b0-efddd80218af
+sa_top = complete_graph_top(nb_nodes_sa, 1, Normal(2.0, 1.0), Normal(2.0, 1.0))
+
+# ╔═╡ 65925692-bc45-4f3a-819a-36201c89b753
+viz_setup(sa_top)
+
+# ╔═╡ 9b8b996f-355b-4eec-9508-d63d40907776
+md"does the perturb trail eventually reach these target trails?"
+
+# ╔═╡ cc136635-bcef-4c26-b5d2-af98c80543f8
+target_trails = [
+	[1, 5, 1, 1],
+	[1, 1, 1],
+	vcat([1], 1:nb_nodes_sa, [1, 1]),
+	[1, 5, 3, 5, 4, 1]
+]
+
+# ╔═╡ 71942465-42b1-4a20-9f67-8e2cbd839712
+target_trails_hit = [false for t = 1:length(target_trails)]
+
+# ╔═╡ 14c53cb9-1b26-4145-b07e-00a574b56518
+@test proper_trail(Robot([1, 2, 3, 1, 1], sa_top))
+
+# ╔═╡ 66255b8b-16fd-4f8d-b0aa-b121ad95d997
+@test ! proper_trail(Robot([1, 2, 3, 2, 3, 1, 1], sa_top))
+
+# ╔═╡ 1bb9296e-f9ba-46d7-bc31-f819b9516efa
+Robot([1, 2, 3, 2, 3, 1, 1], sa_top)
+
+# ╔═╡ b0b35b2b-4e9e-4ff4-8bab-bb15f6106f57
+begin
+	sa_robot = Robot([1, 2, 3, 1, 1], sa_top)
+	for i = 1:1000000
+		sa_robot = perturb_trail(sa_robot, sa_top)
+		for (t, target_trail) in enumerate(target_trails)
+			if sa_robot.trail == target_trail
+				target_trails_hit[t] = true
+			end
+		end
+		verify(sa_robot, sa_top)
+	end
+	target_trails_hit
+end
+
+# ╔═╡ 9321039c-b674-499d-bcf6-6b90d8693bdd
+sa_top.nb_nodes
+
+# ╔═╡ 5b1f9f51-d948-4a7e-9325-634683b84b5d
+[false for i = 1:3, j = 1:3]
+
+# ╔═╡ fd5444fa-9582-40ca-800c-743448115d9a
+sa_robot.trail
+
 # ╔═╡ Cell order:
 # ╠═d493a41c-3879-11ee-32aa-052ae56d5240
 # ╟─2d6e9814-74e5-4e07-9980-b3f6c06863e9
@@ -560,3 +621,17 @@ end
 # ╠═7656e735-9e8a-4302-892a-39f5257d20f6
 # ╠═55f58c9c-ee63-47ef-b696-c784a735a32c
 # ╠═7ff66066-3a15-4155-81ff-9ef655c0bcef
+# ╟─6e3131d5-3499-4b42-8e4f-4d38472424a8
+# ╠═e1c9e8d9-773b-4713-a770-95edd56ea8cd
+# ╠═11905c84-4de9-4a50-a3b0-efddd80218af
+# ╠═65925692-bc45-4f3a-819a-36201c89b753
+# ╟─9b8b996f-355b-4eec-9508-d63d40907776
+# ╠═cc136635-bcef-4c26-b5d2-af98c80543f8
+# ╠═71942465-42b1-4a20-9f67-8e2cbd839712
+# ╠═14c53cb9-1b26-4145-b07e-00a574b56518
+# ╠═66255b8b-16fd-4f8d-b0aa-b121ad95d997
+# ╠═1bb9296e-f9ba-46d7-bc31-f819b9516efa
+# ╠═b0b35b2b-4e9e-4ff4-8bab-bb15f6106f57
+# ╠═9321039c-b674-499d-bcf6-6b90d8693bdd
+# ╠═5b1f9f51-d948-4a7e-9325-634683b84b5d
+# ╠═fd5444fa-9582-40ca-800c-743448115d9a
