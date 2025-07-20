@@ -546,29 +546,37 @@ end
 sa_top = generate_sa_top()
 
 # ╔═╡ 8b307b88-1ab9-4b2b-9a56-f48f725af487
-viz_setup(sa_top, depict_r=false)
-
-# ╔═╡ cc7e2f41-a254-4c7e-9ec4-afe3ea868d6a
-
+viz_setup(sa_top, depict_r=false, depict_ω=false)
 
 # ╔═╡ 3cf810a9-b10f-4b1f-b0bd-84d50ce51776
 begin
 	local robot = Robot([1, 2, 3, 7, 8, 1, 1], sa_top)
 	for i = 1:1000
-		perturbation = perturb_trail!(robot, sa_top)
+		robot, perturbation = perturb_trail(robot, sa_top)
 		println(perturbation)
 		println(robot.trail)
-		verify(robot, sa_top)
 	end
 end
 
-# ╔═╡ 783c7b92-b479-4c75-9b93-7bea6e041252
-viz_setup(
-	sa_top, depict_r=false, robots=[Robot([1, 10, 11, 10, 1, 9, 1, 2, 3, 7, 6, 4, 6, 3, 4, 5, 4, 3, 6, 7, 8, 1, 1], sa_top)]
+# ╔═╡ 0dfc5db7-d228-4fdd-8c89-8b1a0a1afd0c
+MOACOTOP._attempt_node_deletion!(
+	Robot(
+		[1, 9, 1, 10, 11, 10, 1, 2, 3, 4, 3, 7, 6, 4, 5, 4, 6, 3, 6, 7, 8, 1, 1], 
+		sa_top
+		),
+	sa_top
 )
 
-# ╔═╡ 3d935e34-c56d-446d-8cb0-253a0b1b9d97
-deleteat!(deleteat!([1, 10, 11, 10, 1], 3), 3)
+# ╔═╡ 65f2d1a8-7b0f-4b41-aa1e-429a18236ed1
+viz_setup(
+	sa_top, depict_r=false, depict_ω=false, 
+	robots=[
+		Robot(
+		[1, 9, 1, 10, 11, 10, 1, 2, 3, 4, 3, 7, 6, 4, 5, 4, 6, 3, 6, 7, 8, 1, 1], 
+		sa_top
+		)
+	]
+)
 
 # ╔═╡ 75129959-6371-492e-a873-d8380cdda6c8
 begin
@@ -620,58 +628,47 @@ end
 # ╔═╡ 9b8b996f-355b-4eec-9508-d63d40907776
 md"does the perturb trail eventually reach these target trails?"
 
+# ╔═╡ ac33ea80-d03e-4f6b-90ef-3294209e396c
+viz_setup(sa_top, depict_r=false, depict_ω=false)
+
 # ╔═╡ cc136635-bcef-4c26-b5d2-af98c80543f8
 target_trails = [
-	[1, 5, 1, 1],
-	[1, 1, 1],
-	vcat([1], 1:nb_nodes_sa, [1, 1]),
-	[1, 5, 3, 5, 4, 1]
+	[1, 9, 1, 1],
+	[1, 1],
+	[1, 2, 3, 7, 8, 1, 1],
+	[1, 9, 1, 10, 11, 10, 1, 8, 7, 6, 4, 3, 2, 1, 1]
 ]
-
-# ╔═╡ 71942465-42b1-4a20-9f67-8e2cbd839712
-target_trails_hit = [false for t = 1:length(target_trails)]
-
-# ╔═╡ 14c53cb9-1b26-4145-b07e-00a574b56518
-@test proper_trail(Robot([1, 2, 3, 1, 1], sa_top))
-
-# ╔═╡ 66255b8b-16fd-4f8d-b0aa-b121ad95d997
-@test ! proper_trail(Robot([1, 2, 3, 2, 3, 1, 1], sa_top))
-
-# ╔═╡ 4324e0ad-09f6-44c1-b87f-b8c5d5553849
-has_edge(sa_top.g, 2, 1)
-
-# ╔═╡ 1bb9296e-f9ba-46d7-bc31-f819b9516efa
-Robot([1, 2, 3, 2, 3, 1, 1], sa_top)
-
-# ╔═╡ f3836bd1-bac5-4c27-ac09-168c4fee4dda
-insert!([1, 2, 3, 4], 2, 4)
 
 # ╔═╡ b0b35b2b-4e9e-4ff4-8bab-bb15f6106f57
 begin
-	sa_robot = Robot([1, 2, 3, 1, 1], sa_top)
-	# verify(sa_robot, sa_top)
-	# for i = 1:1000000
-	# 	sa_robot = perturb_trail(sa_robot, sa_top)
-	# 	for (t, target_trail) in enumerate(target_trails)
-	# 		if sa_robot.trail == target_trail
-	# 			target_trails_hit[t] = true
-	# 		end
-	# 	end
-	# 	verify(sa_robot, sa_top)
-	# end
-	# target_trails_hit
+	target_trails_hit = [false for t = 1:length(target_trails)]
+	sa_robot = Robot([1, 10, 1, 1], sa_top)
+	verify(sa_robot, sa_top)
+
+	n_perturbs = 1000
+	perturbs = [:blah for i = 1:n_perturbs]
+	for i = 1:n_perturbs
+		# println("starting trail: ", sa_robot.trail)
+		sa_robot, perturbs[i] = perturb_trail(sa_robot, sa_top, verbose=false)
+		verify(sa_robot, sa_top)
+		for (t, target_trail) in enumerate(target_trails)
+			if sa_robot.trail == target_trail
+				target_trails_hit[t] = true
+			end
+		end
+	end
+	target_trails_hit
 end
 
-# ╔═╡ 28ed8c35-dedd-4223-a458-32674b764c42
-perturb_trail(sa_robot, sa_top)
+# ╔═╡ a08467cc-7373-40bc-bad3-3b4f85fdfc4f
+for perturb in unique(perturbs)
+	println(perturb, " count: ", count(==(perturb), perturbs))
+end
 
-# ╔═╡ 9321039c-b674-499d-bcf6-6b90d8693bdd
-sa_top.nb_nodes
+# ╔═╡ 9dc772d9-0de7-4fc1-b69b-edcb61cd7681
+viz_setup(sa_top, depict_r=false, depict_ω=false, robots=[sa_robot])
 
-# ╔═╡ 5b1f9f51-d948-4a7e-9325-634683b84b5d
-[false for i = 1:3, j = 1:3]
-
-# ╔═╡ fd5444fa-9582-40ca-800c-743448115d9a
+# ╔═╡ 04fe7fe8-9876-4837-8a00-ea20e39e991c
 sa_robot.trail
 
 # ╔═╡ Cell order:
@@ -737,22 +734,15 @@ sa_robot.trail
 # ╠═e1c9e8d9-773b-4713-a770-95edd56ea8cd
 # ╠═11905c84-4de9-4a50-a3b0-efddd80218af
 # ╠═8b307b88-1ab9-4b2b-9a56-f48f725af487
-# ╠═cc7e2f41-a254-4c7e-9ec4-afe3ea868d6a
 # ╠═3cf810a9-b10f-4b1f-b0bd-84d50ce51776
-# ╠═783c7b92-b479-4c75-9b93-7bea6e041252
-# ╠═3d935e34-c56d-446d-8cb0-253a0b1b9d97
+# ╠═0dfc5db7-d228-4fdd-8c89-8b1a0a1afd0c
+# ╠═65f2d1a8-7b0f-4b41-aa1e-429a18236ed1
 # ╠═75129959-6371-492e-a873-d8380cdda6c8
 # ╠═e4fca97f-77b1-42bf-8b4c-bf74fcb43389
 # ╟─9b8b996f-355b-4eec-9508-d63d40907776
-# ╠═28ed8c35-dedd-4223-a458-32674b764c42
+# ╠═ac33ea80-d03e-4f6b-90ef-3294209e396c
 # ╠═cc136635-bcef-4c26-b5d2-af98c80543f8
-# ╠═71942465-42b1-4a20-9f67-8e2cbd839712
-# ╠═14c53cb9-1b26-4145-b07e-00a574b56518
-# ╠═66255b8b-16fd-4f8d-b0aa-b121ad95d997
-# ╠═4324e0ad-09f6-44c1-b87f-b8c5d5553849
-# ╠═1bb9296e-f9ba-46d7-bc31-f819b9516efa
-# ╠═f3836bd1-bac5-4c27-ac09-168c4fee4dda
 # ╠═b0b35b2b-4e9e-4ff4-8bab-bb15f6106f57
-# ╠═9321039c-b674-499d-bcf6-6b90d8693bdd
-# ╠═5b1f9f51-d948-4a7e-9325-634683b84b5d
-# ╠═fd5444fa-9582-40ca-800c-743448115d9a
+# ╠═a08467cc-7373-40bc-bad3-3b4f85fdfc4f
+# ╠═9dc772d9-0de7-4fc1-b69b-edcb61cd7681
+# ╠═04fe7fe8-9876-4837-8a00-ea20e39e991c

@@ -1,7 +1,16 @@
+# note: [1, 1]
+# and [1, x, 1, 1] are annoying cases for insert.
+
+
 # try trail modification (u, w) -> (u, v, u, w)
-function _attempt_node_grab!(robot::Robot, top::TOP)
+function _attempt_node_grab!(robot::Robot, top::TOP; verbose::Bool=false)
     # after wut node to insert?
-    i = rand(1:(length(robot.trail)-2)) # first, last, second-to-last are depot
+    if robot.trail == [1, 1]
+        i = 1
+    else
+        # 1, x₁, ..., xₙ, 1, 1 length = n + 3
+        i = rand(1:(length(robot.trail)-2)) # first, last, second-to-last are depot
+    end
     
     u = robot.trail[i]
     w = robot.trail[i+1]
@@ -20,6 +29,10 @@ function _attempt_node_grab!(robot::Robot, top::TOP)
     # pick a node to insert
     v = rand(candidate_vs)
 
+    if verbose
+        println("\tnode grab: ($u, $w) -> ($u, $v, $u, $w)")
+    end
+
     # rewire!
     insert!(robot.trail, i+1, v)
     insert!(robot.trail, i+2, u)
@@ -30,9 +43,14 @@ function _attempt_node_grab!(robot::Robot, top::TOP)
 end
 
 # try trail modification (u, w) -> (u, v, w)
-function _attempt_node_insertion!(robot::Robot, top::TOP)
+function _attempt_node_insertion!(robot::Robot, top::TOP; verbose::Bool=false)
     # after wut node to insert?
-    i = rand(1:(length(robot.trail)-2)) # first, last, second-to-last are depot
+    if robot.trail == [1, 1]
+        i = 1
+    else
+        # 1, x₁, ..., xₙ, 1, 1 length = n + 3
+        i = rand(1:(length(robot.trail)-2)) # first, last, second-to-last are depot
+    end
     
     # proposal: (u, w) -> (u, v, w)
     u = robot.trail[i]
@@ -52,6 +70,10 @@ function _attempt_node_insertion!(robot::Robot, top::TOP)
 
     # pick a node to insert
     v = rand(candidate_vs)
+    
+    if verbose
+        println("\tinsertion: ($u, $w) -> ($u, $v, $w)")
+    end
 
     # rewire!
     insert!(robot.trail, i+1, v)
@@ -59,34 +81,46 @@ function _attempt_node_insertion!(robot::Robot, top::TOP)
     robot.edge_visit[u, v] = true
     robot.edge_visit[v, w] = true
 
+    if length(robot.trail) == 3
+        push!(robot.trail, 1) # gotta be (1, 1) -> (1, v, 1, 1)
+        @assert u == w == 1
+        robot.edge_visit[1, 1] = true
+    end
+
     return true
 end
 
 # try trail modification (u, v, w) -> (u, w) i.e. delete v
-function _attempt_node_deletion!(robot::Robot, top::TOP)
+function _attempt_node_deletion!(robot::Robot, top::TOP; verbose::Bool=false)
     # too short for a deletion?
-    if length(robot.trail) ≤ 3
+    if length(robot.trail) == 2
         return false
     end
 
     # wut node to delete?
     i = rand(2:(length(robot.trail)-2)) # first, last, second-to-last are depot
     v = robot.trail[i]
-    
+
     # proposal: (u, v, w) -> (u, w)
     u = robot.trail[i-1]
     w = robot.trail[i+1]
 
     if u == w
         # def can delete v.
-        deleteat!(robot.trail, i)
-        deleteat!(robot.trail, i) # (u, v, u) -> (u)
         robot.edge_visit[u, v] = false # turn off old edge
         robot.edge_visit[v, w] = false # turn off old edge
+        
+        deleteat!(robot.trail, i)
+        deleteat!(robot.trail, i) # (u, v, u) -> (u)
+        return true
     end
 
     if (! has_edge(top.g, u, w)) || robot.edge_visit[u, w]
         return false
+    end
+
+    if verbose
+        println("\tdeletion: ($u, $v, $w) -> ($u, $w)")
     end
 
     # rewire!
@@ -99,7 +133,7 @@ function _attempt_node_deletion!(robot::Robot, top::TOP)
 end
 
 # try trail modification (u, v, w) -> (u, x, w)
-function _attempt_node_substitution!(robot::Robot, top::TOP)
+function _attempt_node_substitution!(robot::Robot, top::TOP; verbose::Bool=false)
     # too short for a substitution?
     if length(robot.trail) ≤ 3
         return false
@@ -124,6 +158,10 @@ function _attempt_node_substitution!(robot::Robot, top::TOP)
     end
 
     x = rand(candidate_xs)
+
+    if verbose
+        println("\tnode subs ($u, $v, $w) -> ($u, $x, $w)")
+    end
     
     robot.trail[i] = x
     
@@ -137,7 +175,7 @@ function _attempt_node_substitution!(robot::Robot, top::TOP)
 end
 
 # try trail modification (u, v, w) and (x, y, z) -> (u, y, w) and (x, v, z)
-function _attempt_node_swap!(robot::Robot, top::TOP)
+function _attempt_node_swap!(robot::Robot, top::TOP; verbose::Bool=false)
     # too short for a swap?
     if length(robot.trail) ≤ 5
         return false
@@ -161,6 +199,10 @@ function _attempt_node_swap!(robot::Robot, top::TOP)
             return false
         end
     end
+    
+    if verbose
+        println("\tnode swap ($u, $v, $w) and ($x, $y, $z) -> ($u, $y, $w) and ($x, $v, $z)")
+    end
 
     # swap possible if got here
     robot.trail[i] = y
@@ -180,8 +222,8 @@ function _attempt_node_swap!(robot::Robot, top::TOP)
     return true
 end
 
-function perturb_trail!(
-    robot::Robot, top::TOP
+function perturb_trail(
+    robot::Robot, top::TOP; verbose::Bool=false
 )
     # create copy of trail (will not necessarily accept perturbation)
     @assert robot.done
@@ -195,19 +237,25 @@ function perturb_trail!(
     perturbation = sample(trail_perturbations)
     
     if perturbation == :insert
-        success = _attempt_node_insertion!(robot, top)
+        success = _attempt_node_insertion!(new_robot, top, verbose=verbose)
     elseif perturbation == :grab
-        success = _attempt_node_grab!(robot, top)
+        success = _attempt_node_grab!(new_robot, top, verbose=verbose)
     elseif perturbation == :swap
-        success = _attempt_node_swap!(robot, top)
+        success = _attempt_node_swap!(new_robot, top, verbose=verbose)
     elseif perturbation == :delete
-        success = _attempt_node_deletion!(robot, top)
+        success = _attempt_node_deletion!(new_robot, top, verbose=verbose)
     elseif perturbation == :substitute
-        success = _attempt_node_substitution!(robot, top)
+        success = _attempt_node_substitution!(new_robot, top, verbose=verbose)
     end
 
     if ! success
-        return perturb_trail!(robot, top)
+        return perturb_trail(robot, top, verbose=verbose)
     end
-    return perturbation
+   
+    if verbose
+        println("\tnew trail: ", new_robot.trail)
+    end
+    verify(new_robot, top)
+
+    return new_robot, perturbation
 end
