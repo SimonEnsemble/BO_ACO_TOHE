@@ -25,5 +25,5 @@ module MOACOTOP
            viz_setup, viz_Pareto_front, viz_soln, viz_pheremone, viz_progress, viz_robot_trail, # viz.jl
            darpa_urban_environment, art_museum, generate_random_top, generate_manual_top, toy_problem, 
            toy_starish_top, art_museum_layout, block_model, complete_graph_top, # examples.jl
-           perturb_trail # simulated_annealing.jl
+           perturb_trail! # simulated_annealing.jl
 end

@@ -44,7 +44,8 @@ function _attempt_node_insertion!(robot::Robot, top::TOP)
             push!(candidate_vs, v)
         end
     end
-
+    
+    # no nodes left to insert?
     if length(candidate_vs) == 0
         return false
     end
@@ -61,66 +62,152 @@ function _attempt_node_insertion!(robot::Robot, top::TOP)
     return true
 end
 
-function perturb_trail(
+# try trail modification (u, v, w) -> (u, w) i.e. delete v
+function _attempt_node_deletion!(robot::Robot, top::TOP)
+    # too short for a deletion?
+    if length(robot.trail) ≤ 3
+        return false
+    end
+
+    # wut node to delete?
+    i = rand(2:(length(robot.trail)-2)) # first, last, second-to-last are depot
+    v = robot.trail[i]
+    
+    # proposal: (u, v, w) -> (u, w)
+    u = robot.trail[i-1]
+    w = robot.trail[i+1]
+
+    if u == w
+        # def can delete v.
+        deleteat!(robot.trail, i)
+        deleteat!(robot.trail, i) # (u, v, u) -> (u)
+        robot.edge_visit[u, v] = false # turn off old edge
+        robot.edge_visit[v, w] = false # turn off old edge
+    end
+
+    if (! has_edge(top.g, u, w)) || robot.edge_visit[u, w]
+        return false
+    end
+
+    # rewire!
+    deleteat!(robot.trail, i)
+    robot.edge_visit[u, v] = false # turn off old edge
+    robot.edge_visit[v, w] = false # turn off old edge
+    robot.edge_visit[u, w] = true
+
+    return true
+end
+
+# try trail modification (u, v, w) -> (u, x, w)
+function _attempt_node_substitution!(robot::Robot, top::TOP)
+    # too short for a substitution?
+    if length(robot.trail) ≤ 3
+        return false
+    end
+
+    # wut node to subs for another?
+    i = rand(2:(length(robot.trail)-2)) # first, last, second-to-last are depot
+    v = robot.trail[i]
+
+    u = robot.trail[i-1]
+    w = robot.trail[i+1]
+    
+    candidate_xs = Int[]
+    for x = 2:top.nb_nodes
+        if has_edge(top.g, u, x) && has_edge(top.g, x, w) && (! robot.edge_visit[u, x]) && (! robot.edge_visit[x, w])
+            push!(candidate_xs, x)
+        end
+    end
+
+    if length(candidate_xs) == 0
+        return false
+    end
+
+    x = rand(candidate_xs)
+    
+    robot.trail[i] = x
+    
+    # rewire
+    robot.edge_visit[u, v] = false # turn off old edge
+    robot.edge_visit[v, w] = false # turn off old edge
+    robot.edge_visit[u, x] = true
+    robot.edge_visit[x, w] = true
+
+    return true
+end
+
+# try trail modification (u, v, w) and (x, y, z) -> (u, y, w) and (x, v, z)
+function _attempt_node_swap!(robot::Robot, top::TOP)
+    # too short for a swap?
+    if length(robot.trail) ≤ 5
+        return false
+    end
+
+    # sample two non-depot nodes to swap
+    i, j = sample(2:(length(robot.trail)-2), 2, replace=false) # positions
+    v = robot.trail[i]
+    y = robot.trail[j]
+
+    u = robot.trail[i-1]
+    w = robot.trail[i+1]
+    
+    x = robot.trail[j-1]
+    z = robot.trail[j+1]
+
+    # is the swap possible?
+    for (s, d) in [(u, y), (y, w), (x, v), (v, z)]
+        # deal-breaker: no edge in graph or it has been used
+        if (! has_edge(top.g, s, d)) || robot.edge_visit[s, d]
+            return false
+        end
+    end
+
+    # swap possible if got here
+    robot.trail[i] = y
+    robot.trail[j] = v
+    
+    # rewire (turn off old edges and add new
+    robot.edge_visit[u, v] = false
+    robot.edge_visit[v, w] = false
+    robot.edge_visit[x, y] = false
+    robot.edge_visit[y, z] = false
+    
+    robot.edge_visit[u, y] = true
+    robot.edge_visit[y, w] = true
+    robot.edge_visit[x, v] = true
+    robot.edge_visit[v, z] = true
+
+    return true
+end
+
+function perturb_trail!(
     robot::Robot, top::TOP
 )
     # create copy of trail (will not necessarily accept perturbation)
-    new_trail = deepcopy(robot.trail)
     @assert robot.done
-    @assert new_trail[1] == new_trail[end] == new_trail[end-1] == 1
+    new_robot = deepcopy(robot)
     
     # current number of non-depot-node visits
     n = length(robot.trail) - 3 # 3 are 1's cuz complete trail
+        
+    trail_perturbations = [:swap, :insert, :delete, :substitute, :grab]
 
-    # candidate perturbations
-    if n == 0 # currently staying at depot node
-        trail_perturbations = [:insert]
-    elseif n == 1 # can't swap or reverse a subsequence
-        trail_perturbations = [:insert, :delete, :substitute]
-    else
-        trail_perturbations = [:swap, :insert, :delete, :substitute, :rev_subseq]
-    end
-    
     perturbation = sample(trail_perturbations)
-    perturbation = :insert
     
     if perturbation == :insert
+        success = _attempt_node_insertion!(robot, top)
+    elseif perturbation == :grab
+        success = _attempt_node_grab!(robot, top)
     elseif perturbation == :swap
-        # sample two non-depot nodes to swap
-        i, j = sample(2:(n+1), 2, replace=false) # positions
-        u, v = new_trail[i], new_trail[j]    # actual node IDs
-
-        # swap
-        new_trail[i] = v
-        new_trail[j] = u
+        success = _attempt_node_swap!(robot, top)
     elseif perturbation == :delete
-        i = rand(2:(n+1))
-        deleteat!(new_trail, i)
+        success = _attempt_node_deletion!(robot, top)
     elseif perturbation == :substitute
-        # choose node to substitute
-        unvisited_nodes = get_unvisited_nodes(new_trail, nv(top.g))
-        if length(unvisited_nodes) == 0
-            return perturb_trail(robot, top)
-        end
-        v = rand(unvisited_nodes)
-        
-        # node index to eliminate
-        i = rand(2:(n+1))
-
-        # substitute
-        new_trail[i] = v
-    elseif perturbation == :rev_subseq
-        i, j = sample(2:(n+1), 2, replace=false) # positions
-        ids = (j > i) ? (i:j) : (j:i)
-        new_trail[ids] = reverse(new_trail[ids])
+        success = _attempt_node_substitution!(robot, top)
     end
-    
-    @assert new_trail != robot.trail
 
-    new_robot = Robot(new_trail, top)
-
-    if ! proper_trail(new_robot)
-        return perturb_trail(robot, top)
+    if ! success
+        return perturb_trail!(robot, top)
     end
-    return new_robot
+    return perturbation
 end

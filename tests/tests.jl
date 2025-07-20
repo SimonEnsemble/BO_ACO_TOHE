@@ -548,21 +548,73 @@ sa_top = generate_sa_top()
 # ╔═╡ 8b307b88-1ab9-4b2b-9a56-f48f725af487
 viz_setup(sa_top, depict_r=false)
 
+# ╔═╡ cc7e2f41-a254-4c7e-9ec4-afe3ea868d6a
+
+
+# ╔═╡ 3cf810a9-b10f-4b1f-b0bd-84d50ce51776
+begin
+	local robot = Robot([1, 2, 3, 7, 8, 1, 1], sa_top)
+	for i = 1:1000
+		perturbation = perturb_trail!(robot, sa_top)
+		println(perturbation)
+		println(robot.trail)
+		verify(robot, sa_top)
+	end
+end
+
+# ╔═╡ 783c7b92-b479-4c75-9b93-7bea6e041252
+viz_setup(
+	sa_top, depict_r=false, robots=[Robot([1, 10, 11, 10, 1, 9, 1, 2, 3, 7, 6, 4, 6, 3, 4, 5, 4, 3, 6, 7, 8, 1, 1], sa_top)]
+)
+
+# ╔═╡ 3d935e34-c56d-446d-8cb0-253a0b1b9d97
+deleteat!(deleteat!([1, 10, 11, 10, 1], 3), 3)
+
 # ╔═╡ 75129959-6371-492e-a873-d8380cdda6c8
 begin
-	local robot = Robot([1, 2, 3, 7, 8, 1], sa_top)
-	println("OG robot trail: ", robot.trail)
+	local robot = Robot([1, 2, 3, 7, 8, 1, 1], sa_top)
+	local n = length(robot.trail)
+	println("OG robot trail: ", robot.trail, "\n")
 	verify(robot, sa_top)
 
 	if MOACOTOP._attempt_node_grab!(robot, sa_top)
 		println("node grab successful")
-		println("new robot trail: ", robot.trail)		
+		println("new robot trail: ", robot.trail, "\n")
 	end
+
 	if MOACOTOP._attempt_node_insertion!(robot, sa_top)
 		println("node insertion successful")
-		println("new robot trail: ", robot.trail)		
+		println("new robot trail: ", robot.trail, "\n")
 	end
+
+	if MOACOTOP._attempt_node_deletion!(robot, sa_top)
+		println("node deletion successful")
+		println("new robot trail: ", robot.trail, "\n")	
+	end
+
+	if MOACOTOP._attempt_node_substitution!(robot, sa_top)
+		println("node subs successful")
+		println("new robot trail: ", robot.trail, "\n")	
+	end
+	
 	verify(robot, sa_top)
+end
+
+# ╔═╡ e4fca97f-77b1-42bf-8b4c-bf74fcb43389
+begin
+	local top = complete_graph_top(6, 2, Normal(1.0, 1.0), Normal(1.0, 1.0))
+	local robot = Robot([1, 2, 3, 4, 1, 1], top)
+	local n = length(robot.trail)
+	println("OG robot trail: ", robot.trail, "\n")
+	verify(robot, top)
+
+	if MOACOTOP._attempt_node_swap!(robot, top)
+		println("node swap successful")
+		println("new robot trail: ", robot.trail, "\n")	
+	end
+	
+	verify(robot, top)
+	viz_setup(top, robots=[robot], depict_r=false, depict_ω=false)
 end
 
 # ╔═╡ 9b8b996f-355b-4eec-9508-d63d40907776
@@ -685,7 +737,12 @@ sa_robot.trail
 # ╠═e1c9e8d9-773b-4713-a770-95edd56ea8cd
 # ╠═11905c84-4de9-4a50-a3b0-efddd80218af
 # ╠═8b307b88-1ab9-4b2b-9a56-f48f725af487
+# ╠═cc7e2f41-a254-4c7e-9ec4-afe3ea868d6a
+# ╠═3cf810a9-b10f-4b1f-b0bd-84d50ce51776
+# ╠═783c7b92-b479-4c75-9b93-7bea6e041252
+# ╠═3d935e34-c56d-446d-8cb0-253a0b1b9d97
 # ╠═75129959-6371-492e-a873-d8380cdda6c8
+# ╠═e4fca97f-77b1-42bf-8b4c-bf74fcb43389
 # ╟─9b8b996f-355b-4eec-9508-d63d40907776
 # ╠═28ed8c35-dedd-4223-a458-32674b764c42
 # ╠═cc136635-bcef-4c26-b5d2-af98c80543f8
