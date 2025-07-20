@@ -635,8 +635,8 @@ viz_setup(sa_top, depict_r=false, depict_ω=false)
 target_trails = [
 	[1, 9, 1, 1],
 	[1, 1],
-	[1, 2, 3, 7, 8, 1, 1],
-	[1, 9, 1, 10, 11, 10, 1, 8, 7, 6, 4, 3, 2, 1, 1]
+	[1, 9, 1, 10, 11, 1, 1],
+	[1, 2, 3, 7, 8, 1, 1]
 ]
 
 # ╔═╡ b0b35b2b-4e9e-4ff4-8bab-bb15f6106f57
@@ -645,7 +645,7 @@ begin
 	sa_robot = Robot([1, 10, 1, 1], sa_top)
 	verify(sa_robot, sa_top)
 
-	n_perturbs = 1000
+	n_perturbs = 1000000
 	perturbs = [:blah for i = 1:n_perturbs]
 	for i = 1:n_perturbs
 		# println("starting trail: ", sa_robot.trail)
@@ -655,6 +655,9 @@ begin
 			if sa_robot.trail == target_trail
 				target_trails_hit[t] = true
 			end
+		end
+		if all(target_trails_hit)
+			break
 		end
 	end
 	target_trails_hit
