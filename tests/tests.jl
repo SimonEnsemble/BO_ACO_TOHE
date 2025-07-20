@@ -507,13 +507,63 @@ end
 md"## simulated annealing moves"
 
 # ╔═╡ e1c9e8d9-773b-4713-a770-95edd56ea8cd
-nb_nodes_sa = 5
+function generate_sa_top()
+	g = MetaDiGraph(SimpleGraph(11))
+	# add edges
+	edge_list = [
+		# branch
+		(1, 9),
+		# branch
+		(1, 10),
+		(10, 11, ω["hi"]),
+		# cycle
+		(1, 8),
+		(8, 7),
+		(7, 6),
+		(6, 4),
+		(4, 3),
+		(3, 2),
+		(2, 1),
+		# extra
+		(3, 6),
+		# bridge off cycle
+		(4, 5),
+		# shortcut in cycle
+		(7, 3),
+	]
+	for (i, j) in edge_list
+		add_edge!(g, i, j, :ω, 1.0)
+		add_edge!(g, j, i, :ω, 1.0)
+	end
+	for v = 1:nv(g)
+		set_prop!(g, v, :r, 1.0)
+	end
+	
+	return TOP(nv(g), g, 2)
+end
 
 # ╔═╡ 11905c84-4de9-4a50-a3b0-efddd80218af
-sa_top = complete_graph_top(nb_nodes_sa, 1, Normal(2.0, 1.0), Normal(2.0, 1.0))
+sa_top = generate_sa_top()
 
-# ╔═╡ 65925692-bc45-4f3a-819a-36201c89b753
-viz_setup(sa_top)
+# ╔═╡ 8b307b88-1ab9-4b2b-9a56-f48f725af487
+viz_setup(sa_top, depict_r=false)
+
+# ╔═╡ 75129959-6371-492e-a873-d8380cdda6c8
+begin
+	local robot = Robot([1, 2, 3, 7, 8, 1], sa_top)
+	println("OG robot trail: ", robot.trail)
+	verify(robot, sa_top)
+
+	if MOACOTOP._attempt_node_grab!(robot, sa_top)
+		println("node grab successful")
+		println("new robot trail: ", robot.trail)		
+	end
+	if MOACOTOP._attempt_node_insertion!(robot, sa_top)
+		println("node insertion successful")
+		println("new robot trail: ", robot.trail)		
+	end
+	verify(robot, sa_top)
+end
 
 # ╔═╡ 9b8b996f-355b-4eec-9508-d63d40907776
 md"does the perturb trail eventually reach these target trails?"
@@ -535,23 +585,33 @@ target_trails_hit = [false for t = 1:length(target_trails)]
 # ╔═╡ 66255b8b-16fd-4f8d-b0aa-b121ad95d997
 @test ! proper_trail(Robot([1, 2, 3, 2, 3, 1, 1], sa_top))
 
+# ╔═╡ 4324e0ad-09f6-44c1-b87f-b8c5d5553849
+has_edge(sa_top.g, 2, 1)
+
 # ╔═╡ 1bb9296e-f9ba-46d7-bc31-f819b9516efa
 Robot([1, 2, 3, 2, 3, 1, 1], sa_top)
+
+# ╔═╡ f3836bd1-bac5-4c27-ac09-168c4fee4dda
+insert!([1, 2, 3, 4], 2, 4)
 
 # ╔═╡ b0b35b2b-4e9e-4ff4-8bab-bb15f6106f57
 begin
 	sa_robot = Robot([1, 2, 3, 1, 1], sa_top)
-	for i = 1:1000000
-		sa_robot = perturb_trail(sa_robot, sa_top)
-		for (t, target_trail) in enumerate(target_trails)
-			if sa_robot.trail == target_trail
-				target_trails_hit[t] = true
-			end
-		end
-		verify(sa_robot, sa_top)
-	end
-	target_trails_hit
+	# verify(sa_robot, sa_top)
+	# for i = 1:1000000
+	# 	sa_robot = perturb_trail(sa_robot, sa_top)
+	# 	for (t, target_trail) in enumerate(target_trails)
+	# 		if sa_robot.trail == target_trail
+	# 			target_trails_hit[t] = true
+	# 		end
+	# 	end
+	# 	verify(sa_robot, sa_top)
+	# end
+	# target_trails_hit
 end
+
+# ╔═╡ 28ed8c35-dedd-4223-a458-32674b764c42
+perturb_trail(sa_robot, sa_top)
 
 # ╔═╡ 9321039c-b674-499d-bcf6-6b90d8693bdd
 sa_top.nb_nodes
@@ -624,13 +684,17 @@ sa_robot.trail
 # ╟─6e3131d5-3499-4b42-8e4f-4d38472424a8
 # ╠═e1c9e8d9-773b-4713-a770-95edd56ea8cd
 # ╠═11905c84-4de9-4a50-a3b0-efddd80218af
-# ╠═65925692-bc45-4f3a-819a-36201c89b753
+# ╠═8b307b88-1ab9-4b2b-9a56-f48f725af487
+# ╠═75129959-6371-492e-a873-d8380cdda6c8
 # ╟─9b8b996f-355b-4eec-9508-d63d40907776
+# ╠═28ed8c35-dedd-4223-a458-32674b764c42
 # ╠═cc136635-bcef-4c26-b5d2-af98c80543f8
 # ╠═71942465-42b1-4a20-9f67-8e2cbd839712
 # ╠═14c53cb9-1b26-4145-b07e-00a574b56518
 # ╠═66255b8b-16fd-4f8d-b0aa-b121ad95d997
+# ╠═4324e0ad-09f6-44c1-b87f-b8c5d5553849
 # ╠═1bb9296e-f9ba-46d7-bc31-f819b9516efa
+# ╠═f3836bd1-bac5-4c27-ac09-168c4fee4dda
 # ╠═b0b35b2b-4e9e-4ff4-8bab-bb15f6106f57
 # ╠═9321039c-b674-499d-bcf6-6b90d8693bdd
 # ╠═5b1f9f51-d948-4a7e-9325-634683b84b5d

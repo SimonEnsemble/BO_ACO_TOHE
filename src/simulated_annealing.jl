@@ -1,5 +1,64 @@
-function get_unvisited_nodes(trail::Vector{Int}, nb_nodes::Int)
-    return [v for v = 1:nb_nodes if ! (v in trail)]
+# try trail modification (u, w) -> (u, v, u, w)
+function _attempt_node_grab!(robot::Robot, top::TOP)
+    # after wut node to insert?
+    i = rand(1:(length(robot.trail)-2)) # first, last, second-to-last are depot
+    
+    u = robot.trail[i]
+    w = robot.trail[i+1]
+    
+    candidate_vs = Int[]
+    for v = 2:top.nb_nodes
+        if has_edge(top.g, u, v) && has_edge(top.g, v, u) && (! robot.edge_visit[u, v]) && (! robot.edge_visit[v, u])
+            push!(candidate_vs, v)
+        end
+    end
+    
+    if length(candidate_vs) == 0
+        return false
+    end
+
+    # pick a node to insert
+    v = rand(candidate_vs)
+
+    # rewire!
+    insert!(robot.trail, i+1, v)
+    insert!(robot.trail, i+2, u)
+    robot.edge_visit[u, v] = true
+    robot.edge_visit[v, u] = true
+
+    return true
+end
+
+# try trail modification (u, w) -> (u, v, w)
+function _attempt_node_insertion!(robot::Robot, top::TOP)
+    # after wut node to insert?
+    i = rand(1:(length(robot.trail)-2)) # first, last, second-to-last are depot
+    
+    # proposal: (u, w) -> (u, v, w)
+    u = robot.trail[i]
+    w = robot.trail[i+1]
+
+    candidate_vs = Int[]
+    for v = 2:top.nb_nodes
+        if has_edge(top.g, u, v) && has_edge(top.g, v, w) && (! robot.edge_visit[u, v]) && (! robot.edge_visit[v, w])
+            push!(candidate_vs, v)
+        end
+    end
+
+    if length(candidate_vs) == 0
+        return false
+    end
+
+    # pick a node to insert
+    v = rand(candidate_vs)
+
+    # rewire!
+    insert!(robot.trail, i+1, v)
+    robot.edge_visit[u, w] = false # turn off old edge
+    robot.edge_visit[u, v] = true
+    robot.edge_visit[v, w] = true
+
+    return true
 end
 
 function perturb_trail(
@@ -7,8 +66,8 @@ function perturb_trail(
 )
     # create copy of trail (will not necessarily accept perturbation)
     new_trail = deepcopy(robot.trail)
-    @assert new_trail[1] == new_trail[end] == new_trail[end-1] == 1
     @assert robot.done
+    @assert new_trail[1] == new_trail[end] == new_trail[end-1] == 1
     
     # current number of non-depot-node visits
     n = length(robot.trail) - 3 # 3 are 1's cuz complete trail
@@ -23,19 +82,9 @@ function perturb_trail(
     end
     
     perturbation = sample(trail_perturbations)
+    perturbation = :insert
     
     if perturbation == :insert
-        # where to insert?
-        i = 1 + rand(1:(n+1)) # 1 b/c first node stays depot
-
-        # list of candidate nodes to insert
-        unvisited_nodes = get_unvisited_nodes(new_trail, nv(top.g))
-
-        # pick a node to insert
-        new_v =  rand(unvisited_nodes)
-
-        # do it!
-        insert!(new_trail, i, new_v)
     elseif perturbation == :swap
         # sample two non-depot nodes to swap
         i, j = sample(2:(n+1), 2, replace=false) # positions
