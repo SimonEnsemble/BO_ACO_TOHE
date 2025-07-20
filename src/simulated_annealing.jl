@@ -174,6 +174,43 @@ function _attempt_node_substitution!(robot::Robot, top::TOP; verbose::Bool=false
     return true
 end
 
+# try trail modification (u, x₁, ..., xₙ, w) -> (u, w)
+function _attempt_node_delete_segment!(robot::Robot, top::TOP; verbose::Bool=false)
+    # too short?
+    if length(robot.trail) ≤ 5
+        return false
+    end
+
+    # sample two non-depot nodes to delete between (inclusive)
+    i, j = sort(sample(2:(length(robot.trail)-2), 2, replace=false)) # positions
+
+    u = robot.trail[i-1]
+    v = robot.trail[j+1]
+
+    if (! has_edge(top.g, u, v)) || robot.edge_visit[u, v]
+        return false
+    end
+
+    if verbose
+        println("\tdeleting the ... in the segment ($u, ..., $v)")
+    end
+
+    robot.edge_visit[u, v] = true
+    for k = (i-1):j
+        u′ = robot.trail[k]
+        v′ = robot.trail[k+1]
+        robot.edge_visit[u′, v′] = false
+    end
+    robot.trail = vcat(robot.trail[1:i-1], robot.trail[j+1:end])
+
+    if length(robot.trail) == 3
+        robot.trail == [1, 1]
+    end
+    robot.edge_visit[1, 1] = true # just don't ever turn this off.
+
+    return true
+end
+
 # try trail modification (u, v, w) and (x, y, z) -> (u, y, w) and (x, v, z)
 function _attempt_node_swap!(robot::Robot, top::TOP; verbose::Bool=false)
     # too short for a swap?
@@ -232,10 +269,11 @@ function perturb_trail(
     # current number of non-depot-node visits
     n = length(robot.trail) - 3 # 3 are 1's cuz complete trail
         
-    trail_perturbations = [:swap, :insert, :delete, :substitute, :grab]
+    trail_perturbations = [:swap, :insert, :delete, :substitute, :grab, :delete_segment]
 
     perturbation = sample(trail_perturbations)
     
+    success = false
     if perturbation == :insert
         success = _attempt_node_insertion!(new_robot, top, verbose=verbose)
     elseif perturbation == :grab
@@ -244,6 +282,8 @@ function perturb_trail(
         success = _attempt_node_swap!(new_robot, top, verbose=verbose)
     elseif perturbation == :delete
         success = _attempt_node_deletion!(new_robot, top, verbose=verbose)
+    elseif perturbation == :delete_segment
+        success = _attempt_node_delete_segment!(new_robot, top, verbose=verbose)
     elseif perturbation == :substitute
         success = _attempt_node_substitution!(new_robot, top, verbose=verbose)
     end

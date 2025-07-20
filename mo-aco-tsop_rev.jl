@@ -309,7 +309,7 @@ solution browser: $(@bind soln_id PlutoUI.Slider(1:length(ress[1].global_pareto_
 "
 
 # ╔═╡ f89383c4-e46c-4cc2-967a-11bd451ec486
-ress[run_id].global_pareto_solns[soln_id].robots[2].trail
+ress[run_id].global_pareto_solns[soln_id].robots[1].trail
 
 # ╔═╡ 9d49add3-8b03-402d-aa67-a173a74a2995
 run_id

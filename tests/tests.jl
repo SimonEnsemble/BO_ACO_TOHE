@@ -572,7 +572,7 @@ viz_setup(
 	sa_top, depict_r=false, depict_ω=false, 
 	robots=[
 		Robot(
-		[1, 9, 1, 10, 11, 10, 1, 2, 3, 4, 3, 7, 6, 4, 5, 4, 6, 3, 6, 7, 8, 1, 1], 
+		[1, 2, 3, 4, 6, 7, 8, 1, 1], 
 		sa_top
 		)
 	]
@@ -580,7 +580,7 @@ viz_setup(
 
 # ╔═╡ 75129959-6371-492e-a873-d8380cdda6c8
 begin
-	local robot = Robot([1, 2, 3, 7, 8, 1, 1], sa_top)
+	local robot = Robot([1, 2, 3, 4, 6, 7, 8, 1, 1], sa_top)
 	local n = length(robot.trail)
 	println("OG robot trail: ", robot.trail, "\n")
 	verify(robot, sa_top)
@@ -601,6 +601,11 @@ begin
 	end
 
 	if MOACOTOP._attempt_node_substitution!(robot, sa_top)
+		println("node subs successful")
+		println("new robot trail: ", robot.trail, "\n")	
+	end
+
+	if MOACOTOP._attempt_node_delete_segment!(robot, sa_top, verbose=true)
 		println("node subs successful")
 		println("new robot trail: ", robot.trail, "\n")	
 	end
@@ -645,7 +650,7 @@ begin
 	sa_robot = Robot([1, 10, 1, 1], sa_top)
 	verify(sa_robot, sa_top)
 
-	n_perturbs = 1000000
+	n_perturbs = 10000
 	perturbs = [:blah for i = 1:n_perturbs]
 	for i = 1:n_perturbs
 		# println("starting trail: ", sa_robot.trail)
@@ -662,6 +667,9 @@ begin
 	end
 	target_trails_hit
 end
+
+# ╔═╡ 2cc7f15c-a59e-44aa-a60f-422714fad8f0
+a_star(top.g, 1, 7)
 
 # ╔═╡ a08467cc-7373-40bc-bad3-3b4f85fdfc4f
 for perturb in unique(perturbs)
@@ -746,6 +754,7 @@ sa_robot.trail
 # ╠═ac33ea80-d03e-4f6b-90ef-3294209e396c
 # ╠═cc136635-bcef-4c26-b5d2-af98c80543f8
 # ╠═b0b35b2b-4e9e-4ff4-8bab-bb15f6106f57
+# ╠═2cc7f15c-a59e-44aa-a60f-422714fad8f0
 # ╠═a08467cc-7373-40bc-bad3-3b4f85fdfc4f
 # ╠═9dc772d9-0de7-4fc1-b69b-edcb61cd7681
 # ╠═04fe7fe8-9876-4837-8a00-ea20e39e991c
