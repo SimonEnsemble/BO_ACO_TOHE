@@ -304,3 +304,106 @@ function perturb_trail(
 
     return new_robot, perturbation
 end
+
+function so_simulated_annealing(
+	# the team orienteering problem
+	top::TOP,
+	# weight on reward objective
+	wᵣ::Float64,
+	# number of iterations
+	nb_iters::Int;
+	verbose::Bool=false
+)
+	@assert wᵣ ≤ 1.0 && wᵣ ≥ 0.0
+	if verbose
+		println("weight on reward objective: ", wᵣ)
+	end
+	
+	# start with idle robots
+	robots = [Robot([1, 1], top) for k = 1:top.nb_robots]
+	new_robots = deepcopy(robots) # cuz won't necessary accept
+
+	# track stuff
+	perturbation_counts = Dict(p => 0 for p in MOACOTOP.trail_perturbations)
+	objectives = zeros(nb_iters)
+
+	# cooling schedule
+	T₀   = 0.5
+	Tₘᵢₙ = 0.005
+
+	# store best solution
+	best_soln = Soln(robots, Objs(NaN, NaN))
+	best_obj = -Inf
+
+	# obj normalization factors
+	r_ref = sum([get_r(top, v) for v = 1:nv(top.g)])
+	s_ref = top.nb_robots
+
+	# track last objective to decide to accept or reject (just accept first)
+	old_obj = -Inf
+
+	for i = 1:nb_iters
+		# generate a candidate solution by perturbing current solution
+		# ... so it's a neighbor solution
+		for k = 1:top.nb_robots
+			new_robots[k], perturbation = perturb_trail(robots[k], top)
+			perturbation_counts[perturbation] += 1
+		end
+		
+		# compute two objectives with these robot paths
+		#   normalize so temperature makes sense
+		new_objs = Objs(
+	        𝔼_reward(new_robots, top) / r_ref,
+	        𝔼_nb_robots_survive(new_robots, top) / s_ref
+	    )
+	
+		# compute aggregated objective
+		new_obj = wᵣ * new_objs.r + (1 - wᵣ) * new_objs.s
+
+		# track global best solution
+		if new_obj > best_obj
+			best_soln = Soln(deepcopy(new_robots), new_objs)
+			best_obj = new_obj
+		end
+
+		# temperature
+		T = max(T₀ - (i - 1) / nb_iters, Tₘᵢₙ)
+
+		if verbose
+			println("iteration ", i)
+			println("\ttemperature: ", round(T, digits=2))
+			println("\tcurrent objective: ", round(old_obj, digits=3))
+			println("\taggregated new objective: ", round(new_obj, digits=3))
+			println("\t\tbest objective so far: ", round(best_obj, digits=3))
+		end
+
+		# decide to accept or reject
+		Δ_obj = new_obj - old_obj
+		if Δ_obj > 0.0 # improved solution!
+			# accept
+			robots = deepcopy(new_robots)
+			old_obj = new_obj
+			if verbose
+				println("\t\taccepting better solution.")
+			end
+		else # worse solution
+			p_accept = exp(Δ_obj / T)
+			if rand() < p_accept
+				robots = deepcopy(new_robots)
+				old_obj = new_obj
+				if verbose
+					println(
+						"\t\taccepting worse soln w. prob $(round(p_accept, digits=2))."
+					)
+				end
+			else
+				if verbose
+					println("\t\trejecting worse solution w. prob $(round(1-p_accept, digits=2)).")
+				end
+			end
+		end
+
+		objectives[i] = old_obj
+	end
+	return best_soln, objectives, perturbation_counts
+end
