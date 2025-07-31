@@ -78,7 +78,11 @@ function Robot(trail::Vector{Int}, top::TOP)
         v = trail[i+1]
         edge_visit[u, v] = true
     end
-    done = (trail[1] == trail[end] == trail[end-1] == 1)
+    if length(trail) == 1
+        done = false
+    else
+        done = (trail[1] == trail[end] == trail[end-1] == 1)
+    end
     return Robot(trail, edge_visit, done)
 end
 
