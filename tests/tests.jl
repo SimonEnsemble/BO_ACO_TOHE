@@ -556,12 +556,15 @@ begin
 	perturbation_count = Dict(p => 0 for p in MOACOTOP.trail_perturbations)
 	local robot = Robot([1, 2, 3, 7, 8, 1, 1], sa_top)
 	@test robot.done
+	old_trail = robot.trail
 	for i = 1:1000
 		robot, perturbation = perturb_trail(robot, sa_top, do_verification=true)
 		perturbation_count[perturbation] += 1
 		println(perturbation)
 		println(robot.trail)
 		@assert robot.done
+		@assert robot.trail != old_trail
+		old_trail = deepcopy(robot.trail)
 	end
 	perturbation_count
 end
@@ -678,6 +681,7 @@ begin
 			end
 		end
 		if all(target_trails_hit)
+			perturbs = perturbs[1:i]
 			break
 		end
 	end
@@ -689,11 +693,47 @@ for perturb in unique(perturbs)
 	println(perturb, " count: ", count(==(perturb), perturbs))
 end
 
+# ╔═╡ f2f7f98c-1044-4e3c-8368-93defdad0ac2
+perturbs
+
 # ╔═╡ 9dc772d9-0de7-4fc1-b69b-edcb61cd7681
 viz_setup(sa_top, depict_r=false, depict_ω=false, robots=[sa_robot])
 
-# ╔═╡ 04fe7fe8-9876-4837-8a00-ea20e39e991c
-sa_robot.trail
+# ╔═╡ c1408e85-0085-4d8e-96ce-7a90ee661852
+function mo_simulated_annealing(
+	top::TOP,
+	nb_ws::Int,
+	nb_iters_per_w::Int;
+	verbose::Bool=false
+)
+	solns = Soln[]
+	agg_objectives = Vector{Float64}[]
+	wᵣs = collect(range(0.0, 1.0, length=nb_ws))
+	for (i, wᵣ) in enumerate(wᵣs)
+		best_soln, agg_objective, perturbation_counts = so_simulated_annealing(
+			top, wᵣ, nb_iters_per_w
+		)
+		push!(solns, best_soln)
+		push!(agg_objectives, agg_objective)
+	end
+
+	pareto_solns = get_pareto_solns(solns, true)
+	return pareto_solns, agg_objectives, wᵣs
+end
+
+# ╔═╡ 4dc6b41a-2ae2-4c61-9a07-2f1cee5d2d3b
+mo_simulated_annealing(top, 6, 100)
+
+# ╔═╡ b5f4fd71-c141-40a1-b4f7-2366b7b30c88
+best_soln, agg_objectives, perturbation_counts = so_simulated_annealing(
+	top, 1.0, 100, verbose=true, T₀=0.3
+)
+
+# ╔═╡ 06272853-586c-4a50-90d4-bc2ce91fd9a1
+best_soln
+
+# ╔═╡ 5c4eb766-ff52-474b-a2b3-4c04e70d55e4
+lines(1:length(agg_objectives), agg_objectives)
 
 # ╔═╡ Cell order:
 # ╠═d493a41c-3879-11ee-32aa-052ae56d5240
@@ -770,5 +810,10 @@ sa_robot.trail
 # ╠═06c11383-613c-4897-8f99-e5d1d752d879
 # ╠═b0b35b2b-4e9e-4ff4-8bab-bb15f6106f57
 # ╠═a08467cc-7373-40bc-bad3-3b4f85fdfc4f
+# ╠═f2f7f98c-1044-4e3c-8368-93defdad0ac2
 # ╠═9dc772d9-0de7-4fc1-b69b-edcb61cd7681
-# ╠═04fe7fe8-9876-4837-8a00-ea20e39e991c
+# ╠═c1408e85-0085-4d8e-96ce-7a90ee661852
+# ╠═4dc6b41a-2ae2-4c61-9a07-2f1cee5d2d3b
+# ╠═b5f4fd71-c141-40a1-b4f7-2366b7b30c88
+# ╠═06272853-586c-4a50-90d4-bc2ce91fd9a1
+# ╠═5c4eb766-ff52-474b-a2b3-4c04e70d55e4
