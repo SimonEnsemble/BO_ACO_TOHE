@@ -1,6 +1,7 @@
 # note: [1, 1]
 # and [1, x, 1, 1] are annoying cases for insert.
 
+trail_perturbations = [:swap, :insert, :delete, :substitute, :grab, :delete_segment]
 
 # try trail modification (u, w) -> (u, v, u, w)
 function _attempt_node_grab!(robot::Robot, top::TOP; verbose::Bool=false)
@@ -49,7 +50,7 @@ function _attempt_node_insertion!(robot::Robot, top::TOP; verbose::Bool=false)
         i = 1
     else
         # 1, x₁, ..., xₙ, 1, 1 length = n + 3
-        i = rand(1:(length(robot.trail)-2)) # first, last, second-to-last are depot
+        i = rand(1:(length(robot.trail)-1)) # allow insertion after first 1 at end.
     end
     
     # proposal: (u, w) -> (u, v, w)
@@ -80,10 +81,13 @@ function _attempt_node_insertion!(robot::Robot, top::TOP; verbose::Bool=false)
     robot.edge_visit[u, w] = false # turn off old edge
     robot.edge_visit[u, v] = true
     robot.edge_visit[v, w] = true
-
-    if length(robot.trail) == 3
-        push!(robot.trail, 1) # gotta be (1, 1) -> (1, v, 1, 1)
-        @assert u == w == 1
+    
+    # (1, 1) --> (1, v, 1)
+    #   or
+    # (1, ..., 1, 1) --> (1, ..., 1, v, 1)
+    # ...need 1, 1 at end to signal completion
+    if u == w == 1
+        push!(robot.trail, 1)
         robot.edge_visit[1, 1] = true
     end
 
@@ -174,7 +178,7 @@ function _attempt_node_substitution!(robot::Robot, top::TOP; verbose::Bool=false
     return true
 end
 
-# try trail modification (u, x₁, ..., xₙ, w) -> (u, w)
+# try trail modification (1, ..., u, x₁, ..., xₙ, v, ..., 1, 1) -> (1, u, v, 1, 1)
 function _attempt_node_delete_segment!(robot::Robot, top::TOP; verbose::Bool=false)
     # too short?
     if length(robot.trail) ≤ 5
@@ -260,7 +264,7 @@ function _attempt_node_swap!(robot::Robot, top::TOP; verbose::Bool=false)
 end
 
 function perturb_trail(
-    robot::Robot, top::TOP; verbose::Bool=false
+    robot::Robot, top::TOP; verbose::Bool=false, do_verification::Bool=true
 )
     # create copy of trail (will not necessarily accept perturbation)
     @assert robot.done
@@ -269,7 +273,6 @@ function perturb_trail(
     # current number of non-depot-node visits
     n = length(robot.trail) - 3 # 3 are 1's cuz complete trail
         
-    trail_perturbations = [:swap, :insert, :delete, :substitute, :grab, :delete_segment]
 
     perturbation = sample(trail_perturbations)
     
@@ -295,7 +298,9 @@ function perturb_trail(
     if verbose
         println("\tnew trail: ", new_robot.trail)
     end
-    verify(new_robot, top)
+    if do_verification
+        verify(new_robot, top)
+    end
 
     return new_robot, perturbation
 end

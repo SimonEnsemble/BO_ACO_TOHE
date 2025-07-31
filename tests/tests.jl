@@ -548,14 +548,22 @@ sa_top = generate_sa_top()
 # ╔═╡ 8b307b88-1ab9-4b2b-9a56-f48f725af487
 viz_setup(sa_top, depict_r=false, depict_ω=false)
 
+# ╔═╡ d9b6c372-da24-44f8-b0e5-8fad8374e49d
+MOACOTOP.trail_perturbations
+
 # ╔═╡ 3cf810a9-b10f-4b1f-b0bd-84d50ce51776
 begin
+	perturbation_count = Dict(p => 0 for p in MOACOTOP.trail_perturbations)
 	local robot = Robot([1, 2, 3, 7, 8, 1, 1], sa_top)
+	@test robot.done
 	for i = 1:1000
-		robot, perturbation = perturb_trail(robot, sa_top)
+		robot, perturbation = perturb_trail(robot, sa_top, do_verification=true)
+		perturbation_count[perturbation] += 1
 		println(perturbation)
 		println(robot.trail)
+		@assert robot.done
 	end
+	perturbation_count
 end
 
 # ╔═╡ 0dfc5db7-d228-4fdd-8c89-8b1a0a1afd0c
@@ -640,9 +648,17 @@ viz_setup(sa_top, depict_r=false, depict_ω=false)
 target_trails = [
 	[1, 9, 1, 1],
 	[1, 1],
-	[1, 9, 1, 10, 11, 1, 1],
-	[1, 2, 3, 7, 8, 1, 1]
+	[1, 9, 1, 10, 11, 10, 1, 1],
+	[1, 2, 3, 7, 8, 1, 1],
+	[1, 2, 3, 4, 6, 7, 8, 1, 1],
+	[1, 2, 3, 6, 3, 7, 8, 1, 1],
+	[1, 2, 3, 4, 5, 4, 6, 7, 8, 1, 9, 1, 1],
 ]
+
+# ╔═╡ 06c11383-613c-4897-8f99-e5d1d752d879
+for target_trail in target_trails
+	verify(Robot(target_trail, sa_top), sa_top)
+end
 
 # ╔═╡ b0b35b2b-4e9e-4ff4-8bab-bb15f6106f57
 begin
@@ -650,7 +666,7 @@ begin
 	sa_robot = Robot([1, 10, 1, 1], sa_top)
 	verify(sa_robot, sa_top)
 
-	n_perturbs = 10000
+	n_perturbs = 50000
 	perturbs = [:blah for i = 1:n_perturbs]
 	for i = 1:n_perturbs
 		# println("starting trail: ", sa_robot.trail)
@@ -665,11 +681,8 @@ begin
 			break
 		end
 	end
-	target_trails_hit
+	@test all(target_trails_hit)
 end
-
-# ╔═╡ 2cc7f15c-a59e-44aa-a60f-422714fad8f0
-a_star(top.g, 1, 7)
 
 # ╔═╡ a08467cc-7373-40bc-bad3-3b4f85fdfc4f
 for perturb in unique(perturbs)
@@ -745,6 +758,7 @@ sa_robot.trail
 # ╠═e1c9e8d9-773b-4713-a770-95edd56ea8cd
 # ╠═11905c84-4de9-4a50-a3b0-efddd80218af
 # ╠═8b307b88-1ab9-4b2b-9a56-f48f725af487
+# ╠═d9b6c372-da24-44f8-b0e5-8fad8374e49d
 # ╠═3cf810a9-b10f-4b1f-b0bd-84d50ce51776
 # ╠═0dfc5db7-d228-4fdd-8c89-8b1a0a1afd0c
 # ╠═65f2d1a8-7b0f-4b41-aa1e-429a18236ed1
@@ -753,8 +767,8 @@ sa_robot.trail
 # ╟─9b8b996f-355b-4eec-9508-d63d40907776
 # ╠═ac33ea80-d03e-4f6b-90ef-3294209e396c
 # ╠═cc136635-bcef-4c26-b5d2-af98c80543f8
+# ╠═06c11383-613c-4897-8f99-e5d1d752d879
 # ╠═b0b35b2b-4e9e-4ff4-8bab-bb15f6106f57
-# ╠═2cc7f15c-a59e-44aa-a60f-422714fad8f0
 # ╠═a08467cc-7373-40bc-bad3-3b4f85fdfc4f
 # ╠═9dc772d9-0de7-4fc1-b69b-edcb61cd7681
 # ╠═04fe7fe8-9876-4837-8a00-ea20e39e991c
