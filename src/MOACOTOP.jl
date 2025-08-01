@@ -12,9 +12,9 @@ module MOACOTOP
     include("ants.jl")
     include("build_soln.jl")
     include("mo_aco.jl")
+    include("simulated_annealing.jl")
     include("viz.jl")
     include("examples.jl")
-    include("simulated_annealing.jl")
     export TOP, Robot, verify, hop_to!, get_ω, get_r, proper_trail, # top.jl
            π_robot_survives, 𝔼_nb_robots_survive, π_robot_visits_node_j, 𝔼_reward, π_some_robot_visits_node_j, # top_probs.jl
            Objs, Soln, same_trail_set, unique_solns, get_pareto_solns, nondominated, area_indicator, # mo_utils.jl

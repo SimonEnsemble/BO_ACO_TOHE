@@ -414,19 +414,26 @@ struct MO_SA_Run
 	agg_objectives::Vector{Vector{Float64}}
 	wᵣs::Vector{Float64}
 	temp::Function
+    area::Float64
 end
 
+"""
+mo_simulated_annealing(top, nb_ws, nb_iters_per_w, temp)
+"""
 function mo_simulated_annealing(
 	top::TOP,
 	nb_ws::Int,
 	nb_iters_per_w::Int,
 	temp::Function;
-	verbose::Bool=false
+	verbose::Bool=false,
+    my_seed::Int=97330
 )
+    Random.seed!(my_seed)
+
 	solns = Soln[]
 	agg_objectives = Vector{Float64}[]
 	wᵣs = collect(range(0.0, 1.0, length=nb_ws))
-	for (i, wᵣ) in enumerate(wᵣs)
+	@progress for (i, wᵣ) in enumerate(wᵣs)
 		best_soln, agg_objective, perturbation_counts = so_simulated_annealing(
 			top, wᵣ, nb_iters_per_w, temp
 		)
@@ -436,11 +443,15 @@ function mo_simulated_annealing(
 
 	pareto_solns = get_pareto_solns(solns, true)
 	sort!(pareto_solns, by=s -> s.objs.r)
+    
+    reward_sum = sum([get_r(top.g, v) for v = 1:nv(top.g)])
+    area = area_indicator(pareto_solns, reward_sum, top.nb_robots)
 	return MO_SA_Run(
 		nb_ws * nb_iters_per_w,
 		pareto_solns,
 		agg_objectives,
 		wᵣs,
-		temp
+		temp,
+        area
 	)
 end

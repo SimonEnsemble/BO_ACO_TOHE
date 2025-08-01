@@ -40,14 +40,16 @@ end
 TableOfContents()
 
 # ╔═╡ 613ad2a0-abb7-47f5-b477-82351f54894a
-md"# BO-ACO of RTOHE problem
-BO = bi-objective
+md"
 
-ACO = ant colony optimization
+!!! warning \"BO-ACO of RTOHE problem\"
+	BO = bi-objective
 
-RTOHE = robot team orienteering in a hazardous environment
+	ACO = ant colony optimization
 
-## generate problem instance
+	RTOHE = robot team orienteering in a hazardous environment
+
+# problem definition
 "
 
 # ╔═╡ 7e4e838c-0e42-4925-9ddf-4c3601466b64
@@ -99,22 +101,8 @@ end
 # ╔═╡ 76ecc4c1-39b7-4b3c-b98c-cdb1cdcf7eba
 @assert get_ω(top.g, 1, 1) == 1.0
 
-# ╔═╡ 0d37a5b6-042f-4951-9dfe-7b7082561c46
-function get_unvisited_nodes(trail::Vector{Int}, nb_nodes::Int)
-	return [v for v = 1:nb_nodes if ! (v in trail)]
-end
-
-# ╔═╡ f9d57f37-60ef-482e-9266-afbcb567be08
-get_ω(top.g, 1, 1)
-
-# ╔═╡ 21ef0739-9c36-4825-b965-b99cd984b9d2
-nv(top.g)
-
-# ╔═╡ efeeb427-9061-4c77-b1c0-50b26abdb6a6
-top.nb_robots
-
 # ╔═╡ f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
-md"## viz setup"
+md"## viz problem setup"
 
 # ╔═╡ e3946d78-b7d4-4484-9e00-dc20d0457293
 if problem_instance == "art_museum"
@@ -155,7 +143,9 @@ begin
 end
 
 # ╔═╡ 9d44f37d-8c05-450a-a448-7be50387499c
-md"## MO-ACO 🐜
+md"# MO-ACO
+
+## do it! 🐜
 "
 
 # ╔═╡ b9a9808e-8631-45e1-9e31-516565c804a3
@@ -177,18 +167,13 @@ md"set seeds same to give each the same initial condition for fair comparison."
 # ╔═╡ 17117efa-c63e-4193-a99b-c7423367fc06
 my_seeds = [rand(1:typemax(Int)) for r = 1:n_runs]
 
-# ╔═╡ 70f8f70f-83ad-4d2b-a40f-7e616462a9c1
-test_run = mo_aco(
-	top, 
-	verbose=true, 
-	nb_ants=100, 
-	nb_iters=25,
-	use_heuristic=true,
-	use_pheremone=true,
-	run_checks=run_checks,
-	my_seed=my_seeds[1], 
-	one_pheromone_trail_per_robot=true
-)
+# ╔═╡ 4e0244cb-f853-4156-ba5f-392592a12d9d
+md"🐜 BO-ACO with:
+
+✔ heuristic
+✔ pheremone
+✔ shared pheremone trail among robots.
+"
 
 # ╔═╡ a8e27a0e-89da-4206-a7e2-94f796cac8b4
 @time ress = [
@@ -206,94 +191,11 @@ test_run = mo_aco(
 	for r = 1:n_runs
 ]
 
-# ╔═╡ 0f66c200-8478-4d8c-a2e2-69425b04e5f2
-begin	
-	function perturb_trail(
-		robot::Robot, top::TOP
-	)
-		# create copy of trail (will not necessarily accept perturbation)
-		new_trail = deepcopy(robot.trail)
-		@assert new_trail[1] == new_trail[end] == new_trail[end-1] == 1
-		
-		# current number of non-depot-node visits
-		n = length(robot.trail) - 3
-
-		@show robot.trail
-
-		# candidate perturbations
-		if n == 0 # stay at depot node
-			trail_perturbations = [:insert]
-		elseif n == nv(top.g) - 1 # all nodes visisted
-			trail_perturbations = [:swap, :delete, :rev_subseq]
-		elseif n == 1
-			trail_perturbations = [:insert, :delete, :substitute]
-		else
-			trail_perturbations = [:swap, :insert, :delete, :substitute, :rev_subseq]
-		end
-		
-		perturbation = sample(trail_perturbations)
-		@show perturbation
-		
-		if perturbation == :insert
-			# where to insert?
-			i = 1 + rand(1:(n+1)) # 1 b/c first node stays depot
-
-			# list of candidate nodes to insert
-			unvisited_nodes = get_unvisited_nodes(new_trail, nv(top.g))
-
-			# pick a node to insert
-			new_v =  rand(unvisited_nodes)
-
-			# do it!
-			insert!(new_trail, i, new_v)
-		elseif perturbation == :swap
-			# sample two non-depot nodes to swap
-			i, j = sample(2:(n+1), 2, replace=false) # positions
-			u, v = new_trail[i], new_trail[j]    # actual node IDs
-	
-			# swap
-			new_trail[i] = v
-			new_trail[j] = u
-		elseif perturbation == :delete
-			i = rand(2:(n+1))
-			deleteat!(new_trail, i)
-		elseif perturbation == :substitute
-			# choose node to substitute
-			unvisited_nodes = get_unvisited_nodes(new_trail, nv(top.g))
-			v = rand(unvisited_nodes)
-			
-			# node index to eliminate
-			i = rand(2:(n+1))
-
-			# substitute
-			new_trail[i] = v
-		elseif perturbation == :rev_subseq
-			i, j = sample(2:(n+1), 2, replace=false) # positions
-			ids = (j > i) ? (i:j) : (j:i)
-			@show ids
-			new_trail[ids] = reverse(new_trail[ids])
-		end
-			
-		# end
-		@show new_trail
-		@assert new_trail != robot.trail
-		@assert new_trail[1] == new_trail[end] == new_trail[end-1] == 1
-		
-		return new_trail
-	end
-	
-
-	eg_robot = ress[1].global_pareto_solns[5].robots[2]
-	for i = 1:100
-		perturb_trail(eg_robot, top)
-	end
-end
-
-# ╔═╡ 9adc9690-6436-4ba6-a813-8883aa0f3aca
-reverse(eg_robot.trail)
-
 # ╔═╡ 3a1caac3-dd55-42fb-91b2-2f9c3001c22c
-md"area indicator at end of search:"
+md"
+## analyze performance
+
+area indicator at end of search:"
 
 # ╔═╡ 793286fa-ff36-44bb-baaf-e7fd819c5aa4
 [res.areas[end] for res in ress]
@@ -303,6 +205,8 @@ viz_progress(ress, savename="progress")
 
 # ╔═╡ 3d98df3e-ec41-4685-b15d-bd99ec4bd5f7
 md"
+## 👓 inspect solutions
+
 run browser: $(@bind run_id PlutoUI.Slider(1:n_runs))
 
 solution browser: $(@bind soln_id PlutoUI.Slider(1:length(ress[1].global_pareto_solns)))
@@ -340,14 +244,11 @@ viz_soln(
 	ress[run_id].global_pareto_solns[soln_id], top, show_𝔼=false, savename="a_soln", layout=layout, robot_radius=robot_radius
 )
 
-# ╔═╡ 282b9a15-f2d3-4dd8-8944-758b5d0d3bb7
-length(ress[run_id].global_pareto_solns[1].robots)
+# ╔═╡ e55fbea2-4865-498f-abeb-86f6db202b43
+md"## viz pheremone"
 
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 viz_pheremone(ress[run_id].pheremone, top, savename="paper/pheremone", layout=layout)
-
-# ╔═╡ 3d7c6d35-f730-4dc8-a3be-b415e3276013
-sort(rand(23), rev=true)
 
 # ╔═╡ 17c48342-f684-4149-b1ea-b626896a4691
 viz_soln(
@@ -355,7 +256,16 @@ viz_soln(
 )
 
 # ╔═╡ 514851fe-da59-4885-9dc8-0c9fb0c02223
-md"### baselines"
+md"# baselines
+
+## 🐜 one pheremone trail per robot
+
+🐜 BO-ACO with:
+
+✔ heuristic
+✔ pheremone
+✔ one pheremone trail for each robot.
+"
 
 # ╔═╡ 2442f18e-9a4c-4a0f-bdf7-6fe1d1517a6b
 ress_multiple_trails = [
@@ -374,17 +284,20 @@ ress_multiple_trails = [
 	for r = 1:n_runs
 ]
 
+# ╔═╡ fcc1ab11-8f42-4d96-87c9-c59c9b6eadd6
+md"look at pheremone trail for different robots"
+
 # ╔═╡ 42590ba8-bca3-4309-a9cf-dad307124463
 begin
-	local k = 4 # robot ID
+	local k = 2 # robot ID
 	viz_pheremone(
 		ress_multiple_trails[run_id].pheremone[k], top, 
 		savename="paper/pheremone_$k", layout=layout
 	)
 end
 
-# ╔═╡ 72ae4f16-173d-4e22-b338-c6781143fa5f
-ress_multiple_trails[run_id].pheremone[1]
+# ╔═╡ 9d4ae33a-7fac-4a8d-b37a-29ab00b8056d
+md"## 🧠 heuristic-guided search"
 
 # ╔═╡ 67c9334e-1155-4ef3-8d75-030dcfc1e570
 ress_heuristic_only = [
@@ -400,6 +313,13 @@ ress_heuristic_only = [
 	)
 	for r = 1:n_runs
 ]
+
+# ╔═╡ 5defd4be-0e97-4826-96b6-8c2cc77e0c08
+md"## 🐜 pheremone only
+BO-ACO with:
+
+✔ pheremone
+✔ one pheremone trail for each robot."
 
 # ╔═╡ 3b94a9a8-93c8-4e46-ae23-63374d368b16
 ress_pheremone_only = [
@@ -417,6 +337,9 @@ ress_pheremone_only = [
 	for r=1:n_runs
 ]
 
+# ╔═╡ b566ec79-c4a7-47b5-8620-e10549252554
+md"## 🎲 random search"
+
 # ╔═╡ 2400b72e-2d1a-4c2e-91c7-14c8ac92cc11
 ress_random = [
 	mo_aco(
@@ -432,6 +355,50 @@ ress_random = [
 	for r=1:n_runs
 ]
 
+# ╔═╡ 8c1b4a18-2a7a-47b0-aeff-27014ff351a9
+md"## 🔮 simulated annealing
+
+cooling scheme
+"
+
+# ╔═╡ c19cc243-aa94-463c-a08d-abb8e6e5736b
+function temp(f)
+	return max(0.25 * (1 - f), 0.005)
+end
+
+# ╔═╡ caf53a18-921c-40aa-b3dd-20deb3877f14
+mo_simulated_annealing(
+			top, 5, 5, temp, my_seed=my_seeds[1]
+		)
+
+# ╔═╡ c7aa05d2-824d-4744-845d-04c6ab3e1d80
+md"iters. a bit different than ACO since gotta re-run for each number of iters.
+factor into weights for aggregeated objectives and iters per single objective problem.
+"
+
+# ╔═╡ 1f49a5d2-46df-4750-8600-16c9a70d14d5
+sa_iters = [100, 200].^ 2
+
+# ╔═╡ 7fccd71f-8864-443e-851a-af529eeb02f8
+ress_sa = [
+	[
+		mo_simulated_annealing(
+			top, Int(sqrt(i)), Int(sqrt(i)), temp, my_seed=my_seeds[r]
+		)
+		for i in sa_iters
+	]
+	for r = 1:n_runs
+]
+
+# ╔═╡ c30ea441-6814-41b4-b9f2-458d701cebb6
+viz_agg_objectives(ress_sa[1][1])
+
+# ╔═╡ 3e6b0efd-7757-487a-b9a5-6346a69d5997
+ress_sa[1][1].total_nb_iters
+
+# ╔═╡ 272b6d1a-0e4f-4f2e-90db-eb328569497c
+md"## 👓 compare searches"
+
 # ╔═╡ 0808a99f-1f55-4b0a-81e9-3f511c9f55d5
 begin
 	local fig = Figure(size=(700, 400))
@@ -442,6 +409,7 @@ begin
 		xscale=log10
 	)
 	for r = 1:n_runs
+		# ACOs
 		lines!(
 			1:ress[r].nb_iters, ress[r].areas, 
 			label="ACO", linewidth=3, color=(wongcolors()[1], 0.5)
@@ -463,6 +431,12 @@ begin
 			1:ress_random[r].nb_iters, ress_random[r].areas, 
 			label="random", linewidth=3, color=(wongcolors()[4], 0.5)
 		)
+		# simulated annealing
+		scatter!(
+			[sa_res.total_nb_iters for sa_res in ress_sa[r]],
+			[sa_res.area for sa_res in ress_sa[r]],
+			label="simulated annealing"
+		)
 	end
 	fig[1, 2] = Legend(
 		fig, ax, "search algorithm", framevisible = false, unique=true
@@ -478,12 +452,6 @@ end
 # ╟─7e4e838c-0e42-4925-9ddf-4c3601466b64
 # ╠═bdb5d550-13f6-4d8d-9a74-14b889efe7a2
 # ╠═76ecc4c1-39b7-4b3c-b98c-cdb1cdcf7eba
-# ╠═0d37a5b6-042f-4951-9dfe-7b7082561c46
-# ╠═0f66c200-8478-4d8c-a2e2-69425b04e5f2
-# ╠═9adc9690-6436-4ba6-a813-8883aa0f3aca
-# ╠═f9d57f37-60ef-482e-9266-afbcb567be08
-# ╠═21ef0739-9c36-4825-b965-b99cd984b9d2
-# ╠═efeeb427-9061-4c77-b1c0-50b26abdb6a6
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
 # ╠═e3946d78-b7d4-4484-9e00-dc20d0457293
 # ╠═74ce2e45-8c6c-40b8-8b09-80d97f58af2f
@@ -491,9 +459,9 @@ end
 # ╟─9d44f37d-8c05-450a-a448-7be50387499c
 # ╟─b9a9808e-8631-45e1-9e31-516565c804a3
 # ╠═cdfdf924-d0f5-452f-9c94-eef7592c374d
-# ╠═70f8f70f-83ad-4d2b-a40f-7e616462a9c1
 # ╟─8a6c6d9a-e15a-4f22-9d86-00e591b15693
 # ╠═17117efa-c63e-4193-a99b-c7423367fc06
+# ╟─4e0244cb-f853-4156-ba5f-392592a12d9d
 # ╠═a8e27a0e-89da-4206-a7e2-94f796cac8b4
 # ╟─3a1caac3-dd55-42fb-91b2-2f9c3001c22c
 # ╠═793286fa-ff36-44bb-baaf-e7fd819c5aa4
@@ -507,15 +475,26 @@ end
 # ╠═4769582f-6498-4f14-a965-ed109b7f97d1
 # ╠═60917dfc-8342-4bae-abec-d64eab350c15
 # ╠═751c4203-88b1-40dd-9a96-926cd614aef8
-# ╠═282b9a15-f2d3-4dd8-8944-758b5d0d3bb7
+# ╟─e55fbea2-4865-498f-abeb-86f6db202b43
 # ╠═197ea13f-b460-4457-a2ad-ae8d63c5e5ea
-# ╠═3d7c6d35-f730-4dc8-a3be-b415e3276013
 # ╠═17c48342-f684-4149-b1ea-b626896a4691
 # ╟─514851fe-da59-4885-9dc8-0c9fb0c02223
 # ╠═2442f18e-9a4c-4a0f-bdf7-6fe1d1517a6b
+# ╟─fcc1ab11-8f42-4d96-87c9-c59c9b6eadd6
 # ╠═42590ba8-bca3-4309-a9cf-dad307124463
-# ╠═72ae4f16-173d-4e22-b338-c6781143fa5f
+# ╟─9d4ae33a-7fac-4a8d-b37a-29ab00b8056d
 # ╠═67c9334e-1155-4ef3-8d75-030dcfc1e570
+# ╟─5defd4be-0e97-4826-96b6-8c2cc77e0c08
 # ╠═3b94a9a8-93c8-4e46-ae23-63374d368b16
+# ╟─b566ec79-c4a7-47b5-8620-e10549252554
 # ╠═2400b72e-2d1a-4c2e-91c7-14c8ac92cc11
+# ╟─8c1b4a18-2a7a-47b0-aeff-27014ff351a9
+# ╠═c19cc243-aa94-463c-a08d-abb8e6e5736b
+# ╠═caf53a18-921c-40aa-b3dd-20deb3877f14
+# ╟─c7aa05d2-824d-4744-845d-04c6ab3e1d80
+# ╠═1f49a5d2-46df-4750-8600-16c9a70d14d5
+# ╠═7fccd71f-8864-443e-851a-af529eeb02f8
+# ╠═c30ea441-6814-41b4-b9f2-458d701cebb6
+# ╠═3e6b0efd-7757-487a-b9a5-6346a69d5997
+# ╟─272b6d1a-0e4f-4f2e-90db-eb328569497c
 # ╠═0808a99f-1f55-4b0a-81e9-3f511c9f55d5
