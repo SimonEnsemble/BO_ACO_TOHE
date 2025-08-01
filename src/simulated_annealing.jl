@@ -311,11 +311,12 @@ function so_simulated_annealing(
     # weight on reward objective
     wᵣ::Float64,
     # number of iterations
-    nb_iters::Int;
+    nb_iters::Int,
+    # cooling schedule. 
+    #   a function of
+    #   f := (i-1)/nb_iters
+    temp::Function;
     verbose::Bool=false,
-    # cooling schedule
-    T₀::Float64=0.5,
-    Tₘᵢₙ::Float64=0.005
 )
     @assert wᵣ ≤ 1.0 && wᵣ ≥ 0.0
     if verbose
@@ -366,7 +367,7 @@ function so_simulated_annealing(
         end
 
         # temperature
-        T = max(T₀ - (i - 1) / nb_iters, Tₘᵢₙ)
+        T = temp((i - 1) / nb_iters)
 
         if verbose
             println("iteration ", i)
@@ -405,4 +406,41 @@ function so_simulated_annealing(
         agg_objectives[i] = old_obj
     end
     return best_soln, agg_objectives, perturbation_counts
+end
+
+struct MO_SA_Run
+	total_nb_iters::Int
+	pareto_solns::Vector{Soln}
+	agg_objectives::Vector{Vector{Float64}}
+	wᵣs::Vector{Float64}
+	temp::Function
+end
+
+function mo_simulated_annealing(
+	top::TOP,
+	nb_ws::Int,
+	nb_iters_per_w::Int,
+	temp::Function;
+	verbose::Bool=false
+)
+	solns = Soln[]
+	agg_objectives = Vector{Float64}[]
+	wᵣs = collect(range(0.0, 1.0, length=nb_ws))
+	for (i, wᵣ) in enumerate(wᵣs)
+		best_soln, agg_objective, perturbation_counts = so_simulated_annealing(
+			top, wᵣ, nb_iters_per_w, temp
+		)
+		push!(solns, best_soln)
+		push!(agg_objectives, agg_objective)
+	end
+
+	pareto_solns = get_pareto_solns(solns, true)
+	sort!(pareto_solns, by=s -> s.objs.r)
+	return MO_SA_Run(
+		nb_ws * nb_iters_per_w,
+		pareto_solns,
+		agg_objectives,
+		wᵣs,
+		temp
+	)
 end

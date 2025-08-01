@@ -551,3 +551,42 @@ function viz_progress(ress::Vector{MO_ACO_run}; savename::String="", the_size::T
     end
     fig
 end
+
+"""
+for simualted annealing
+"""
+function viz_agg_objectives(run::MO_SA_Run)
+	colormap = ColorSchemes.:buda
+
+	fig = Figure()
+
+	# temp
+	nb_iters_per_wᵣ = length(run.agg_objectives[1])
+	ax_temp = Axis(fig[0, 1], ylabel="temperature")
+	hidexdecorations!(ax_temp)
+	iters = 1:nb_iters_per_wᵣ
+	lines!(
+		ax_temp, iters, [run.temp((i-1)/nb_iters_per_wᵣ) for i in iters],
+		color=:black
+	)
+
+	# agg objs
+	ax = Axis(
+		fig[1, 1],
+		xlabel="iteration",
+		ylabel="normalized\naggregated\nobjective"
+	)
+	linkxaxes!(ax_temp, ax)
+	for (i, (wᵣ, agg_obj)) in enumerate(zip(run.wᵣs, run.agg_objectives))
+		lines!(agg_obj, color=get(colormap, wᵣ))
+	end
+	Colorbar(fig[1, 2], colormap=colormap, label="wᵣ")
+
+	for a in [ax, ax_temp]
+		ylims!(a, 0, 1)
+	end
+
+	rowsize!(fig.layout, 0, Relative(0.3))
+
+	fig
+end

@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.11
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -34,6 +34,9 @@ begin
 		# resolution=the_resolution
 	)
 end
+
+# ╔═╡ 6d3e7730-32e4-4857-961b-25b221d41c5e
+PlutoUI.TableOfContents()
 
 # ╔═╡ 2d6e9814-74e5-4e07-9980-b3f6c06863e9
 md"# testing
@@ -693,50 +696,21 @@ for perturb in unique(perturbs)
 	println(perturb, " count: ", count(==(perturb), perturbs))
 end
 
-# ╔═╡ f2f7f98c-1044-4e3c-8368-93defdad0ac2
-perturbs
-
 # ╔═╡ 9dc772d9-0de7-4fc1-b69b-edcb61cd7681
 viz_setup(sa_top, depict_r=false, depict_ω=false, robots=[sa_robot])
 
-# ╔═╡ c1408e85-0085-4d8e-96ce-7a90ee661852
-function mo_simulated_annealing(
-	top::TOP,
-	nb_ws::Int,
-	nb_iters_per_w::Int;
-	verbose::Bool=false
-)
-	solns = Soln[]
-	agg_objectives = Vector{Float64}[]
-	wᵣs = collect(range(0.0, 1.0, length=nb_ws))
-	for (i, wᵣ) in enumerate(wᵣs)
-		best_soln, agg_objective, perturbation_counts = so_simulated_annealing(
-			top, wᵣ, nb_iters_per_w
-		)
-		push!(solns, best_soln)
-		push!(agg_objectives, agg_objective)
-	end
+# ╔═╡ 47e63a5b-bc7e-4348-8032-485a2c58c777
+temp = f -> max(0.25 * (1 - f), 0.005)
 
-	pareto_solns = get_pareto_solns(solns, true)
-	return pareto_solns, agg_objectives, wᵣs
-end
+# ╔═╡ 2e07c6d8-71bf-4676-b486-920c88398eda
+so_simulated_annealing(top, 0.2, 100, temp, verbose=true)
 
 # ╔═╡ 4dc6b41a-2ae2-4c61-9a07-2f1cee5d2d3b
-mo_simulated_annealing(top, 6, 100)
-
-# ╔═╡ b5f4fd71-c141-40a1-b4f7-2366b7b30c88
-best_soln, agg_objectives, perturbation_counts = so_simulated_annealing(
-	top, 1.0, 100, verbose=true, T₀=0.3
-)
-
-# ╔═╡ 06272853-586c-4a50-90d4-bc2ce91fd9a1
-best_soln
-
-# ╔═╡ 5c4eb766-ff52-474b-a2b3-4c04e70d55e4
-lines(1:length(agg_objectives), agg_objectives)
+sa_run = mo_simulated_annealing(top, 6, 1000, temp)
 
 # ╔═╡ Cell order:
 # ╠═d493a41c-3879-11ee-32aa-052ae56d5240
+# ╠═6d3e7730-32e4-4857-961b-25b221d41c5e
 # ╟─2d6e9814-74e5-4e07-9980-b3f6c06863e9
 # ╠═305a8d3c-98c8-4ca2-baa8-24cbd1f74178
 # ╠═10219d1e-6927-4618-8f02-bb08721587e0
@@ -810,10 +784,7 @@ lines(1:length(agg_objectives), agg_objectives)
 # ╠═06c11383-613c-4897-8f99-e5d1d752d879
 # ╠═b0b35b2b-4e9e-4ff4-8bab-bb15f6106f57
 # ╠═a08467cc-7373-40bc-bad3-3b4f85fdfc4f
-# ╠═f2f7f98c-1044-4e3c-8368-93defdad0ac2
 # ╠═9dc772d9-0de7-4fc1-b69b-edcb61cd7681
-# ╠═c1408e85-0085-4d8e-96ce-7a90ee661852
+# ╠═47e63a5b-bc7e-4348-8032-485a2c58c777
+# ╠═2e07c6d8-71bf-4676-b486-920c88398eda
 # ╠═4dc6b41a-2ae2-4c61-9a07-2f1cee5d2d3b
-# ╠═b5f4fd71-c141-40a1-b4f7-2366b7b30c88
-# ╠═06272853-586c-4a50-90d4-bc2ce91fd9a1
-# ╠═5c4eb766-ff52-474b-a2b3-4c04e70d55e4
