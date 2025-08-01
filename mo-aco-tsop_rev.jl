@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.5
+# v0.20.13
 
 using Markdown
 using InteractiveUtils
@@ -145,7 +145,7 @@ end
 # ╔═╡ 9d44f37d-8c05-450a-a448-7be50387499c
 md"# MO-ACO
 
-## do it! 🐜
+## 🔘 settings
 "
 
 # ╔═╡ b9a9808e-8631-45e1-9e31-516565c804a3
@@ -161,6 +161,9 @@ run checks? $(@bind run_checks CheckBox(default=true))
 # ╔═╡ cdfdf924-d0f5-452f-9c94-eef7592c374d
 ρ = 0.9 # evaporation rate
 
+# ╔═╡ 1aecacee-9df1-4ddc-8497-3bea9c635bfa
+nb_ants = 100
+
 # ╔═╡ 8a6c6d9a-e15a-4f22-9d86-00e591b15693
 md"set seeds same to give each the same initial condition for fair comparison."
 
@@ -168,7 +171,10 @@ md"set seeds same to give each the same initial condition for fair comparison."
 my_seeds = [rand(1:typemax(Int)) for r = 1:n_runs]
 
 # ╔═╡ 4e0244cb-f853-4156-ba5f-392592a12d9d
-md"🐜 BO-ACO with:
+md"
+
+## 🐜 do it!
+ BO-ACO with:
 
 ✔ heuristic
 ✔ pheremone
@@ -180,7 +186,7 @@ md"🐜 BO-ACO with:
 	mo_aco(
 		top, 
 		verbose=false, 
-		nb_ants=100, 
+		nb_ants=nb_ants, 
 		nb_iters=nb_iters,
 		use_heuristic=true,
 		use_pheremone=true,
@@ -272,7 +278,7 @@ ress_multiple_trails = [
 	mo_aco(
 		top, 
 		verbose=false, 
-		nb_ants=100, 
+		nb_ants=nb_ants, 
 		nb_iters=nb_iters,
 		use_heuristic=true,
 		use_pheremone=true,
@@ -304,7 +310,7 @@ ress_heuristic_only = [
 	mo_aco(
 		top, 
 		verbose=false, 
-		nb_ants=100, 
+		nb_ants=nb_ants, 
 		nb_iters=nb_iters,
 		use_heuristic=true,
 		use_pheremone=false,
@@ -326,7 +332,7 @@ ress_pheremone_only = [
 	mo_aco(
 		top, 
 		verbose=false, 
-		nb_ants=100, 
+		nb_ants=nb_ants, 
 		nb_iters=nb_iters,
 		use_heuristic=false,
 		use_pheremone=true,
@@ -345,7 +351,7 @@ ress_random = [
 	mo_aco(
 		top, 
 		verbose=false, 
-		nb_ants=100, 
+		nb_ants=nb_ants, 
 		nb_iters=nb_iters,
 		use_heuristic=false,
 		use_pheremone=false,
@@ -362,14 +368,7 @@ cooling scheme
 "
 
 # ╔═╡ c19cc243-aa94-463c-a08d-abb8e6e5736b
-function temp(f)
-	return max(0.25 * (1 - f), 0.005)
-end
-
-# ╔═╡ caf53a18-921c-40aa-b3dd-20deb3877f14
-mo_simulated_annealing(
-			top, 5, 5, temp, my_seed=my_seeds[1]
-		)
+temp = f -> max(0.5 * (1 - f), 0.005)
 
 # ╔═╡ c7aa05d2-824d-4744-845d-04c6ab3e1d80
 md"iters. a bit different than ACO since gotta re-run for each number of iters.
@@ -393,8 +392,13 @@ ress_sa = [
 # ╔═╡ c30ea441-6814-41b4-b9f2-458d701cebb6
 viz_agg_objectives(ress_sa[1][1])
 
-# ╔═╡ 3e6b0efd-7757-487a-b9a5-6346a69d5997
-ress_sa[1][1].total_nb_iters
+# ╔═╡ a3c5e8b6-99f9-491a-b72a-f73a2602f2fc
+ress_sa[1][end].pareto_solns
+
+# ╔═╡ e9d3fa8a-8297-450f-a060-ba555205792a
+viz_Pareto_front(
+	ress_sa[1][end].pareto_solns, size=(300, 300), incl_legend=false
+)
 
 # ╔═╡ 272b6d1a-0e4f-4f2e-90db-eb328569497c
 md"## 👓 compare searches"
@@ -431,10 +435,13 @@ begin
 			1:ress_random[r].nb_iters, ress_random[r].areas, 
 			label="random", linewidth=3, color=(wongcolors()[4], 0.5)
 		)
-		# simulated annealing
+
+		# simulated annealning
+		#  divide by # of ants to give each own solution
 		scatter!(
-			[sa_res.total_nb_iters for sa_res in ress_sa[r]],
+			[sa_res.total_nb_iters for sa_res in ress_sa[r]] / nb_ants,
 			[sa_res.area for sa_res in ress_sa[r]],
+			color=(wongcolors()[7], 0.5),
 			label="simulated annealing"
 		)
 	end
@@ -459,6 +466,7 @@ end
 # ╟─9d44f37d-8c05-450a-a448-7be50387499c
 # ╟─b9a9808e-8631-45e1-9e31-516565c804a3
 # ╠═cdfdf924-d0f5-452f-9c94-eef7592c374d
+# ╠═1aecacee-9df1-4ddc-8497-3bea9c635bfa
 # ╟─8a6c6d9a-e15a-4f22-9d86-00e591b15693
 # ╠═17117efa-c63e-4193-a99b-c7423367fc06
 # ╟─4e0244cb-f853-4156-ba5f-392592a12d9d
@@ -490,11 +498,11 @@ end
 # ╠═2400b72e-2d1a-4c2e-91c7-14c8ac92cc11
 # ╟─8c1b4a18-2a7a-47b0-aeff-27014ff351a9
 # ╠═c19cc243-aa94-463c-a08d-abb8e6e5736b
-# ╠═caf53a18-921c-40aa-b3dd-20deb3877f14
 # ╟─c7aa05d2-824d-4744-845d-04c6ab3e1d80
 # ╠═1f49a5d2-46df-4750-8600-16c9a70d14d5
 # ╠═7fccd71f-8864-443e-851a-af529eeb02f8
 # ╠═c30ea441-6814-41b4-b9f2-458d701cebb6
-# ╠═3e6b0efd-7757-487a-b9a5-6346a69d5997
+# ╠═a3c5e8b6-99f9-491a-b72a-f73a2602f2fc
+# ╠═e9d3fa8a-8297-450f-a060-ba555205792a
 # ╟─272b6d1a-0e4f-4f2e-90db-eb328569497c
 # ╠═0808a99f-1f55-4b0a-81e9-3f511c9f55d5
