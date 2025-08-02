@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.5
+# v0.20.13
 
 using Markdown
 using InteractiveUtils
@@ -703,7 +703,7 @@ viz_setup(sa_top, depict_r=false, depict_ω=false, robots=[sa_robot])
 temp = f -> max(0.25 * (1 - f), 0.005)
 
 # ╔═╡ 2e07c6d8-71bf-4676-b486-920c88398eda
-so_simulated_annealing(top, 0.2, 100, temp, verbose=true)
+so_simulated_annealing(top, 0.5, 100, temp, verbose=true, nb_trail_perturbations_per_iter=1, p_restart=1.5)
 
 # ╔═╡ 4dc6b41a-2ae2-4c61-9a07-2f1cee5d2d3b
 sa_run = mo_simulated_annealing(top, 6, 1000, temp)

@@ -363,12 +363,7 @@ ress_random = [
 
 # ╔═╡ 8c1b4a18-2a7a-47b0-aeff-27014ff351a9
 md"## 🔮 simulated annealing
-
-cooling scheme
 "
-
-# ╔═╡ c19cc243-aa94-463c-a08d-abb8e6e5736b
-temp = f -> max(0.5 * (1 - f), 0.005)
 
 # ╔═╡ c7aa05d2-824d-4744-845d-04c6ab3e1d80
 md"iters. a bit different than ACO since gotta re-run for each number of iters.
@@ -376,13 +371,18 @@ factor into weights for aggregeated objectives and iters per single objective pr
 "
 
 # ╔═╡ 1f49a5d2-46df-4750-8600-16c9a70d14d5
-sa_iters = [100, 200].^ 2
+sa_iters = [100, 200, 500].^ 2
 
 # ╔═╡ 7fccd71f-8864-443e-851a-af529eeb02f8
 ress_sa = [
 	[
 		mo_simulated_annealing(
-			top, Int(sqrt(i)), Int(sqrt(i)), temp, my_seed=my_seeds[r]
+			top, nb_ants, Int(i / nb_ants), 
+			# cooling schedule
+			f -> 0.25 * (0.9) ^ (f * Int(i / nb_ants)), 
+			my_seed=my_seeds[r], run_checks=run_checks,
+			nb_trail_perturbations_per_iter=top.nb_robots,
+			p_restart=0.05
 		)
 		for i in sa_iters
 	]
@@ -390,7 +390,7 @@ ress_sa = [
 ]
 
 # ╔═╡ c30ea441-6814-41b4-b9f2-458d701cebb6
-viz_agg_objectives(ress_sa[1][1])
+viz_agg_objectives(ress_sa[1][2])
 
 # ╔═╡ a3c5e8b6-99f9-491a-b72a-f73a2602f2fc
 ress_sa[1][end].pareto_solns
@@ -399,6 +399,12 @@ ress_sa[1][end].pareto_solns
 viz_Pareto_front(
 	ress_sa[1][end].pareto_solns, size=(300, 300), incl_legend=false
 )
+
+# ╔═╡ 6d5b2eda-06ea-4561-aa78-0249f97be733
+area_indicator(ress_sa[1][end].pareto_solns, 1.0, 1)
+
+# ╔═╡ 99815c74-b87e-4ec8-8b16-ec40861a2c82
+area_indicator(ress_random[1].global_pareto_solns, 1.0, 1)
 
 # ╔═╡ 272b6d1a-0e4f-4f2e-90db-eb328569497c
 md"## 👓 compare searches"
@@ -437,7 +443,7 @@ begin
 		)
 
 		# simulated annealning
-		#  divide by # of ants to give each own solution
+		#  divide by # of ants to give each same # of evals
 		scatter!(
 			[sa_res.total_nb_iters for sa_res in ress_sa[r]] / nb_ants,
 			[sa_res.area for sa_res in ress_sa[r]],
@@ -497,12 +503,13 @@ end
 # ╟─b566ec79-c4a7-47b5-8620-e10549252554
 # ╠═2400b72e-2d1a-4c2e-91c7-14c8ac92cc11
 # ╟─8c1b4a18-2a7a-47b0-aeff-27014ff351a9
-# ╠═c19cc243-aa94-463c-a08d-abb8e6e5736b
 # ╟─c7aa05d2-824d-4744-845d-04c6ab3e1d80
 # ╠═1f49a5d2-46df-4750-8600-16c9a70d14d5
 # ╠═7fccd71f-8864-443e-851a-af529eeb02f8
 # ╠═c30ea441-6814-41b4-b9f2-458d701cebb6
 # ╠═a3c5e8b6-99f9-491a-b72a-f73a2602f2fc
 # ╠═e9d3fa8a-8297-450f-a060-ba555205792a
+# ╠═6d5b2eda-06ea-4561-aa78-0249f97be733
+# ╠═99815c74-b87e-4ec8-8b16-ec40861a2c82
 # ╟─272b6d1a-0e4f-4f2e-90db-eb328569497c
 # ╠═0808a99f-1f55-4b0a-81e9-3f511c9f55d5

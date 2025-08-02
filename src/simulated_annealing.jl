@@ -317,6 +317,9 @@ function so_simulated_annealing(
     #   f := (i-1)/nb_iters
     temp::Function;
     verbose::Bool=false,
+    run_checks::Bool=false,
+    nb_trail_perturbations_per_iter::Int=top.nb_robots,
+    p_restart::Float64=0.01
 )
     @assert wᵣ ≤ 1.0 && wᵣ ≥ 0.0
     if verbose
@@ -345,7 +348,8 @@ function so_simulated_annealing(
     for i = 1:nb_iters
         # generate a candidate solution by perturbing current solution
         # ... so it's a neighbor solution
-        for k = 1:top.nb_robots
+        ids_robots_perturb = sample(1:top.nb_robots, nb_trail_perturbations_per_iter, replace=false)
+        for k in ids_robots_perturb
             new_robots[k], perturbation = perturb_trail(robots[k], top)
             perturbation_counts[perturbation] += 1
         end
@@ -372,9 +376,9 @@ function so_simulated_annealing(
         if verbose
             println("iteration ", i)
             println("\ttemperature: ", round(T, digits=3))
-            println("\tcurrent objective: ", round(old_obj, digits=3))
-            println("\taggregated new objective: ", round(new_obj, digits=3))
-            println("\t\tbest objective so far: ", round(best_obj, digits=3))
+            println("\tcurrent agg. objective: ", round(old_obj, digits=3))
+            println("\tnew agg. objective: ", round(new_obj, digits=3))
+            println("\tbest agg. objective so far: ", round(best_obj, digits=3))
         end
 
         # decide to accept or reject
@@ -400,6 +404,21 @@ function so_simulated_annealing(
                 if verbose
                     println("\t\trejecting worse solution w. prob $(round(1-p_accept, digits=2)).")
                 end
+
+                # restart
+                if rand() < p_restart
+                    if verbose
+                        println("\t\trestarting with best soln")
+                    end 
+                    robots = deepcopy(best_soln.robots)
+                    old_obj = wᵣ * best_soln.objs.r / r_ref + (1 - wᵣ) * best_soln.objs.s / s_ref
+                end
+            end
+        end
+
+        if run_checks
+            for robot in robots
+                verify(robot, top)
             end
         end
 
@@ -426,7 +445,10 @@ function mo_simulated_annealing(
 	nb_iters_per_w::Int,
 	temp::Function;
 	verbose::Bool=false,
-    my_seed::Int=97330
+    my_seed::Int=97330,
+    nb_trail_perturbations_per_iter::Int=top.nb_robot,
+    run_checks::Bool=false,
+    p_restart::Float64=0.01
 )
     Random.seed!(my_seed)
 
@@ -435,7 +457,9 @@ function mo_simulated_annealing(
 	wᵣs = collect(range(0.0, 1.0, length=nb_ws))
 	@progress for (i, wᵣ) in enumerate(wᵣs)
 		best_soln, agg_objective, perturbation_counts = so_simulated_annealing(
-			top, wᵣ, nb_iters_per_w, temp
+			top, wᵣ, nb_iters_per_w, temp, run_checks=run_checks,
+            nb_trail_perturbations_per_iter=nb_trail_perturbations_per_iter,
+            p_restart=p_restart
 		)
 		push!(solns, best_soln)
 		push!(agg_objectives, agg_objective)
