@@ -5,6 +5,13 @@ struct MO_ACO_run
     nb_iters::Int
 end
 
+MO_ACO_run() = MO_ACO_run(
+    [Soln([Robot(Int[], Matrix{Bool}(undef, 0, 0), false)], Objs(NaN, NaN))],
+    Float64[],
+    Pheremone(Matrix{Float64}(undef, 0, 0), Matrix{Float64}(undef, 0, 0)),
+    0
+)
+
 function mo_aco(
     top::TOP; 
     nb_ants::Int=100, 

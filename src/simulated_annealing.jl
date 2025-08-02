@@ -475,6 +475,15 @@ struct MO_SA_Run
     area::Float64
 end
 
+MO_SA_Run() = MO_SA_Run(
+    0,
+    [Soln([Robot(Int[], Matrix{Bool}(undef, 0, 0), false)], Objs(NaN, NaN))],
+    [Float64[]],
+    Float64[],
+    x->NaN,
+    0.0
+)
+
 """
 mo_simulated_annealing(top, nb_ws, nb_iters_per_w, temp)
 """

@@ -21,9 +21,9 @@ module MOACOTOP
            η_s, η_r, # heuristics.jl
            Ant, Ants, Pheremone, lay!, evaporate!, min_max!, # ants.jl
            next_node_candidates, extend_trail!, construct_soln, # build_soln.jl
-           mo_aco, # mo_aco.jl
+           mo_aco, MO_ACO_run, # mo_aco.jl
            viz_setup, viz_Pareto_front, viz_soln, viz_pheremone, viz_progress, viz_robot_trail, # viz.jl
            darpa_urban_environment, art_museum, generate_random_top, generate_manual_top, toy_problem, 
            toy_starish_top, art_museum_layout, block_model, complete_graph_top, # examples.jl
-           perturb_trail, so_simulated_annealing, mo_simulated_annealing, viz_agg_objectives # simulated_annealing.jl
+           perturb_trail, so_simulated_annealing, mo_simulated_annealing, viz_agg_objectives, MO_SA_Run # simulated_annealing.jl
 end

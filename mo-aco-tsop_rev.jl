@@ -39,6 +39,9 @@ end
 # ╔═╡ e136cdee-f7c1-4add-9024-70351646bf24
 TableOfContents()
 
+# ╔═╡ 2bfd9bc7-a6d9-4fa3-810a-710ebde2bd5c
+Threads.nthreads()
+
 # ╔═╡ 613ad2a0-abb7-47f5-b477-82351f54894a
 md"
 
@@ -153,7 +156,7 @@ md"
 
 \# of iterations: $(@bind nb_iters Select([2, 10, 250, 500, 1000, 5000, 10000], default=2))
 
-\# of runs: $(@bind n_runs Select([1, 2, 5, 10], default=1))
+\# of runs: $(@bind n_runs Select([1, 4, 5, 10], default=1))
 
 run checks? $(@bind run_checks CheckBox(default=true))
 "
@@ -182,20 +185,22 @@ md"
 "
 
 # ╔═╡ a8e27a0e-89da-4206-a7e2-94f796cac8b4
-@time ress = [
-	mo_aco(
-		top, 
-		verbose=false, 
-		nb_ants=nb_ants, 
-		nb_iters=nb_iters,
-		use_heuristic=true,
-		use_pheremone=true,
-		run_checks=run_checks,
-		ρ=ρ,
-		my_seed=my_seeds[r]
-	)
-	for r = 1:n_runs
-]
+begin
+	ress = [MO_ACO_run() for r = 1:n_runs]
+	@time Threads.@threads for r = 1:n_runs
+		ress[r] = mo_aco(
+			top, 
+			verbose=false, 
+			nb_ants=nb_ants, 
+			nb_iters=nb_iters,
+			use_heuristic=true,
+			use_pheremone=true,
+			run_checks=run_checks,
+			ρ=ρ,
+			my_seed=my_seeds[r]
+		)
+	end
+end
 
 # ╔═╡ 3a1caac3-dd55-42fb-91b2-2f9c3001c22c
 md"
@@ -274,21 +279,23 @@ md"# baselines
 "
 
 # ╔═╡ 2442f18e-9a4c-4a0f-bdf7-6fe1d1517a6b
-ress_multiple_trails = [
-	mo_aco(
-		top, 
-		verbose=false, 
-		nb_ants=nb_ants, 
-		nb_iters=nb_iters,
-		use_heuristic=true,
-		use_pheremone=true,
-		run_checks=run_checks,
-		my_seed=my_seeds[r],
-		one_pheromone_trail_per_robot=true,
-		ρ=ρ
-	)
-	for r = 1:n_runs
-]
+begin
+	ress_multiple_trails = [MO_ACO_run() for r = 1:n_runs]
+	Threads.@threads for r = 1:n_runs
+		ress_multiple_trails[r] = mo_aco(
+			top, 
+			verbose=false, 
+			nb_ants=nb_ants, 
+			nb_iters=nb_iters,
+			use_heuristic=true,
+			use_pheremone=true,
+			run_checks=run_checks,
+			my_seed=my_seeds[r],
+			one_pheromone_trail_per_robot=true,
+			ρ=ρ
+		)
+	end
+end
 
 # ╔═╡ fcc1ab11-8f42-4d96-87c9-c59c9b6eadd6
 md"look at pheremone trail for different robots"
@@ -306,19 +313,21 @@ end
 md"## 🧠 heuristic-guided search"
 
 # ╔═╡ 67c9334e-1155-4ef3-8d75-030dcfc1e570
-ress_heuristic_only = [
-	mo_aco(
-		top, 
-		verbose=false, 
-		nb_ants=nb_ants, 
-		nb_iters=nb_iters,
-		use_heuristic=true,
-		use_pheremone=false,
-		run_checks=run_checks,
-		my_seed=my_seeds[r]
-	)
-	for r = 1:n_runs
-]
+begin
+	ress_heuristic_only = [MO_ACO_run() for r = 1:n_runs]
+	Threads.@threads for r = 1:n_runs
+		ress_heuristic_only[r] = mo_aco(
+			top, 
+			verbose=false, 
+			nb_ants=nb_ants, 
+			nb_iters=nb_iters,
+			use_heuristic=true,
+			use_pheremone=false,
+			run_checks=run_checks,
+			my_seed=my_seeds[r]
+		)
+	end
+end
 
 # ╔═╡ 5defd4be-0e97-4826-96b6-8c2cc77e0c08
 md"## 🐜 pheremone only
@@ -328,38 +337,42 @@ BO-ACO with:
 ✔ one pheremone trail for each robot."
 
 # ╔═╡ 3b94a9a8-93c8-4e46-ae23-63374d368b16
-ress_pheremone_only = [
-	mo_aco(
-		top, 
-		verbose=false, 
-		nb_ants=nb_ants, 
-		nb_iters=nb_iters,
-		use_heuristic=false,
-		use_pheremone=true,
-		run_checks=run_checks,
-		ρ=ρ,
-		my_seed=my_seeds[r]
-	)
-	for r=1:n_runs
-]
+begin
+	ress_pheremone_only = [MO_ACO_run() for r = 1:n_runs]
+	Threads.@threads for r = 1:n_runs
+		ress_pheremone_only[r] = mo_aco(
+			top, 
+			verbose=false, 
+			nb_ants=nb_ants, 
+			nb_iters=nb_iters,
+			use_heuristic=false,
+			use_pheremone=true,
+			run_checks=run_checks,
+			ρ=ρ,
+			my_seed=my_seeds[r]
+		)
+	end
+end
 
 # ╔═╡ b566ec79-c4a7-47b5-8620-e10549252554
 md"## 🎲 random search"
 
 # ╔═╡ 2400b72e-2d1a-4c2e-91c7-14c8ac92cc11
-ress_random = [
-	mo_aco(
-		top, 
-		verbose=false, 
-		nb_ants=nb_ants, 
-		nb_iters=nb_iters,
-		use_heuristic=false,
-		use_pheremone=false,
-		run_checks=run_checks,
-		my_seed=my_seeds[r]
-	)
-	for r=1:n_runs
-]
+begin
+	ress_random = [MO_ACO_run() for r = 1:n_runs]
+	Threads.@threads for r = 1:n_runs
+		ress_random[r] = mo_aco(
+			top, 
+			verbose=false, 
+			nb_ants=nb_ants, 
+			nb_iters=nb_iters,
+			use_heuristic=false,
+			use_pheremone=false,
+			run_checks=run_checks,
+			my_seed=my_seeds[r]
+		)
+	end
+end
 
 # ╔═╡ 8c1b4a18-2a7a-47b0-aeff-27014ff351a9
 md"## 🔮 simulated annealing
@@ -374,20 +387,22 @@ factor into weights for aggregeated objectives and iters per single objective pr
 sa_iters = [10, 100, 500, 1000, 5000] * nb_ants
 
 # ╔═╡ 7fccd71f-8864-443e-851a-af529eeb02f8
-ress_sa = [
-	[
-		mo_simulated_annealing(
-			top, nb_ants, Int(i / nb_ants), 
-			# cooling schedule
-			f -> 1.0 * (0.95) ^ (f * Int(i / nb_ants)), 
-			my_seed=my_seeds[r], run_checks=run_checks,
-			nb_trail_perturbations_per_iter=top.nb_robots,
-			p_restart=0.05
-		)
-		for i in sa_iters
-	]
-	for r = 1:n_runs
-]
+begin
+	ress_sa = [[MO_SA_Run()] for r = 1:n_runs]
+	Threads.@threads for r = 1:n_runs
+		ress_sa[r] = [
+			mo_simulated_annealing(
+				top, nb_ants, Int(i / nb_ants), 
+				# cooling schedule
+				f -> 1.0 * (0.95) ^ (f * Int(i / nb_ants)), 
+				my_seed=my_seeds[r], run_checks=run_checks,
+				nb_trail_perturbations_per_iter=top.nb_robots,
+				p_restart=0.05
+			)
+			for i in sa_iters
+		]
+	end
+end
 
 # ╔═╡ c30ea441-6814-41b4-b9f2-458d701cebb6
 viz_agg_objectives(ress_sa[1][2], savename="simulated_annealing_convergence.pdf")
@@ -471,6 +486,7 @@ end
 # ╔═╡ Cell order:
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
 # ╠═e136cdee-f7c1-4add-9024-70351646bf24
+# ╠═2bfd9bc7-a6d9-4fa3-810a-710ebde2bd5c
 # ╟─613ad2a0-abb7-47f5-b477-82351f54894a
 # ╟─7e4e838c-0e42-4925-9ddf-4c3601466b64
 # ╠═bdb5d550-13f6-4d8d-9a74-14b889efe7a2
