@@ -371,7 +371,7 @@ factor into weights for aggregeated objectives and iters per single objective pr
 "
 
 # ╔═╡ 1f49a5d2-46df-4750-8600-16c9a70d14d5
-sa_iters = [100, 200, 500].^ 2
+sa_iters = [10, 100, 500, 1000, 5000] * nb_ants
 
 # ╔═╡ 7fccd71f-8864-443e-851a-af529eeb02f8
 ress_sa = [
@@ -379,7 +379,7 @@ ress_sa = [
 		mo_simulated_annealing(
 			top, nb_ants, Int(i / nb_ants), 
 			# cooling schedule
-			f -> 0.25 * (0.9) ^ (f * Int(i / nb_ants)), 
+			f -> 1.0 * (0.95) ^ (f * Int(i / nb_ants)), 
 			my_seed=my_seeds[r], run_checks=run_checks,
 			nb_trail_perturbations_per_iter=top.nb_robots,
 			p_restart=0.05
@@ -390,15 +390,25 @@ ress_sa = [
 ]
 
 # ╔═╡ c30ea441-6814-41b4-b9f2-458d701cebb6
-viz_agg_objectives(ress_sa[1][2])
+viz_agg_objectives(ress_sa[1][2], savename="simulated_annealing_convergence.pdf")
 
 # ╔═╡ a3c5e8b6-99f9-491a-b72a-f73a2602f2fc
-ress_sa[1][end].pareto_solns
+length(ress_sa[1][end].pareto_solns)
 
 # ╔═╡ e9d3fa8a-8297-450f-a060-ba555205792a
-viz_Pareto_front(
-	ress_sa[1][end].pareto_solns, size=(300, 300), incl_legend=false
-)
+begin
+	local fig = viz_Pareto_front(
+		ress_sa[1][end].pareto_solns, size=(300, 300), incl_legend=false
+	)
+	local ax = current_axis(fig)
+
+	scatter!([s.objs.r for s in ress[1].global_pareto_solns], [s.objs.s for s in ress[1].global_pareto_solns])
+
+	fig
+end
+
+# ╔═╡ 74a26275-d654-4187-935b-fc42046e6af4
+ress[1].global_pareto_solns
 
 # ╔═╡ 6d5b2eda-06ea-4561-aa78-0249f97be733
 area_indicator(ress_sa[1][end].pareto_solns, 1.0, 1)
@@ -509,6 +519,7 @@ end
 # ╠═c30ea441-6814-41b4-b9f2-458d701cebb6
 # ╠═a3c5e8b6-99f9-491a-b72a-f73a2602f2fc
 # ╠═e9d3fa8a-8297-450f-a060-ba555205792a
+# ╠═74a26275-d654-4187-935b-fc42046e6af4
 # ╠═6d5b2eda-06ea-4561-aa78-0249f97be733
 # ╠═99815c74-b87e-4ec8-8b16-ec40861a2c82
 # ╟─272b6d1a-0e4f-4f2e-90db-eb328569497c

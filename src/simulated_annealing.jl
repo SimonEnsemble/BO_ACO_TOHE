@@ -1,7 +1,37 @@
 # note: [1, 1]
 # and [1, x, 1, 1] are annoying cases for insert.
 
-trail_perturbations = [:swap, :insert, :delete, :substitute, :grab, :delete_segment]
+trail_perturbations = [:swap, :insert, :delete, :substitute, :grab, :delete_segment, :reverse]
+trail_perturbation_probs = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.25]
+
+function _attempt_trail_reversal!(robot::Robot, top::TOP; verbose::Bool=false)
+    n = length(robot.trail)
+    if n == 2
+        return false
+    end
+
+    # turn off (u, v)
+    for i = 1:n-2 # [1, ..., x, 1, 1] stop at x
+        u = robot.trail[i]
+        v = robot.trail[i+1]
+
+        if ! has_edge(top.g, v, u)
+            return false
+        end
+
+        robot.edge_visit[u, v] = false
+    end
+    
+    robot.trail[2:n-2] = reverse(robot.trail[2:n-2])
+    # turn on (u, v)
+    for i = 1:n-2 
+        u = robot.trail[i]
+        v = robot.trail[i+1]
+        robot.edge_visit[u, v] = true
+    end
+
+    return true
+end
 
 # try trail modification (u, w) -> (u, v, u, w)
 function _attempt_node_grab!(robot::Robot, top::TOP; verbose::Bool=false)
@@ -274,7 +304,7 @@ function perturb_trail(
     n = length(robot.trail) - 3 # 3 are 1's cuz complete trail
         
 
-    perturbation = sample(trail_perturbations)
+    perturbation = sample(trail_perturbations, ProbabilityWeights(trail_perturbation_probs))
     
     success = false
     if perturbation == :insert
@@ -289,6 +319,8 @@ function perturb_trail(
         success = _attempt_node_delete_segment!(new_robot, top, verbose=verbose)
     elseif perturbation == :substitute
         success = _attempt_node_substitution!(new_robot, top, verbose=verbose)
+    elseif perturbation == :reverse
+        success = _attempt_trail_reversal!(new_robot, top, verbose=verbose)
     end
 
     if ! success
@@ -319,15 +351,22 @@ function so_simulated_annealing(
     verbose::Bool=false,
     run_checks::Bool=false,
     nb_trail_perturbations_per_iter::Int=top.nb_robots,
-    p_restart::Float64=0.01
+    p_restart::Float64=0.01,
+    # initial solution (for warm start)
+    robots₀::Union{Nothing, Vector{Robot}}=nothing
 )
     @assert wᵣ ≤ 1.0 && wᵣ ≥ 0.0
     if verbose
         println("weight on reward objective: ", wᵣ)
     end
     
-    # start with idle robots
-    robots = [Robot([1, 1], top) for k = 1:top.nb_robots]
+    # copy initial solution cuz will modify this without necessarily
+    #  overwriting `robots` (only if accept...)
+    if isnothing(robots₀)
+        robots = [Robot([1, 1], top) for k = 1:top.nb_robots]
+    else
+        robots = deepcopy(robots₀)
+    end
     new_robots = deepcopy(robots) # cuz won't necessary accept
 
     # track stuff
@@ -350,7 +389,7 @@ function so_simulated_annealing(
         # ... so it's a neighbor solution
         ids_robots_perturb = sample(1:top.nb_robots, nb_trail_perturbations_per_iter, replace=false)
         for k in ids_robots_perturb
-            new_robots[k], perturbation = perturb_trail(robots[k], top)
+            new_robots[k], perturbation = perturb_trail(robots[k], top, do_verification=false)
             perturbation_counts[perturbation] += 1
         end
         
@@ -446,7 +485,7 @@ function mo_simulated_annealing(
 	temp::Function;
 	verbose::Bool=false,
     my_seed::Int=97330,
-    nb_trail_perturbations_per_iter::Int=top.nb_robot,
+    nb_trail_perturbations_per_iter::Int=top.nb_robots,
     run_checks::Bool=false,
     p_restart::Float64=0.01
 )
@@ -455,11 +494,11 @@ function mo_simulated_annealing(
 	solns = Soln[]
 	agg_objectives = Vector{Float64}[]
 	wᵣs = collect(range(0.0, 1.0, length=nb_ws))
-	@progress for (i, wᵣ) in enumerate(wᵣs)
+	@progress for (i, wᵣ) in enumerate(wᵣs) # start with survival objective
 		best_soln, agg_objective, perturbation_counts = so_simulated_annealing(
 			top, wᵣ, nb_iters_per_w, temp, run_checks=run_checks,
             nb_trail_perturbations_per_iter=nb_trail_perturbations_per_iter,
-            p_restart=p_restart
+            p_restart=p_restart, robots₀=i == 1 ? nothing : solns[i-1].robots
 		)
 		push!(solns, best_soln)
 		push!(agg_objectives, agg_objective)

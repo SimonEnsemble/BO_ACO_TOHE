@@ -131,13 +131,13 @@ function verify(robot::Robot, top::TOP)
         # no self-loops in g but we allow 1->1 as special case
         #   "stay at base"
 		if ! (u == v == 1) 
-			@assert has_edge(top.g, u, v)
+			@assert has_edge(top.g, u, v) "edge ($u, $v) on but not in graph"
 		end
 		# edge visit status consistent with trail
-		@assert robot.edge_visit[u, v]
+		@assert robot.edge_visit[u, v] "$u -> $v in trail but not on"
 	end
 	# no other edges visisted that included in trail...
-	@assert sum(robot.edge_visit) == nb_edges
+	@assert sum(robot.edge_visit) == nb_edges "on edges inconsistent with trail"
     # starts at base node
     @assert robot.trail[1] == 1
     # ends at base node

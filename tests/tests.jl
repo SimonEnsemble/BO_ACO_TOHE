@@ -623,6 +623,11 @@ begin
 		println("node subs successful")
 		println("new robot trail: ", robot.trail, "\n")	
 	end
+
+	if MOACOTOP._attempt_trail_reversal!(robot, sa_top, verbose=true)
+		println("reversal successful")
+		println("new robot trail: ", robot.trail, "\n")	
+	end
 	
 	verify(robot, sa_top)
 end

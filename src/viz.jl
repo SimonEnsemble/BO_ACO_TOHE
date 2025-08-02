@@ -555,7 +555,7 @@ end
 """
 for simualted annealing
 """
-function viz_agg_objectives(run::MO_SA_Run)
+function viz_agg_objectives(run::MO_SA_Run; savename::String="")
 	colormap = ColorSchemes.:buda
 
 	fig = Figure()
@@ -587,6 +587,10 @@ function viz_agg_objectives(run::MO_SA_Run)
 	end
 
 	rowsize!(fig.layout, 0, Relative(0.3))
+
+    if ! (savename == "")
+        save(savename, fig)
+    end
 
 	fig
 end
