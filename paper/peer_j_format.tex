@@ -96,16 +96,17 @@ chemical, biological, radiological, or nuclear incident response %(e.g.\ safely 
  target tracking \cite{robin2016multi}, and 
  military surveillance and reconnaissance. 
  
-Path-planning for mobile robots in static, dynamic, or unknown environments under various objectives (e.g., take least-cost paths) and constraints (e.g., collision avoidance) \cite{karur2021survey,sanchez2021path,yang2023path,costa2019survey} is important for good performance on tasks, efficiency, safety, and autonomy.
+Path-planning algorithms for mobile robots in [static or dynamic] environments \cite{lavalle2006planning,liu2023path,ugwoke2025simulation} are vital for good task performance, efficiency, safety, and autonomy.
+For example, a classic path-planning problem involves \cite{lavalle2006planning} finding the shortest collision-free path from a source location to a destination in a static, known environment modeled as a grid, where obstacles render some grid cells inaccessible.
+By modeling the environment as a graph (nodes: locations; edges: traversable connections between locations), a variety of graph search (e.g., Dijkstra's algorithm \cite{candra2020dijkstra}), random sampling (e.g., rapidly exploring random trees \cite{lavalle1998rapidly}), heuristic (e.g., A-star \cite{candra2020dijkstra}), meta-heuristic (e.g., ant colony optimization \cite{dorigo2006ant}), and reinforcement learning \cite{singh2023review} algorithms can be adopted for robot path-planning. 
+These methods trade off computational cost, memory usage, parallelizability, solution optimality, versatility, and scalability \cite{ugwoke2025simulation}.
 
 Often, we wish for a team of mobile robots to coordinate their paths in an environment to cooperatively achieve a shared, team-level objective \cite{parker1995design,parker2007distributed}.
-Compared to a single robot, a team can increase spatial coverage, decrease the time to achieve the objectives, and make achievement of the objectives robust to the failure of robots \cite{schranz2020swarm,brambilla2013swarm}.
-
-For example, in the (NP-hard) team orienteering \cite{golden1987orienteering} problem (TOP) \cite{chao1996team,gunawan2016orienteering,vansteenwegen2011orienteering}, a team of robots are mobile in an environment modeled as a graph (nodes: locations; edges: spatial connections between locations), and each node gives a reward to the team if visited by a robot.
+Compared to a single robot, a team can increase spatial coverage and task performance, decrease the time to achieve the objectives, and make achievement of the objectives robust to the failure of robots \cite{schranz2020swarm,brambilla2013swarm}.
+For example, in the (NP-hard) team orienteering \cite{golden1987orienteering} problem (TOP) \cite{chao1996team,gunawan2016orienteering,vansteenwegen2011orienteering}, a team of robots are mobile in an environment modeled as a graph, and each node gives a reward to the team if visited by a robot.
 The TOP is to plan the paths of the robots, from a source to destination node, to gather the most rewards as a team under a travel budget for each robot. 
 Loosely, the TOP problem, which can be formulated as an integer program, combines aspects of the classic knapsack problem (selecting the nodes from which to collect rewards, under the travel budget) and the traveling salesman problem (finding the shortest path that visits these nodes) \cite{vansteenwegen2011orienteering}.
-
-
+Solution approaches to the TOP include exact (e.g., a branch-and-price scheme \cite{boussier2007exact}), heuristic \cite{chao1996team}, and meta-heuristic (e.g., ant colony optimization \cite{ke2008ants}) algorithms \cite{vansteenwegen2011orienteering}. 
 
 \subsection{Teams of mobile robots orienteering in hazardous environments} 
 In some applications, robots move in a hazardous environment \cite{trevelyan2016robotics} and incur risks of failure, destruction, disablement, and/or capture. 
@@ -446,7 +447,7 @@ with $ \pi[T_v(\{\rho_1, ..., \rho_K\}) = 1]$ given in eqn.~\ref{eq:pi_T_v_all}.
 % harvest risk different from visit risk. once harvested, then no longer risk for other robots to visit that node.
 
 \section{Bi-objective ant colony optimization to search for the Pareto-optimal robot-team trail plans}
-To efficiently search for the Pareto-optimal set of robot-team trail plans defined by eqn.~\ref{eq:the_two_objs}, we employ bi-objective (BO) ant colony optimization (ACO) \cite{iredi2001bi}. ACO \cite{dorigo2006ant,bonabeau1999swarm,blum2005ant} is a meta-heuristic for combinatorial optimization problems framed as a search for an optimal path (or trail) on a graph. As a swarm intelligence method \cite{bonabeau1999swarm}, 
+To efficiently search for the Pareto-optimal set of robot-team trail plans defined by eqn.~\ref{eq:the_two_objs}, we employ bi-objective (BO) ant colony optimization (ACO) \cite{iredi2001bi}. ACO \cite{dorigo2006ant,bonabeau1999swarm,blum2005ant,simon2013evolutionary} is a meta-heuristic for combinatorial optimization problems framed as a search for an optimal path (or trail) on a graph. As a swarm intelligence method \cite{bonabeau1999swarm}, 
 ACO is inspired by the behavior of ants efficiently foraging for food \cite{bonabeau2000inspiration}. See Box~\ref{box:ants}. 
 As precedent, variants of the single-robot- and team-orienteering problem have been efficiently and effectively solved by ACO \cite{ke2008ants,chen2015multiobjective,verbeeck2017time,sohrabi2021acs,chen2022environment,montemanni2011enhanced} (as well as other [meta-]heuristics \cite{gavalas2014survey,dang2013effective,chao1996fast,butt1994heuristic}), but not the TSOP.
 
