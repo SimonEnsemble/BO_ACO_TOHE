@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.13
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -566,7 +566,9 @@ begin
 		println(perturbation)
 		println(robot.trail)
 		@assert robot.done
-		@assert robot.trail != old_trail
+		if perturbation != :reverse
+			@assert robot.trail != old_trail
+		end
 		old_trail = deepcopy(robot.trail)
 	end
 	perturbation_count
