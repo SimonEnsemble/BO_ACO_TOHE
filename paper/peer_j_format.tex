@@ -1,22 +1,11 @@
 \documentclass[fleqn,10pt,lineno]{wlpeerj}
-
-
-
-
-
 \usepackage{amssymb}
-
 \usepackage{amsmath}
-
-% \usepackage{emoji}
-
 \usepackage{url}
 \usepackage{xspace}
-
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{xcolor}
-\definecolor{cool_blue}{RGB}{24, 132, 193}
 
 \usepackage{tcolorbox} 
 \tcbuselibrary{breakable}
@@ -38,16 +27,8 @@ parbox=false
 \author[2]{Lucas Overbey$^\ddagger$}
 \author[2]{Darleen Perez-Lavin$^\dagger$}
 \affil[1]{School of Chemical, Biological, and Environmental Engineering. Oregon State University. Corvallis, OR. USA.}
-%\affil[$^*$]{\texttt{cory.simon@oregonstate.edu}}
 \affil[2]{Naval Information Warfare Center Atlantic. Charleston, SC. USA.}
-%\affil[$^\ddagger$]{\texttt{lucas.a.overbey.civ@us.navy.mil}}
-%\affil[$^\dagger$]{\texttt{darleen.s.perez-lavin.civ@us.navy.mil}}
  \corrauthor[1]{Cory M. Simon}{cory.simon@oregonstate.edu}
-% \corrauthor[2]{Lucas Overbey}{lucas.a.overbey.civ@us.navy.mil}
-%  \corrauthor[2]{Darleen Perez-Lavin}{darleen.s.perez-lavin.civ@us.navy.mil}
-
-% \keywords{Keyword1, Keyword2, Keyword3}
-
 
 
 %\flushbottom
@@ -89,51 +70,52 @@ search-and-rescue \cite{queralta2020collaborative,rouvcek2020darpa},
 chemical, biological, radiological, or nuclear incident response %(e.g.\ safely localizing the source(s) and mapping the distribution of the hazard)
  \cite{murphy2012projected,hutchinson2019unmanned}, 
  environmental monitoring \cite{dunbabin2012robots,hernandez2012mobile,yuan2020maritime}, 
- safety monitoring in industrial chemical plants \cite{soldan2014towards,francis2022gas}, 
+ process monitoring in industrial chemical plants \cite{soldan2014towards,francis2022gas}, 
  forest fire monitoring and fighting \cite{merino2012unmanned}, 
  wildlife conservation \cite{kamminga2018poaching},
  patrolling \cite{basilico2022recent},
  target tracking \cite{robin2016multi}, and 
  military surveillance and reconnaissance. 
  
-Path-planning algorithms for mobile robots in [static or dynamic] environments \cite{lavalle2006planning,liu2023path,ugwoke2025simulation} are vital for good task performance, efficiency, safety, and autonomy.
-For example, a classic path-planning problem involves \cite{lavalle2006planning} finding the shortest collision-free path from a source location to a destination in a static, known environment modeled as a grid, where obstacles render some grid cells inaccessible.
+Path-planning algorithms for mobile robots in [static or dynamic] environments \cite{lavalle2006planning,liu2023path,ugwoke2025simulation} are vital for autonomy and important for efficiency, safety, and good performance on the task at hand.
+E.g., a classic path-planning problem involves \cite{lavalle2006planning} finding the shortest collision-free path from a source location to a destination in a static, known environment modeled as a grid, where obstacles render some grid cells inaccessible.
 By modeling the environment as a graph (nodes: locations; edges: traversable connections between locations), a variety of graph search (e.g., Dijkstra's algorithm \cite{candra2020dijkstra}), random sampling (e.g., rapidly exploring random trees \cite{lavalle1998rapidly}), heuristic (e.g., A-star \cite{candra2020dijkstra}), meta-heuristic (e.g., ant colony optimization \cite{dorigo2006ant}), and reinforcement learning \cite{singh2023review} algorithms can be adopted for robot path-planning. 
-These methods trade off computational cost, memory usage, parallelizability, solution optimality, versatility, and scalability \cite{ugwoke2025simulation}.
+These algorithms usually trade off computational cost, memory usage, parallelizability, solution quality, versatility, and scalability \cite{ugwoke2025simulation}.
 
 Often, we wish for a team of mobile robots to coordinate their paths in an environment to cooperatively achieve a shared, team-level objective \cite{parker1995design,parker2007distributed}.
-Compared to a single robot, a team can increase spatial coverage and task performance, decrease the time to achieve the objectives, and make achievement of the objectives robust to the failure of robots \cite{schranz2020swarm,brambilla2013swarm}.
-For example, in the (NP-hard) team orienteering \cite{golden1987orienteering} problem (TOP) \cite{chao1996team,gunawan2016orienteering,vansteenwegen2011orienteering}, a team of robots are mobile in an environment modeled as a graph, and each node gives a reward to the team if visited by a robot.
+Compared to a single robot, a team can increase spatial coverage, enhance the performance on the task at hand, decrease the time to achieve the objectives, and make achievement of the objectives robust to the failure of robots \cite{schranz2020swarm,brambilla2013swarm}.
+
+The (NP-hard) team orienteering \cite{golden1987orienteering} problem (TOP) \cite{chao1996team,gunawan2016orienteering,vansteenwegen2011orienteering} is a classic multi-robot, coordinative path-planning problem.
+A team of robots are mobile in an environment modeled as a graph, and each node gives a reward to the team if visited by a robot.
 The TOP is to plan the paths of the robots, from a source to destination node, to gather the most rewards as a team under a travel budget for each robot. 
 Loosely, the TOP problem, which can be formulated as an integer program, combines aspects of the classic knapsack problem (selecting the nodes from which to collect rewards, under the travel budget) and the traveling salesman problem (finding the shortest path that visits these nodes) \cite{vansteenwegen2011orienteering}.
-Solution approaches to the TOP include exact (e.g., a branch-and-price scheme \cite{boussier2007exact}), heuristic \cite{chao1996team}, and meta-heuristic (e.g., ant colony optimization \cite{ke2008ants}) algorithms \cite{vansteenwegen2011orienteering}. 
+Approaches to obtain a solution to the TOP include exact (e.g., a branch-and-price scheme \cite{boussier2007exact}), heuristic \cite{chao1996team}, and meta-heuristic (e.g., ant colony optimization \cite{ke2008ants}) algorithms \cite{vansteenwegen2011orienteering}. 
 
 \subsection{Teams of mobile robots orienteering in hazardous environments} 
 In some applications, robots move in a hazardous environment \cite{trevelyan2016robotics} and incur risks of failure, destruction, disablement, and/or capture. 
 The hazards could originate from dangerous terrain, rough seas, strong winds, heat, radiation, corrosive chemicals, or mines---or, an adversary with the capability to attack, disable, destroy, or capture robots \cite{agmon2017robotic}. 
 
 Robots traversing a hazardous environment should plan and coordinate their trails in consideration of risks of failure.
-First, robots should take the safest trails to visit their destination(s). 
-Second, the robots should coordinate their trails to make achievement of the team objective resilient to robot failures \cite{zhou2021multi}. 
+First, each robot should take the safest trail to visit its destination(s). 
+Second, the robots should collaborate when planning their trails to make achievement of the team objective resilient to robot failures \cite{zhou2021multi}. 
 A \emph{resilient} team of robots \cite{prorok2021beyond}
-(i) anticipates failures and makes risk-aware plans that endow the team with \emph{robustness}---the ability to withstand failures with minimal concession of the objective,
+(i) anticipates failures and makes risk-aware plans (e.g., allocates a second robot to redundantly visit a location assigned to the first robot) that endow the team with \emph{robustness}---the ability to withstand failures with minimal concession of the objective,
 and/or
 (ii) changes their trail plans during the mission, adapting in response to realized robot failures, to recoup the otherwise anticipated loss in the objective. 
 Third, the trail plans must balance the rewards gained from visiting different locations against the risks incurred by the robots to reach those locations.
 
-Models and algorithms have been developed for path-planning for robot teams orienteering in hazardous environments abstracted as graphs \cite{zhou2021multi}. 
+A few path-planning problems for robots orienteering in hazardous environments (abstracted as graphs) have been framed \cite{zhou2021multi}. 
 In the Team Surviving Orienteers problem (TSOP) \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, each node of the graph offers a reward to the team when visited by a robot, and each edge-traversal by a robot incurs a probability of destruction. 
-The objective in the TSOP is to plan the paths of the robots (from a source to destination node) to maximize the expected team reward under the constraint that each robot survives the mission with a probability above a set threshold. 
-(In the \emph{offline} setting, the paths of the robots are set at the beginning of the mission, then followed without adaptation. In the \emph{online} setting, the paths are updated during the mission in response to realized robot failures.)
+The objective in the TSOP is to plan the paths of the robots, from a source to destination node, to maximize the expected team reward under the constraint that each robot survives the mission with a probability above a tolerable threshold. 
+In the \emph{offline} TSOP, the paths of the robots are set at the beginning of the mission, then followed without adaptation; in the \emph{online} setting, the paths are updated during the mission in response to realized robot failures.
 %In the extended Matroid TSO problem \cite{jorgensen2017matroid,jorgensen2024matroid}, we seek to maximize the weighted
 %expected number of nodes visited by one or more robots.
 Relatedly, the Foraging Route with the Maximum Expected Utility problem \cite{di2022foraging} is to plan the foraging route of a robot collecting rewards in a hazardous environment, but the rewards are lost if the robot is destroyed before returning to the source node to deposit the goods it collected.
-In the Robust Multiple-path Orienteering Problem (RMOP) \cite{shi2023robust}, similarly, each node gives a reward to the team only if a robot visits it \emph{and} survives the mission to deposit the reward, and the paths of the $K$ robots are planned to maximize the team reward under the worst-case attacks of $\alpha<K$ of the robots by an adversary. 
+In the Robust Multiple-path Orienteering Problem (RMOP) \cite{shi2023robust}, similarly, each node gives a reward to the team only if a robot visits it \emph{and} survives the mission to deposit the reward, and the paths of the $K$ robots, subject to travel budgets, are planned to maximize the team reward under the worst-case attacks of $\alpha<K$ of the robots by an adversary. 
 The offline version of RMOP constitutes a two-stage, sequential, one-step game with perfect information: (1) the robot team chooses a set of paths then (2) the adversary, knowing these paths, chooses the subset of robots to attack and destroy. 
 The optimal path plans for the robots must trade (i) redundancy in the nodes visited, to give robustness against attacks, and (ii) coverage of many nodes, to collect many rewards.
-In the hazardous orienteering problem \cite{santini2023hazardous,montemanni2025exact}, robots incur a risk of destruction when visiting a node, and the reward is received only if the robot returns safely to the depot node.
-The time-bomb knapsack problem aims to maximize the expected profit of the items in the knapsack under a knapsack capacity when each item has a probability of exploding and causing the profit to be lost \cite{monaci2022exact}.
-Notably, Subramanian (1997) was among the first to model stochastic hazards along a path in a graph \cite{sherali1997low}.
+In the hazardous orienteering problem \cite{santini2023hazardous,montemanni2025exact}, robots incur a risk of destruction while carrying valuable cargo picked up at some nodes, and the reward is received only if the robot returns safely to the depot node.
+Notably, Subramanian (1997) was among the first to model stochastic hazards encountered by a robot taking a path on a graph \cite{sherali1997low}.
 Other work involving robot path-planning in hazardous environments includes 
 maximizing coverage of an area containing threats to robots \cite{korngut2023multi,yehoshua2016robotic}, 
 handling adversarial attacks on the sensors of the robots \cite{liu2021distributed,zhou2022distributed,mayya2022adaptive,zhou2018resilient}, 
@@ -141,19 +123,21 @@ gathering information in an environment with unknown hazards \cite{schwager2017m
 finding the optimal formation for a robot team \cite{shapira2015path},
 and 
 multi-robot patrolling under adversarial attacks \cite{huang2019survey}.
+Though not quite involving paths, the time-bomb knapsack problem \cite{monaci2022exact} aims to maximize the expected profit of items placed in a knapsack under a capacity when each item has a probability of exploding and causing the profit to be lost.
 
 \subsection{Our contribution}
 Herein, our contribution is:
 (1) framing and intuiting a bi-objective variant of the offline TSOP \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, the bi-objective team orienteering in hazardous environments (BOTOHE) problem, then 
-(2) specifying a bi-objective ant colony optimization algorithm \cite{iredi2001bi}, guided by heuristics, to search for the Pareto-optimal set of robot-team trail plans, then
-(3) finally, solving and analyzing several examples of BOTOHE problem instances for insights.
+(2) specifying, implementing, and benchmarking a bi-objective ant colony optimization algorithm \cite{iredi2001bi}, guided by heuristics, to search for the Pareto-optimal set of robot-team trail plans, then
+(3) solving and analyzing synthetic and real-world examples of BOTOHE problem instances for insights.
 
 In the BOTOHE problem, 
 %Then, we use a bi-objective ant colony optimization algorithm, guided by heuristics, to search for the Pareto-optimal robot-team trail plans.
 %For illustration, we solve a BOTOHE instance for an information-gathering mission in an art museum. % nuclear power plant in a Defense Advanced Research Projects Agency (DARPA) robots challenge.
 % \paragraph{The bi-objective team orienteering in hazardous environments problem (BOTOHE).} 
-a team of robots are mobile in a hazardous environment, modeled as a directed graph whose arcs present known probabilities of destruction to robots traversing them.
-Each node of the graph offers a reward to the team if a robot visits it.
+a team of robots are mobile in a hazardous environment, modeled as a directed graph where each arc presents a known probability of destruction to a robot that traverses it.
+Each node of the graph gives a reward to the team if visited by a robot.
+The robots begin at a source node.
 The BOTOHE problem is to plan the closed trails of the robots to maximize two team-level objectives: the expected
 (1) rewards accumulated by the team via visiting nodes and
 (2) number of robots that survive the mission. 
@@ -162,26 +146,27 @@ See Fig.~\ref{fig:overview}.
 
 Three interesting features of the BOTOHE are: 
 (1) for the survival objective, robots a) risk-aversely avoid visiting dangerous subgraphs despite rewards offered by nodes therein and b) take the safest closed trails to visit the nodes assigned to them;
-(2) for the reward objective, the robots a) daringly visit dangerous subgraphs to attempt collection of the rewards offered by nodes therein, b) visit the lower-risk and higher-reward subgraphs earlier in the mission, and c) build node-visit redundancy into their trail plans (i.e., multiple robots visit the same node) to make the team-reward robust to the loss of robots during the mission; and
+(2) for the reward objective, the robots a) daringly visit dangerous subgraphs to attempt collection of the rewards offered by nodes therein, b) visit the lower-risk and higher-reward subgraphs earlier in the mission, and c) build node-visit redundancy into their trail plans (i.e., multiple robots plan to visit the same node) to make the team-reward robust to the loss of robots during the mission; and
 (3) comparing (1a) and (2a), the two objectives are inherently conflicting, as the robots must risk their survival while taking their trails to visit nodes and collect rewards.%\footnote{Two extremes: (1) to maximize survival, the robots never leave the base node no matter the rewards to be gained and (2) to maximize reward, each robot traverses the entire graph no matter the risks involved.}.
 
-To handle the conflict between the reward and survival objectives in the BOTOHE, we search for the Pareto-optimal set \cite{pardalos2017non,branke2008multiobjective} of robot-team trail plans. By definition, a Pareto-optimal trail plan cannot be altered to give a higher expected reward without lowering the expected number of robots that survive---and vice versa. 
+To handle the conflict between the reward and survival objectives in the BOTOHE, we search for the Pareto-optimal set \cite{pardalos2017non,branke2008multiobjective} of robot-team trail plans. By definition, a Pareto-optimal robot-team trail plan cannot be altered to give a higher expected reward without lowering the expected number of robots that survive---and vice versa. 
 Fig.~\ref{fig:pareto_optimal} illustrates.
-We then can present the Pareto-optimal set to a human decision-maker to select the team trail plan that strikes some tradeoff between the two objectives, based on their value of rewards vs. robot survival. 
+As opposed to aggregating the two objectives into a single, scalar objective, a Pareto front---the set of expected (reward, survivals) objective vectors corresponding with the Pareto-optimal set of robot-team trail plans---reveals the tradeoffs between expected rewards and robot survivals and allows us to procrastinate placing quantitative preferences on the two objectives.
+Later, a human decision-maker can examine the tradeoffs by visualizing the Pareto front and make an informed selection of a Pareto-optimal robot-team trail plan that suites their preferences/values.
 
-To search for the Pareto-optimal set of robot-team trail plans in the BOTOHE, we specify and implement a bi-objective ant colony optimization (ACO) algorithm \cite{iredi2001bi}, guided by heuristics.
-We adopt the ACO meta-heuristic \cite{dorigo2006ant,bonabeau1999swarm,blum2005ant} because it 
-(i) excels at searching for [near-]optimal trail sets on graphs by balancing exploration and exploitation through (a) stochastic decision-making and (b) swarm intelligence where simulated ants collectively learn from experience via laying pheromone trails then follow pheromone trails to leverage that experience;
-(ii) allows incorporation of BOTHE-specific heuristics to guide the search and accelerate convergence;
-(iii) scales more effectively to larger problems compared to integer program solvers;
-(iiii) is embarssingly parallelizable, as each ant can be allocated to an independent thread;
-(iv) is straightforward to implement and computationally efficient;
-(v) can be extended to handle dynamic or online BOTHE problem variants.
+To search for the Pareto-optimal set of robot-team trail plans in the BOTOHE, we specify, implement, and benchmark a bi-objective ant colony optimization (ACO) algorithm \cite{iredi2001bi}, guided by heuristics.
+We adopt the ACO meta-heuristic \cite{dorigo2006ant,bonabeau1999swarm,blum2005ant} for several reasons.
+Generally, ACO, a swarm intelligence method, excels at searching for [near-]optimal trails on graphs via a colony of simulated ants that each construct trails from iteration to iteration.  
+The ant colony collectively learns from feedback (computed objective values of trails they constructed) by laying pheromone on the trails they constructed that iteration in proportion to their quality (objective value). Each decentralized ant constructs trails stochastically, while balancing (i) exploration and (ii) exploitation of the colony's knowledge of good trails via bias towards arcs with high pheromone. 
+In addition to this positive reinforcement, pheromone evaporates to prevent stagnation. 
+Advantageously, ACO also allows incorporation of BOTHE-specific heuristics to bias the search and accelerate convergence.
+ACO handles a bi-objective problem by allowing ants to specialize to different regions of the Pareto front and maintaining two species of objective-specific pheromone \cite{iredi2001bi}.
+Finally, ACO is computationally efficient (compared to integer program solvers \cite{pascariu2021train}), straightforward to implement, embarrassingly parallelizable (allocate one ant per thread), and likely extendable to efficiently handle dynamic or online BOTHE problem variants via using the stored pheromone trail as a warm start \cite{montemanni2005ant}.
 
-For illustration, we solve and analyze a series of three BOTOHE problem instances for an e.g.\ information-gathering mission on:
-(1) a random block graph with three communities;
-(2) a real graph modeling (2a) the San Diego art museum and (2b) the Satsop Nuclear Power Plant.
-We benchmark bi-objective ACO against random search; quantify the contribution of the greedy heuristics and pheromone to the search efficiency of ACO through two ablation studies; and compare performance of ACO when granted a single pheromone trail (for each objective), shared among robots, versus granting each robot its own pheromone trail.
+For illustration, we solve and analyze a series of three BOTOHE problem instances for an information-gathering mission on:
+(1) a stochastic block model graph with three communities;
+(2) a real-world graph modeling (2a) the San Diego art museum and (2b) the Satsop Nuclear Power Plant.
+We benchmark bi-objective ACO against random search and simulated annealing; quantify the contribution of the greedy heuristics and pheromone to the search efficiency of ACO through two ablation studies; and compare ACO performance when (a) using a single pair of pheromone trails that is shared among robots compared to (b) granting each robot its own pair of pheromone trails.
 % from the Defense Advanced Research Projects Agency (DARPA) Subterranean (SubT) robotics challenge \cite{chung2023into} (Alpha course of the Urban Circuit Network \cite{github_darpa_subt}).
 
 \begin{figure}[h!]
