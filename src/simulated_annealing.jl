@@ -333,6 +333,11 @@ function perturb_trail(
     return new_robot, perturbation
 end
 
+struct CoolingSchedule
+    T₀::Float64
+    α::Float64
+end
+
 function so_simulated_annealing(
     # the team orienteering problem
     top::TOP,
@@ -340,10 +345,8 @@ function so_simulated_annealing(
     wᵣ::Float64,
     # number of iterations
     nb_iters::Int,
-    # cooling schedule. 
-    #   a function of
-    #   f := (i-1)/nb_iters
-    temp::Function;
+    # exponential cooling schedule. 
+    cooling_schedule::CoolingSchedule;
     verbose::Bool=false,
     run_checks::Bool=false,
     nb_trail_perturbations_per_iter::Int=top.nb_robots,
@@ -380,6 +383,9 @@ function so_simulated_annealing(
     # track last objective to decide to accept or reject (just accept first)
     old_obj = -Inf
 
+    # temperature
+    T = cooling_schedule.T₀
+
     for i = 1:nb_iters
         if verbose
             println("iteration ", i)
@@ -410,9 +416,6 @@ function so_simulated_annealing(
             best_soln = Soln(deepcopy(new_robots), new_objs)
             best_obj = new_obj
         end
-
-        # temperature
-        T = temp((i - 1) / nb_iters)
 
         if verbose
             println("\ttemperature: ", round(T, digits=3))
@@ -465,6 +468,9 @@ function so_simulated_annealing(
         end
 
         agg_objectives[i] = old_obj
+
+        # cool
+        T *= cooling_schedule.α
     end
     return best_soln, agg_objectives, perturbation_counts
 end
@@ -474,7 +480,7 @@ struct MO_SA_Run
 	pareto_solns::Vector{Soln}
 	agg_objectives::Vector{Vector{Float64}}
 	wᵣs::Vector{Float64}
-	temp::Function
+    cooling_schedule::CoolingSchedule
     area::Float64
 end
 
@@ -483,7 +489,7 @@ MO_SA_Run() = MO_SA_Run(
     [Soln([Robot(Int[], Matrix{Bool}(undef, 0, 0), false)], Objs(NaN, NaN))],
     [Float64[]],
     Float64[],
-    x->NaN,
+    CoolingSchedule(NaN, NaN),
     0.0
 )
 
@@ -494,7 +500,7 @@ function mo_simulated_annealing(
 	top::TOP,
 	nb_ws::Int,
 	nb_iters_per_w::Int,
-	temp::Function;
+    cooling_schedule::CoolingSchedule;
 	verbose::Bool=false,
     my_seed::Int=97330,
     nb_trail_perturbations_per_iter::Int=top.nb_robots,
@@ -508,7 +514,7 @@ function mo_simulated_annealing(
 	wᵣs = collect(range(0.0, 1.0, length=nb_ws))
 	@progress for (i, wᵣ) in enumerate(wᵣs) # start with survival objective
 		best_soln, agg_objective, perturbation_counts = so_simulated_annealing(
-			top, wᵣ, nb_iters_per_w, temp, run_checks=run_checks,
+			top, wᵣ, nb_iters_per_w, cooling_schedule, run_checks=run_checks,
             nb_trail_perturbations_per_iter=nb_trail_perturbations_per_iter,
             p_restart=p_restart, robots₀=i == 1 ? nothing : solns[i-1].robots
 		)
@@ -527,7 +533,7 @@ function mo_simulated_annealing(
 		pareto_solns,
 		agg_objectives,
 		wᵣs,
-		temp,
+        cooling_schedule,
         area
 	)
 end

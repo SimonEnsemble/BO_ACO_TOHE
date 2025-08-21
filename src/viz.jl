@@ -566,7 +566,7 @@ function viz_agg_objectives(run::MO_SA_Run; savename::String="")
 	hidexdecorations!(ax_temp)
 	iters = 1:nb_iters_per_wᵣ
 	lines!(
-		ax_temp, iters, [run.temp((i-1)/nb_iters_per_wᵣ) for i in iters],
+        ax_temp, iters, [run.cooling_schedule.T₀ * run.cooling_schedule.α ^ (i-1) for i in iters],
 		color=:black
 	)
 
@@ -582,9 +582,7 @@ function viz_agg_objectives(run::MO_SA_Run; savename::String="")
 	end
 	Colorbar(fig[1, 2], colormap=colormap, label="wᵣ")
 
-	for a in [ax, ax_temp]
-		ylims!(a, 0, 1)
-	end
+    ylims!(ax, 0, 1)
 
 	rowsize!(fig.layout, 0, Relative(0.3))
 
