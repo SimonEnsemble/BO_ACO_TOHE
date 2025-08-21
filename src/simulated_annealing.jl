@@ -1,8 +1,7 @@
 # note: [1, 1]
 # and [1, x, 1, 1] are annoying cases for insert.
-
 trail_perturbations = [:swap, :insert, :delete, :substitute, :grab, :delete_segment, :reverse]
-trail_perturbation_probs = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.25]
+trail_perturbation_probs = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.1]
 
 function _attempt_trail_reversal!(robot::Robot, top::TOP; verbose::Bool=false)
     n = length(robot.trail)
@@ -299,10 +298,6 @@ function perturb_trail(
     # create copy of trail (will not necessarily accept perturbation)
     @assert robot.done
     new_robot = deepcopy(robot)
-    
-    # current number of non-depot-node visits
-    n = length(robot.trail) - 3 # 3 are 1's cuz complete trail
-        
 
     perturbation = sample(trail_perturbations, ProbabilityWeights(trail_perturbation_probs))
     
@@ -330,6 +325,7 @@ function perturb_trail(
     if verbose
         println("\tnew trail: ", new_robot.trail)
     end
+
     if do_verification
         verify(new_robot, top)
     end
@@ -370,7 +366,7 @@ function so_simulated_annealing(
     new_robots = deepcopy(robots) # cuz won't necessary accept
 
     # track stuff
-    perturbation_counts = Dict(p => 0 for p in MOACOTOP.trail_perturbations)
+    perturbation_counts = Dict(p => 0 for p in trail_perturbations)
     agg_objectives = zeros(nb_iters)
 
     # store best solution
@@ -385,12 +381,18 @@ function so_simulated_annealing(
     old_obj = -Inf
 
     for i = 1:nb_iters
+        if verbose
+            println("iteration ", i)
+        end
         # generate a candidate solution by perturbing current solution
         # ... so it's a neighbor solution
         ids_robots_perturb = sample(1:top.nb_robots, nb_trail_perturbations_per_iter, replace=false)
         for k in ids_robots_perturb
             new_robots[k], perturbation = perturb_trail(robots[k], top, do_verification=false)
             perturbation_counts[perturbation] += 1
+            if verbose
+                println("\tproposed perturbation robot $k: $perturbation")
+            end
         end
         
         # compute two objectives with these robot paths
@@ -413,7 +415,6 @@ function so_simulated_annealing(
         T = temp((i - 1) / nb_iters)
 
         if verbose
-            println("iteration ", i)
             println("\ttemperature: ", round(T, digits=3))
             println("\tcurrent agg. objective: ", round(old_obj, digits=3))
             println("\tnew agg. objective: ", round(new_obj, digits=3))
@@ -432,6 +433,7 @@ function so_simulated_annealing(
         else # worse solution
             p_accept = exp(Δ_obj / T)
             if rand() < p_accept
+                # accept
                 robots = deepcopy(new_robots)
                 old_obj = new_obj
                 if verbose
@@ -440,11 +442,12 @@ function so_simulated_annealing(
                     )
                 end
             else
+                # reject
                 if verbose
                     println("\t\trejecting worse solution w. prob $(round(1-p_accept, digits=2)).")
                 end
 
-                # restart
+                # restart with best solution.
                 if rand() < p_restart
                     if verbose
                         println("\t\trestarting with best soln")
@@ -496,7 +499,7 @@ function mo_simulated_annealing(
     my_seed::Int=97330,
     nb_trail_perturbations_per_iter::Int=top.nb_robots,
     run_checks::Bool=false,
-    p_restart::Float64=0.01
+    p_restart::Float64=0.05
 )
     Random.seed!(my_seed)
 
@@ -516,8 +519,9 @@ function mo_simulated_annealing(
 	pareto_solns = get_pareto_solns(solns, true)
 	sort!(pareto_solns, by=s -> s.objs.r)
     
-    reward_sum = sum([get_r(top.g, v) for v = 1:nv(top.g)])
+    reward_sum = sum(get_r(top.g, v) for v = 1:nv(top.g))
     area = area_indicator(pareto_solns, reward_sum, top.nb_robots)
+
 	return MO_SA_Run(
 		nb_ws * nb_iters_per_w,
 		pareto_solns,

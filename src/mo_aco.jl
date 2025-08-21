@@ -42,7 +42,7 @@ function mo_aco(
     global_pareto_solns = Soln[]
 
     # track growth of area indicator
-    reward_sum = sum([get_r(top.g, v) for v = 1:nv(top.g)]) # for scaling
+    reward_sum = sum(get_r(top.g, v) for v = 1:nv(top.g)) # for scaling
     areas = zeros(nb_iters)
     @progress for i = 1:nb_iters # iterations
         #=

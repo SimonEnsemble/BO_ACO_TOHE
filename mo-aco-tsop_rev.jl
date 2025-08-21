@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.13
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -151,15 +151,17 @@ md"# MO-ACO
 ## 🔘 settings
 "
 
+# ╔═╡ 129d3b0f-d8e0-46a9-b298-048a5215dbc6
+md"test mode? (@bind CheckBox("test mode"))"
+
 # ╔═╡ b9a9808e-8631-45e1-9e31-516565c804a3
-md"
+begin
+	nb_iters = 10000
 
-\# of iterations: $(@bind nb_iters Select([2, 10, 250, 500, 1000, 5000, 10000], default=2))
+	n_runs = 4
 
-\# of runs: $(@bind n_runs Select([1, 4, 5, 10], default=1))
-
-run checks? $(@bind run_checks CheckBox(default=true))
-"
+	run_checks = true
+end
 
 # ╔═╡ cdfdf924-d0f5-452f-9c94-eef7592c374d
 ρ = 0.9 # evaporation rate
@@ -417,7 +419,9 @@ begin
 	)
 	local ax = current_axis(fig)
 
-	scatter!([s.objs.r for s in ress[1].global_pareto_solns], [s.objs.s for s in ress[1].global_pareto_solns])
+	scatter!(
+		[s.objs.r for s in ress[1].global_pareto_solns], [s.objs.s for s in ress[1].global_pareto_solns], color="green"
+	)
 
 	fig
 end
@@ -476,6 +480,7 @@ begin
 			label="simulated annealing"
 		)
 	end
+	xlims!(1, nb_iters)
 	fig[1, 2] = Legend(
 		fig, ax, "search algorithm", framevisible = false, unique=true
 	)
@@ -496,7 +501,8 @@ end
 # ╠═74ce2e45-8c6c-40b8-8b09-80d97f58af2f
 # ╠═79dd4f91-8a4a-4be1-8013-c9b6dfa56a75
 # ╟─9d44f37d-8c05-450a-a448-7be50387499c
-# ╟─b9a9808e-8631-45e1-9e31-516565c804a3
+# ╟─129d3b0f-d8e0-46a9-b298-048a5215dbc6
+# ╠═b9a9808e-8631-45e1-9e31-516565c804a3
 # ╠═cdfdf924-d0f5-452f-9c94-eef7592c374d
 # ╠═1aecacee-9df1-4ddc-8497-3bea9c635bfa
 # ╟─8a6c6d9a-e15a-4f22-9d86-00e591b15693

@@ -448,13 +448,14 @@ Given a robot-team trail plan $\mathcal{P}:=\{\rho_1,...,\rho_K\}$, we can compu
 % harvest risk different from visit risk. once harvested, then no longer risk for other robots to visit that node.
 
 \section{Bi-objective ant colony optimization to search for the Pareto-optimal robot-team trail plans}
-To efficiently search for the Pareto-optimal set of robot-team trail plans defined by eqn.~\ref{eq:the_two_objs}, we employ bi-objective (BO) ant colony optimization (ACO) \cite{iredi2001bi}. ACO \cite{dorigo2006ant,bonabeau1999swarm,blum2005ant,simon2013evolutionary} is a meta-heuristic for combinatorial optimization problems framed as a search for an optimal path (or trail) on a graph. As a swarm intelligence method \cite{bonabeau1999swarm}, 
+To efficiently search for the Pareto-optimal set of robot-team trail plans defined by eqn.~\ref{eq:the_two_objs}, we employ bi-objective (BO) ant colony optimization (ACO) \cite{iredi2001bi}. ACO \cite{dorigo2006ant,bonabeau1999swarm,blum2005ant,simon2013evolutionary} is a meta-heuristic for combinatorial optimization problems framed as a search for optimal paths or trails on a graph. As a swarm intelligence method \cite{bonabeau1999swarm}, 
 ACO is inspired by the behavior of ants efficiently foraging for food \cite{bonabeau2000inspiration}. See Box~\ref{box:ants}. 
 As precedent, variants of the single-robot- and team-orienteering problem have been efficiently and effectively solved by ACO \cite{ke2008ants,chen2015multiobjective,verbeeck2017time,sohrabi2021acs,chen2022environment,montemanni2011enhanced} (as well as other [meta-]heuristics \cite{gavalas2014survey,dang2013effective,chao1996fast,butt1994heuristic}), but not the TSOP.
 
 \begin{mybox}[label=box:ants, breakable]{Pheromone trail laying and following by foraging ants}
 Largely (but not exclusively \cite{evison2008combined,czaczkes2015trail,robinson2005no}) via laying and following pheromone trails \cite{czaczkes2015trail}, 
-some species of foraging ant colonies advantageously \cite{deneubourg1983probabilistic} can collectively select 
+a foraging ant colony (of some species)
+advantageously \cite{deneubourg1983probabilistic} can collectively select 
 (i) the shortest path from the nest to a food source \cite{goss1989self}
 and
 (ii) the highest quality food source among multiple options equidistant from the nest \cite{beckers1993modulation}. 
