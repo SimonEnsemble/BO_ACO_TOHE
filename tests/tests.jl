@@ -507,7 +507,7 @@ begin
 end
 
 # ╔═╡ 6e3131d5-3499-4b42-8e4f-4d38472424a8
-md"## simulated annealing moves"
+md"## simulated annealing"
 
 # ╔═╡ e1c9e8d9-773b-4713-a770-95edd56ea8cd
 function generate_sa_top()
@@ -707,13 +707,19 @@ end
 viz_setup(sa_top, depict_r=false, depict_ω=false, robots=[sa_robot])
 
 # ╔═╡ 47e63a5b-bc7e-4348-8032-485a2c58c777
-temp = f -> max(0.25 * (1 - f), 0.005)
+cooling_schedule = CoolingSchedule(1.0, 0.95)
 
 # ╔═╡ 2e07c6d8-71bf-4676-b486-920c88398eda
-so_simulated_annealing(top, 0.5, 100, temp, verbose=true, nb_trail_perturbations_per_iter=1, p_restart=1.5)
+so_simulated_annealing(
+	top, 0.5, 100, cooling_schedule, verbose=true, 
+	nb_trail_perturbations_per_iter=1, p_restart=0.05
+)
 
 # ╔═╡ 4dc6b41a-2ae2-4c61-9a07-2f1cee5d2d3b
-sa_run = mo_simulated_annealing(top, 6, 1000, temp)
+sa_run = mo_simulated_annealing(top, 6, 1000, cooling_schedule, p_restart=0.05)
+
+# ╔═╡ 6303df98-f295-48a1-84d4-36dbfbfc8ffb
+viz_agg_objectives(sa_run)
 
 # ╔═╡ Cell order:
 # ╠═d493a41c-3879-11ee-32aa-052ae56d5240
@@ -795,3 +801,4 @@ sa_run = mo_simulated_annealing(top, 6, 1000, temp)
 # ╠═47e63a5b-bc7e-4348-8032-485a2c58c777
 # ╠═2e07c6d8-71bf-4676-b486-920c88398eda
 # ╠═4dc6b41a-2ae2-4c61-9a07-2f1cee5d2d3b
+# ╠═6303df98-f295-48a1-84d4-36dbfbfc8ffb
