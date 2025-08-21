@@ -448,29 +448,28 @@ Given a robot-team trail plan $\mathcal{P}:=\{\rho_1,...,\rho_K\}$, we can compu
 % harvest risk different from visit risk. once harvested, then no longer risk for other robots to visit that node.
 
 \section{Bi-objective ant colony optimization to search for the Pareto-optimal robot-team trail plans}
-To efficiently search for the Pareto-optimal set of robot-team trail plans defined by eqn.~\ref{eq:the_two_objs}, we employ bi-objective (BO) ant colony optimization (ACO) \cite{iredi2001bi}. ACO \cite{dorigo2006ant,bonabeau1999swarm,blum2005ant,simon2013evolutionary} is a meta-heuristic for combinatorial optimization problems framed as a search for optimal paths or trails on a graph. As a swarm intelligence method \cite{bonabeau1999swarm}, 
-ACO is inspired by the behavior of ants efficiently foraging for food \cite{bonabeau2000inspiration}. See Box~\ref{box:ants}. 
+To efficiently search for the Pareto-optimal set of robot-team trail plans defined by eqn.~\ref{eq:the_two_objs}, we employ bi-objective (BO) ant colony optimization (ACO) \cite{iredi2001bi}. ACO \cite{dorigo2006ant,bonabeau1999swarm,blum2005ant,simon2013evolutionary} is a meta-heuristic for combinatorial optimization problems that can be framed as a search for optimal paths or trails on a graph. As a swarm intelligence method \cite{bonabeau1999swarm}, 
+ACO is inspired by the behavior of ants efficiently foraging for food via laying and following pheromone trails \cite{bonabeau2000inspiration}. See Box~\ref{box:ants}. 
 As precedent, variants of the single-robot- and team-orienteering problem have been efficiently and effectively solved by ACO \cite{ke2008ants,chen2015multiobjective,verbeeck2017time,sohrabi2021acs,chen2022environment,montemanni2011enhanced} (as well as other [meta-]heuristics \cite{gavalas2014survey,dang2013effective,chao1996fast,butt1994heuristic}), but not the TSOP.
 
 \begin{mybox}[label=box:ants, breakable]{Pheromone trail laying and following by foraging ants}
-Largely (but not exclusively \cite{evison2008combined,czaczkes2015trail,robinson2005no}) via laying and following pheromone trails \cite{czaczkes2015trail}, 
-a foraging ant colony (of some species)
-advantageously \cite{deneubourg1983probabilistic} can collectively select 
-(i) the shortest path from the nest to a food source \cite{goss1989self}
+Advantageously \cite{deneubourg1983probabilistic}, a foraging ant colony can (well, for some ant species) collectively select 
+(i) the shortest path from its nest to a food source \cite{goss1989self}
 and
-(ii) the highest quality food source among multiple options equidistant from the nest \cite{beckers1993modulation}. 
+(ii) the highest quality food source among multiple options equidistant from its nest \cite{beckers1993modulation}. 
+Largely, but not exclusively \cite{evison2008combined,czaczkes2015trail,robinson2005no}, this self-organizing of the colony is mediated by individual ants laying and following pheromone trails \cite{czaczkes2015trail}.
 
-Pheromone, a relatively volatile chemical \cite{david2009trail}, serves as an olfactory cue for ants \cite{knaden2016sensory}, allowing for \emph{indirect} communication between ants in the colony. 
-On the way back to the nest from a food source, ants deposit pheromone on the ground---an amount modulated by the quality of the food source \cite{beckers1993modulation}.
-Shorter paths to higher quality food sources accumulate pheromone more quickly.
-Since ants are recruited to and follow pheromone \cite{beckers1993modulation,czaczkes2015trail}, these paths recruit more ants and get reinforced. Via this positive feedback, the colony can collectively select the shortest path or highest-quality food source \cite{jackson2006communication,czaczkes2015trail,bonabeau1999swarm}.
-The pheromone trails laid by the colony form a \emph{collective memory}---a local guide for ants to high-quality food sources and short paths to them \cite{jackson2006communication}.
+Pheromone is a relatively volatile chemical \cite{david2009trail} that an ant can both secrete and receive as an olfactory cue \cite{knaden2016sensory}. Thereby, pheromone allows for \emph{indirect} communication between ants in the colony. 
+On its way back to the nest from a food source, an ant deposits pheromone on the ground in proportion to the quality of the food source \cite{beckers1993modulation}.
+Shorter paths to higher quality food sources accumulate pheromone from ants more quickly.
+Since ants are recruited to and follow pheromone \cite{beckers1993modulation,czaczkes2015trail}, these paths recruit more ants and get reinforced. Via this positive feedback mechanism, the colony can collectively select the shortest paths from the nest to the highest-quality food sources \cite{jackson2006communication,czaczkes2015trail,bonabeau1999swarm}.
+The pheromone trails laid by the colony form a \emph{collective memory}, locally guiding ants to high-quality food sources and short paths to them \cite{jackson2006communication}.
 Some species of ants can deposit multiple species of pheromone (from different glands) with e.g.\ different longevities \cite{czaczkes2015trail}, allowing for more complex indirect communication \cite{jackson2006communication,robinson2005no}.
 
 As negative feedback mechanisms, 
 (i) pheromone evaporates over time \cite{jackson2006communication,david2009trail,van2011temperature}, allowing the ant colony to ``forget'' trails to exhausted food sources,
 and 
-(ii) ants deposit less pheromone on trails a) with already-high pheromone concentrations \cite{czaczkes2013ant} or b) leading to food sources already occupied by their nestmates \cite{wendt2020negative}.
+(ii) ants deposit less pheromone on trails (a) with already-high pheromone concentrations \cite{czaczkes2013ant} or (b) leading to food sources already occupied by their nestmates \cite{wendt2020negative}.
 
 Ants select among pheromone trails with some degree of stochasticity \cite{deneubourg1990self}, which is beneficial for 
 (i) continual exploration to find even shorter paths and even higher-quality food sources, 
@@ -479,10 +478,9 @@ and
 (iii) plasticity in a dynamic environment \cite{deneubourg1983probabilistic,shiraishi2019diverse,deneubourg1986random,dussutour2009noise,edelstein1995trail}.
 
 
-
-%In summary, pheromone trails of an ant colony abstractly constitute a collective memory for the colony, a local guide for ants to high-quality food sources and short paths to them, and a medium for indirect communication \cite{jackson2006communication}. 
-The combination of positive feedback, negative feedback, and randomness in ants' pheromone-laying and -following can give rise to complex collective behavior despite simple interactions among decentralized individuals \cite{bonabeau1997self,bonabeau1999swarm,goss1989self,jackson2006communication,edelstein1995trail,watmough1995modelling}.
-%Simple models of ants laying and probabilistically following pheromone trails (some with evaporation) indeed reproduce salient features of ants foraging \cite{bonabeau1999swarm,goss1989self,jackson2006communication,edelstein1995trail,watmough1995modelling}.
+In summary, a colony of decentralized ants laying and following pheromone trails can exhibit complex, self-organizing behavior.
+The pheromone trails serve as a form of collective memory and a means for indirect communication.
+Loosely, ants can solve optimization problems through combining positive feedback (reinforcing good paths), negative feedback (pheromone evaporation), and randomness (exploring new paths).\cite{bonabeau1997self,bonabeau1999swarm,goss1989self,jackson2006communication,edelstein1995trail,watmough1995modelling}.
 \end{mybox}
 
 In bi-objective ACO, we simulate a heterogenous colony of artificial ants walking on the graph $G$---under a loose analogy, foraging for food---over many iterations. 
