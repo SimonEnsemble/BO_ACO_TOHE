@@ -386,7 +386,10 @@ factor into weights for aggregeated objectives and iters per single objective pr
 "
 
 # ╔═╡ 1f49a5d2-46df-4750-8600-16c9a70d14d5
-sa_iters = [10, 100, 500, 1000, 5000] * nb_ants
+sa_iters = [10, 100, 500, 1000, 5000, 10000] * nb_ants
+
+# ╔═╡ f220ba3d-8c0e-4ee1-ae60-931eb77c0b03
+cooling_schedule = CoolingSchedule(0.2, 0.95)
 
 # ╔═╡ 7fccd71f-8864-443e-851a-af529eeb02f8
 begin
@@ -394,9 +397,9 @@ begin
 	Threads.@threads for r = 1:n_runs
 		ress_sa[r] = [
 			mo_simulated_annealing(
-				top, nb_ants, Int(i / nb_ants), 
+				top, Int(sqrt(i)), Int(sqrt(i)), 
 				# cooling schedule
-				f -> 1.0 * (0.95) ^ (f * Int(i / nb_ants)), 
+				cooling_schedule, 
 				my_seed=my_seeds[r], run_checks=run_checks,
 				nb_trail_perturbations_per_iter=top.nb_robots,
 				p_restart=0.05
@@ -537,6 +540,7 @@ end
 # ╟─8c1b4a18-2a7a-47b0-aeff-27014ff351a9
 # ╟─c7aa05d2-824d-4744-845d-04c6ab3e1d80
 # ╠═1f49a5d2-46df-4750-8600-16c9a70d14d5
+# ╠═f220ba3d-8c0e-4ee1-ae60-931eb77c0b03
 # ╠═7fccd71f-8864-443e-851a-af529eeb02f8
 # ╠═c30ea441-6814-41b4-b9f2-458d701cebb6
 # ╠═a3c5e8b6-99f9-491a-b72a-f73a2602f2fc
