@@ -397,7 +397,7 @@ begin
 	Threads.@threads for r = 1:n_runs
 		ress_sa[r] = [
 			mo_simulated_annealing(
-				top, Int(sqrt(i)), Int(sqrt(i)), 
+				top, round(Int, sqrt(i)), round(Int, sqrt(i)), 
 				# cooling schedule
 				cooling_schedule, 
 				my_seed=my_seeds[r], run_checks=run_checks,
