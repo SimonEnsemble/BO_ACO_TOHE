@@ -69,17 +69,23 @@ each Pareto soln lays pheremone on both trails.
 the amount layed on trail i (pertaining to objective i) is equal to
 the value of that objective for that solution divided by the number of solutions.
 """
-function lay!(pheremone::Union{Pheremone, Vector{Pheremone}}, pareto_solns::Vector{Soln})
-    # number of Parto solns
+function lay!(pheremone::Pheremone, pareto_solns::Vector{Soln})
 	ℓ = length(pareto_solns)
-	# each non-dominated solution contributes pheremone.
 	for pareto_soln in pareto_solns
-		# loop over robots
 		for (r, robot) in enumerate(pareto_soln.robots)
-            _lay_trail!(
-                isa(pheremone, Pheremone) ? pheremone : pheremone[r], robot, pareto_soln.objs, ℓ
-            )
+            _lay_trail!(pheremone, robot, pareto_soln.objs, ℓ)
 		end
+	end
+end
+
+function lay!(pheremone::Vector{Pheremone}, pareto_solns::Vector{Soln})
+	ℓ = length(pareto_solns)
+	for pareto_soln in pareto_solns
+        ptrail_to_robot = sortperm([length(robot.trail) for robot in pareto_soln.robots]) # for symmetry breaking
+        for t = 1:length(pareto_soln.robots) # loop over TRAILS
+            r = ptrail_to_robot[t] # wut robot will write on this trail?
+            _lay_trail!(pheremone[t], pareto_soln.robots[r], pareto_soln.objs, ℓ)
+        end
 	end
 end
 
