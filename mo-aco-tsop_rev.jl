@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.5
+# v0.20.13
 
 using Markdown
 using InteractiveUtils
@@ -42,6 +42,21 @@ TableOfContents()
 # ╔═╡ 2bfd9bc7-a6d9-4fa3-810a-710ebde2bd5c
 Threads.nthreads()
 
+# ╔═╡ 73a53f9c-e981-44d6-9b0c-00a6fca5c5b8
+md"## 🔘 settings"
+
+# ╔═╡ 0fb3f9be-454b-4ff1-a619-91e67ec92025
+begin
+	problem_instance = "power_plant"
+	# ["power_plant", "art_museum", "random", "block model", "complete"], 
+
+	nb_iters = 25000
+
+	n_runs = 4
+
+	run_checks = false
+end
+
 # ╔═╡ 613ad2a0-abb7-47f5-b477-82351f54894a
 md"
 
@@ -54,11 +69,6 @@ md"
 
 # problem definition
 "
-
-# ╔═╡ 7e4e838c-0e42-4925-9ddf-4c3601466b64
-@bind problem_instance Select(
-	["power_plant", "art_museum", "random", "block model", "complete"], default="art_museum"
-)
 
 # ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
 if problem_instance == "power_plant"
@@ -147,21 +157,7 @@ end
 
 # ╔═╡ 9d44f37d-8c05-450a-a448-7be50387499c
 md"# MO-ACO
-
-## 🔘 settings
 "
-
-# ╔═╡ 129d3b0f-d8e0-46a9-b298-048a5215dbc6
-md"test mode? (@bind CheckBox("test mode"))"
-
-# ╔═╡ b9a9808e-8631-45e1-9e31-516565c804a3
-begin
-	nb_iters = 10000
-
-	n_runs = 4
-
-	run_checks = true
-end
 
 # ╔═╡ cdfdf924-d0f5-452f-9c94-eef7592c374d
 ρ = 0.9 # evaporation rate
@@ -194,7 +190,8 @@ begin
 			top, 
 			verbose=false, 
 			nb_ants=nb_ants, 
-			nb_iters=nb_iters,
+			nb_iters=10000,
+			# nb_iters=nb_iters,
 			use_heuristic=true,
 			use_pheremone=true,
 			run_checks=run_checks,
@@ -254,7 +251,9 @@ end
 
 # ╔═╡ 751c4203-88b1-40dd-9a96-926cd614aef8
 viz_soln(
-	ress[run_id].global_pareto_solns[soln_id], top, show_𝔼=false, savename="a_soln", layout=layout, robot_radius=robot_radius
+	ress[run_id].global_pareto_solns[soln_id], top, show_𝔼=false, 
+	# savename="a_soln",
+	layout=layout, robot_radius=robot_radius
 )
 
 # ╔═╡ e55fbea2-4865-498f-abeb-86f6db202b43
@@ -263,53 +262,9 @@ md"## viz pheremone"
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 viz_pheremone(ress[run_id].pheremone, top, savename="paper/pheremone", layout=layout)
 
-# ╔═╡ 17c48342-f684-4149-b1ea-b626896a4691
-viz_soln(
-	ress[run_id].global_pareto_solns[soln_id], top, savename="example", robot_radius=robot_radius, layout=layout
-)
-
 # ╔═╡ 514851fe-da59-4885-9dc8-0c9fb0c02223
 md"# baselines
-
-## 🐜 one pheremone trail per robot
-
-🐜 BO-ACO with:
-
-✔ heuristic
-✔ pheremone
-✔ one pheremone trail for each robot.
 "
-
-# ╔═╡ 2442f18e-9a4c-4a0f-bdf7-6fe1d1517a6b
-begin
-	ress_multiple_trails = [MO_ACO_run() for r = 1:n_runs]
-	Threads.@threads for r = 1:n_runs
-		ress_multiple_trails[r] = mo_aco(
-			top, 
-			verbose=false, 
-			nb_ants=nb_ants, 
-			nb_iters=nb_iters,
-			use_heuristic=true,
-			use_pheremone=true,
-			run_checks=run_checks,
-			my_seed=my_seeds[r],
-			one_pheromone_trail_per_robot=true,
-			ρ=ρ
-		)
-	end
-end
-
-# ╔═╡ fcc1ab11-8f42-4d96-87c9-c59c9b6eadd6
-md"look at pheremone trail for different robots"
-
-# ╔═╡ 42590ba8-bca3-4309-a9cf-dad307124463
-begin
-	local k = 2 # robot ID
-	viz_pheremone(
-		ress_multiple_trails[run_id].pheremone[k], top, 
-		savename="paper/pheremone_$k", layout=layout
-	)
-end
 
 # ╔═╡ 9d4ae33a-7fac-4a8d-b37a-29ab00b8056d
 md"## 🧠 heuristic-guided search"
@@ -386,7 +341,7 @@ factor into weights for aggregeated objectives and iters per single objective pr
 "
 
 # ╔═╡ 1f49a5d2-46df-4750-8600-16c9a70d14d5
-sa_iters = [10, 100, 500, 1000, 5000, 10000] * nb_ants
+sa_iters = [10, 100, 500, 1000, 5000, 10000, 25000] * nb_ants
 
 # ╔═╡ f220ba3d-8c0e-4ee1-ae60-931eb77c0b03
 cooling_schedule = CoolingSchedule(0.2, 0.95)
@@ -415,16 +370,25 @@ viz_agg_objectives(ress_sa[1][2], savename="simulated_annealing_convergence.pdf"
 # ╔═╡ a3c5e8b6-99f9-491a-b72a-f73a2602f2fc
 length(ress_sa[1][end].pareto_solns)
 
+# ╔═╡ d4df7c4e-b552-4441-8871-9eab1a9675cf
+ress_sa[1][end].total_nb_iters
+
 # ╔═╡ e9d3fa8a-8297-450f-a060-ba555205792a
 begin
-	local fig = viz_Pareto_front(
-		ress_sa[1][end].pareto_solns, size=(300, 300), incl_legend=false
+	local fig = Figure()
+	local ax = Axis(fig[1, 1], xlabel="E(R)", ylabel="E(S)")
+	scatter!(
+		[s.objs.r for s in ress_sa[1][end].pareto_solns], 
+		[s.objs.s for s in ress_sa[1][end].pareto_solns],
+		color="orange", label="SA: # iters: $(ress_sa[1][end].total_nb_iters/nb_ants)"
 	)
-	local ax = current_axis(fig)
 
 	scatter!(
-		[s.objs.r for s in ress[1].global_pareto_solns], [s.objs.s for s in ress[1].global_pareto_solns], color="green"
+		[s.objs.r for s in ress[1].global_pareto_solns], 
+		[s.objs.s for s in ress[1].global_pareto_solns],
+		color="green", label="ACO: # iters $nb_iters"
 	)
+	axislegend()
 
 	fig
 end
@@ -457,11 +421,6 @@ begin
 			label="ACO", linewidth=3, color=(wongcolors()[1], 0.5)
 		)
 		lines!(
-			1:ress_multiple_trails[r].nb_iters, ress_multiple_trails[r].areas, 
-			label="ACO (one trail / robot)", 
-			linewidth=3, color=(wongcolors()[5], 0.5)
-		)
-		lines!(
 			1:ress_pheremone_only[r].nb_iters, ress_pheremone_only[r].areas, 
 			label="heuristic ablation", linewidth=3, color=(wongcolors()[2], 0.5)
 		)
@@ -483,7 +442,7 @@ begin
 			label="simulated annealing"
 		)
 	end
-	xlims!(1, nb_iters)
+	# xlims!(1, nb_iters)
 	fig[1, 2] = Legend(
 		fig, ax, "search algorithm", framevisible = false, unique=true
 	)
@@ -495,8 +454,9 @@ end
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
 # ╠═e136cdee-f7c1-4add-9024-70351646bf24
 # ╠═2bfd9bc7-a6d9-4fa3-810a-710ebde2bd5c
+# ╟─73a53f9c-e981-44d6-9b0c-00a6fca5c5b8
+# ╠═0fb3f9be-454b-4ff1-a619-91e67ec92025
 # ╟─613ad2a0-abb7-47f5-b477-82351f54894a
-# ╟─7e4e838c-0e42-4925-9ddf-4c3601466b64
 # ╠═bdb5d550-13f6-4d8d-9a74-14b889efe7a2
 # ╠═76ecc4c1-39b7-4b3c-b98c-cdb1cdcf7eba
 # ╟─f7717cbe-aa9f-4ee9-baf4-7f9f1d190d4c
@@ -504,8 +464,6 @@ end
 # ╠═74ce2e45-8c6c-40b8-8b09-80d97f58af2f
 # ╠═79dd4f91-8a4a-4be1-8013-c9b6dfa56a75
 # ╟─9d44f37d-8c05-450a-a448-7be50387499c
-# ╟─129d3b0f-d8e0-46a9-b298-048a5215dbc6
-# ╠═b9a9808e-8631-45e1-9e31-516565c804a3
 # ╠═cdfdf924-d0f5-452f-9c94-eef7592c374d
 # ╠═1aecacee-9df1-4ddc-8497-3bea9c635bfa
 # ╟─8a6c6d9a-e15a-4f22-9d86-00e591b15693
@@ -526,11 +484,7 @@ end
 # ╠═751c4203-88b1-40dd-9a96-926cd614aef8
 # ╟─e55fbea2-4865-498f-abeb-86f6db202b43
 # ╠═197ea13f-b460-4457-a2ad-ae8d63c5e5ea
-# ╠═17c48342-f684-4149-b1ea-b626896a4691
 # ╟─514851fe-da59-4885-9dc8-0c9fb0c02223
-# ╠═2442f18e-9a4c-4a0f-bdf7-6fe1d1517a6b
-# ╟─fcc1ab11-8f42-4d96-87c9-c59c9b6eadd6
-# ╠═42590ba8-bca3-4309-a9cf-dad307124463
 # ╟─9d4ae33a-7fac-4a8d-b37a-29ab00b8056d
 # ╠═67c9334e-1155-4ef3-8d75-030dcfc1e570
 # ╟─5defd4be-0e97-4826-96b6-8c2cc77e0c08
@@ -544,6 +498,7 @@ end
 # ╠═7fccd71f-8864-443e-851a-af529eeb02f8
 # ╠═c30ea441-6814-41b4-b9f2-458d701cebb6
 # ╠═a3c5e8b6-99f9-491a-b72a-f73a2602f2fc
+# ╠═d4df7c4e-b552-4441-8871-9eab1a9675cf
 # ╠═e9d3fa8a-8297-450f-a060-ba555205792a
 # ╠═74a26275-d654-4187-935b-fc42046e6af4
 # ╠═6d5b2eda-06ea-4561-aa78-0249f97be733

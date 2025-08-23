@@ -211,11 +211,11 @@ function darpa_urban_environment(nb_robots::Int; seed::Int=97330)
 	    
     # totally made up.
 	artifact_reward = Dict(
-		"s" => 50,
-		"c" => 30,
-		"b" => 20,
-		"g" => 15,
-		"v" => 12
+		"s" => 0.50,
+		"c" => 0.30,
+		"b" => 0.20,
+		"g" => 0.15,
+		"v" => 0.12
 	)
 	for v = 1:nv(g)
 		r = (v in keys(artifact_type)) ? artifact_reward[artifact_type[v]] : 0.0
@@ -223,10 +223,10 @@ function darpa_urban_environment(nb_robots::Int; seed::Int=97330)
 	end
 	set_prop!(g, 1, :r, 0.0)
 	return TOP(
-               nv(g),
-               g,
-               nb_robots
-             )
+       nv(g),
+       g,
+       nb_robots
+     )
 end
 
 function art_museum_layout(scale::Float64)
