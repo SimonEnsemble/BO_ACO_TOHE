@@ -50,7 +50,7 @@ md"run simualted annealing? $(@bind run_sa CheckBox(default=false))"
 
 # ╔═╡ 0fb3f9be-454b-4ff1-a619-91e67ec92025
 begin
-	problem_instance = "power_plant"
+	problem_instance = "block model"
 	# ["power_plant", "art_museum", "random", "block model", "complete"], 
 
 	nb_iters = 0
@@ -121,49 +121,62 @@ end
 md"## viz problem setup"
 
 # ╔═╡ e3946d78-b7d4-4484-9e00-dc20d0457293
-if problem_instance == "art_museum"
-	layout = art_museum_layout(8.0)
-	robot_radius = 0.45
-elseif problem_instance == "power_plant"
-	layout = Spring(iterations=350, C=2.0, initialtemp=1.5)(top.g)
-	robot_radius = 0.3
-	# adjustments
-	# layout
-	layout = power_plant_layout(12.0)
-	layout = Spring(
-		iterations=5, C=3.2, initialtemp=1.5, initialpos=layout
-	)(top.g)
-	# adjustments
+begin
 	function adjust_layout!(i::Int, Δ_x::Float64, Δ_y::Float64)
 		layout[i] = layout[i] + Point2{Float64}(Δ_x, Δ_y)
 	end
-	local Δ = 0.5
-	adjust_layout!(37, 0.0, -Δ)
-	adjust_layout!(33, -Δ, 0.0)
-	adjust_layout!(28, -Δ, 3*Δ)
-	adjust_layout!(19, -2*Δ, Δ)
-	adjust_layout!(42, 0.0, -Δ)
-	adjust_layout!(49, -2*Δ, 0.0)
-	adjust_layout!(50, -Δ, 0.0)
-	adjust_layout!(30, 0.0, -Δ)
-	adjust_layout!(14, Δ, -2*Δ)
-	adjust_layout!(68, -Δ, 0.0)
-	adjust_layout!(64, -Δ, 0.0)
-	adjust_layout!(67, -1.5*Δ, 0.0)
-	adjust_layout!(60, -1.5*Δ, 0.0)
-	adjust_layout!(73, 0.5*Δ, 0.0)
-	adjust_layout!(59, Δ, 0.0)
-	adjust_layout!(56, 1.5*Δ, Δ)
-	adjust_layout!(22, 1.5*Δ, 0.0)
-	adjust_layout!(43, 0.5*Δ, Δ/2)
-	adjust_layout!(17, 0.0, Δ/2)
-	# layout[33] = layout[33] - Point2{Float64}(Δ, 0.0)
-	# layout[28] = layout[28] + Point2{Float64}(0.0, Δ)
-	# layout[22] = layout[22] + Point2{Float64}(Δ, 0.0)
-	robot_radius = 0.565
-else
-	layout = Spring(iterations=350, C=1.75, initialtemp=1.0)(top.g)
-	robot_radius = 0.3
+	
+	if problem_instance == "art_museum"
+		layout = art_museum_layout(8.0)
+		robot_radius = 0.45
+	elseif problem_instance == "power_plant"
+		layout = Spring(iterations=350, C=2.0, initialtemp=1.5)(top.g)
+		robot_radius = 0.3
+		# adjustments
+		# layout
+		layout = power_plant_layout(12.0)
+		layout = Spring(
+			iterations=5, C=3.2, initialtemp=1.5, initialpos=layout
+		)(top.g)
+		# adjustments
+		local Δ = 0.5
+		adjust_layout!(37, 0.0, -Δ)
+		adjust_layout!(33, -Δ, 0.0)
+		adjust_layout!(28, -Δ, 3*Δ)
+		adjust_layout!(19, -2*Δ, Δ)
+		adjust_layout!(42, 0.0, -Δ)
+		adjust_layout!(49, -2*Δ, 0.0)
+		adjust_layout!(50, -Δ, 0.0)
+		adjust_layout!(30, 0.0, -Δ)
+		adjust_layout!(14, Δ, -2*Δ)
+		adjust_layout!(68, -Δ, 0.0)
+		adjust_layout!(64, -Δ, 0.0)
+		adjust_layout!(67, -1.5*Δ, 0.0)
+		adjust_layout!(60, -1.5*Δ, 0.0)
+		adjust_layout!(73, 0.5*Δ, 0.0)
+		adjust_layout!(59, Δ, 0.0)
+		adjust_layout!(56, 1.5*Δ, Δ)
+		adjust_layout!(22, 1.5*Δ, 0.0)
+		adjust_layout!(43, 0.5*Δ, Δ/2)
+		adjust_layout!(17, 0.0, Δ/2)
+		robot_radius = 0.565
+	else
+		layout = Spring(iterations=100, C=10.0, initialtemp=3.5)(top.g)
+		for i = 1:length(layout)
+			layout[i] = layout[i] * 0.2
+		end
+		local Δ = 1.0
+		adjust_layout!(20, -2*Δ, 0.0)
+		adjust_layout!(21, 0.0, -Δ)
+		adjust_layout!(18, 2*Δ, 0.0)
+		adjust_layout!(5, -Δ/2, 0.0)
+		adjust_layout!(7, 0.0, Δ/2)
+		adjust_layout!(13, 0.0, -Δ/2)
+		adjust_layout!(4, 0.0, -Δ/2)
+		adjust_layout!(8, Δ/2, 0.0)
+		adjust_layout!(2, Δ/2, 0.0)
+		robot_radius = 0.3
+	end
 end
 
 # ╔═╡ 79dd4f91-8a4a-4be1-8013-c9b6dfa56a75

@@ -144,7 +144,8 @@ function viz_setup(
     depict_r::Bool=true,
     layout::Union{Nothing, Vector{Point2{Float64}}}=nothing,
     pad::Float64=0.0,
-    node_size::Int=25
+    node_size::Int=25,
+    show_colorbars::Bool=true
 )   
     g = deepcopy(top.g)
 
@@ -174,7 +175,7 @@ function viz_setup(
     end
     
     fig = Figure()
-    ax = Axis(fig[1, 1], aspect=DataAspect())
+    ax = Axis(fig[1, 1], aspect=DataAspect(), title=top.name)
     hidespines!(ax)
     hidedecorations!(ax)
     # plot trails as highlighted edges
@@ -224,12 +225,14 @@ function viz_setup(
             end
             x = layout[id_node_robots][1]
             y = layout[id_node_robots][2]
-            θ = - π/2 * (r - 1)
+            θ_shift = top.name in ["nuclear power plant", "synthetic (2 communities)"] ? π/2 : 0.0
+            θ_multiple = top.name in ["nuclear power plant", "synthetic (2 communities)"] ? π : π/2
+            θ = - θ_multiple * (r - 1) + θ_shift
             scatter!([x + robot_radius*cos(θ)], [y + robot_radius*sin(θ)],
                 marker='✈',markersize=25, color=robot_colors[r])
         end
     end
-    if depict_r
+    if depict_r && show_colorbars
         Colorbar(
             fig[1, 2],
             colormap=reward_color_scheme,
@@ -240,7 +243,7 @@ function viz_setup(
             height=Relative(3/5)
            )
     end
-    if depict_ω
+    if depict_ω && show_colorbars
         Colorbar(
             fig[1, depict_r ? 3 : 2],
             colormap=survival_color_scheme,
