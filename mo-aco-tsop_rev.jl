@@ -43,14 +43,14 @@ TableOfContents()
 Threads.nthreads()
 
 # ╔═╡ 73a53f9c-e981-44d6-9b0c-00a6fca5c5b8
-md"## 🔘 settings"
+md"# 🔘 settings"
 
 # ╔═╡ 0fb3f9be-454b-4ff1-a619-91e67ec92025
 begin
-	problem_instance = "power_plant"
+	problem_instance = "block model"
 	# ["power_plant", "art_museum", "random", "block model", "complete"], 
 
-	nb_iters = 25000
+	nb_iters = 10000
 
 	n_runs = 4
 
@@ -79,20 +79,20 @@ elseif problem_instance == "random"
 	top = generate_random_top(30, 5)
 elseif problem_instance == "block model"
 	Random.seed!(5)
-	local p_interconnect = 0.05
+	local p_interconnect = 0.025
 	# complicated graph with few robots
 	# to showcase when multiple robot trails better.
 	top = block_model(
 		# number of nodes
-		[10, 8, 12, 6], 
+		[12, 8], 
 
 		# number of robots
 		2,
 		
 		# connection probabilities
 		[
-			0.5 p_interconnect p_interconnect p_interconnect; 
-			p_interconnect 0.5 p_interconnect p_interconnect;
+			0.4 p_interconnect p_interconnect p_interconnect; 
+			p_interconnect 0.3 p_interconnect p_interconnect;
 			p_interconnect p_interconnect 0.4 p_interconnect;
 			p_interconnect p_interconnect p_interconnect 0.8;
 		],
@@ -339,8 +339,11 @@ md"iters. a bit different than ACO since gotta re-run for each number of iters.
 factor into weights for aggregeated objectives and iters per single objective problem.
 "
 
+# ╔═╡ 063a4b94-05f3-4e78-8059-7ab1886b521b
+md"run simualted annealing? $(@bind run_sa CheckBox(default=false))"
+
 # ╔═╡ 1f49a5d2-46df-4750-8600-16c9a70d14d5
-sa_iters = [10, 100, 500, 1000, 5000, 10000, 25000] * nb_ants
+sa_iters = [10, 100, 500, 1000, 5000, 10000] * nb_ants
 
 # ╔═╡ f220ba3d-8c0e-4ee1-ae60-931eb77c0b03
 cooling_schedule = CoolingSchedule(0.2, 0.95)
@@ -348,18 +351,20 @@ cooling_schedule = CoolingSchedule(0.2, 0.95)
 # ╔═╡ 7fccd71f-8864-443e-851a-af529eeb02f8
 begin
 	ress_sa = [[MO_SA_Run()] for r = 1:n_runs]
-	Threads.@threads for r = 1:n_runs
-		ress_sa[r] = [
-			mo_simulated_annealing(
-				top, round(Int, sqrt(i)), round(Int, sqrt(i)), 
-				# cooling schedule
-				cooling_schedule, 
-				my_seed=my_seeds[r], run_checks=run_checks,
-				nb_trail_perturbations_per_iter=top.nb_robots,
-				p_restart=0.05
-			)
-			for i in sa_iters
-		]
+	if run_sa
+		Threads.@threads for r = 1:n_runs
+			ress_sa[r] = [
+				mo_simulated_annealing(
+					top, round(Int, sqrt(i)), round(Int, sqrt(i)), 
+					# cooling schedule
+					cooling_schedule, 
+					my_seed=my_seeds[r], run_checks=run_checks,
+					nb_trail_perturbations_per_iter=top.nb_robots,
+					p_restart=0.05
+				)
+				for i in sa_iters
+			]
+		end
 	end
 end
 
@@ -492,6 +497,7 @@ end
 # ╠═2400b72e-2d1a-4c2e-91c7-14c8ac92cc11
 # ╟─8c1b4a18-2a7a-47b0-aeff-27014ff351a9
 # ╟─c7aa05d2-824d-4744-845d-04c6ab3e1d80
+# ╟─063a4b94-05f3-4e78-8059-7ab1886b521b
 # ╠═1f49a5d2-46df-4750-8600-16c9a70d14d5
 # ╠═f220ba3d-8c0e-4ee1-ae60-931eb77c0b03
 # ╠═7fccd71f-8864-443e-851a-af529eeb02f8
