@@ -1,3 +1,29 @@
+function power_plant_layout(scale::Float64)
+    # read in node locations from plot digitizer of art museum map
+    raw_node_locs = split.(readlines("power_plant_node_locs.csv"), ",")
+    xs = [parse(Float64, rnl[1]) for rnl in raw_node_locs]
+    ys = [parse(Float64, rnl[2]) for rnl in raw_node_locs]
+
+    # standardize
+    r = maximum(xs) - minimum(xs) # avoid stretching one more than another
+    xs = (xs .- minimum(xs)) / r
+    ys = (ys .- minimum(ys)) / r
+
+    # manual adjustments
+
+    # scale
+    xs *= scale
+    ys *= scale
+
+    # wut the graph makie wants
+    spatial_layout = Point2{Float64}[]
+    for (x, y) in zip(xs,  ys)
+        pos = Point2{Float64}(x, y)
+        push!(spatial_layout, pos)
+    end
+    return spatial_layout
+end
+
 function darpa_urban_environment(nb_robots::Int; seed::Int=97330)
     Random.seed!(seed)
 	g = MetaDiGraph(SimpleDiGraph(73))
