@@ -8,8 +8,20 @@ function power_plant_layout(scale::Float64)
     r = maximum(xs) - minimum(xs) # avoid stretching one more than another
     xs = (xs .- minimum(xs)) / r
     ys = (ys .- minimum(ys)) / r
+    
+    # floor 2 nodes
+    floor2nodes = vcat(46:length(xs), [42, 43])
+    for i in floor2nodes
+       xs[i] = xs[i] - 1.1
+    end
+
+    x_shift = 0.7
+    for i in floor2nodes
+       xs[i] = -(x_shift + xs[i])
+    end
 
     # manual adjustments
+    xs[59] -= 0.1
 
     # scale
     xs *= scale
@@ -47,7 +59,6 @@ function darpa_urban_environment(nb_robots::Int; seed::Int=97330)
 		(8, 15, :h),
 		(8, 16, :h),
 		(8, 14, :h),
-		(8, 42, :h),
 		(1, 2, :h),
 		(3, 13, :h),
 		#=
@@ -249,6 +260,7 @@ function darpa_urban_environment(nb_robots::Int; seed::Int=97330)
 	end
 	set_prop!(g, 1, :r, 0.0)
 	return TOP(
+       "nuclear power plant",
        nv(g),
        g,
        nb_robots
@@ -393,10 +405,11 @@ function art_museum(nb_robots::Int)
 	set_prop!(g, 1, :r, 0.0)
 
 	return TOP(
-               nv(g),
-               g,
-               nb_robots
-             )
+        "art museum",
+        nv(g),
+        g,
+        nb_robots
+    )
 end
 
 function generate_random_top(
@@ -436,6 +449,7 @@ function generate_random_top(
 	set_prop!(g, 1, :r, 0.0)
 
 	return TOP(
+                "random",
                nv(g),
                g,
                nb_robots
@@ -479,6 +493,7 @@ function generate_manual_top(nb_robots::Int)
 	set_prop!(g, 1, :r, 0.0)
 
 	return TOP(
+                "manual",
                nv(g),
                g,
                nb_robots
@@ -514,6 +529,7 @@ function toy_problem()
 	set_prop!(g, 1, :r, 0.0)
 
 	return TOP(
+                "toy",
                nv(g),
                g,
                nb_robots
@@ -612,7 +628,7 @@ function block_model(
         return block_model(nb_vertices, P, r_distn, ω_distn)
     end
 
-    return TOP(nv(g), g, nb_robots)
+    return TOP("synthetic ($nb_comm communities)", nv(g), g, nb_robots)
 end
 
 function complete_graph_top(
@@ -630,5 +646,5 @@ function complete_graph_top(
 		set_prop!(g, ed.dst, ed.src, :ω, rand(w_distn))
 	end
 	set_prop!(g, 1, :r, 0.0)
-    return TOP(nv(g), g, nb_robots)
+    return TOP("complete graph", nv(g), g, nb_robots)
 end
