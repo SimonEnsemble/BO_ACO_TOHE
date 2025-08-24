@@ -12,6 +12,7 @@ simple, undirected graph `g`
   node 1 = base node.
 """
 struct TOP
+    name::String
     # number of nodes in the graph
 	nb_nodes::Int
     # the graph abstraction of the environment

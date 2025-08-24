@@ -77,7 +77,7 @@ chemical, biological, radiological, or nuclear incident response %(e.g.\ safely 
  target tracking \cite{robin2016multi}, and 
  military surveillance and reconnaissance. 
  
-Algorithms for both low-level, tactical and high-level, strategic planning of the paths/routes of mobile robots in static or dynamic environments \cite{lavalle2006planning,liu2023path,ugwoke2025simulation,siegwart2011introduction} are vital for autonomy and pivitol for efficiency, safety, and good performance on the objectives.
+Algorithms for both low-level, tactical and high-level, strategic planning of the paths/routes of mobile robots in static or dynamic environments \cite{lavalle2006planning,liu2023path,ugwoke2025simulation,siegwart2011introduction} are vital for autonomy and pivotal for efficiency, safety, and good performance on the objectives.
 
 The classic, low-level path-planning problem for a robot \cite{lavalle2006planning,agrawal2022classical} involves finding the least-cost (e.g., shortest), collision-free path from a starting location to a destination in a static, known environment containing obstacles.
 % modeled as a grid, where obstacles render some grid cells inaccessible.
@@ -176,9 +176,10 @@ ACO handles our bi-objective problem by (1) assigning ants to specialize to diff
 Finally, ACO is computationally efficient (compared to integer program solvers \cite{pascariu2021train}), straightforward to implement, embarrassingly parallelizable (allocate one ant per thread), and likely extendable to efficiently handle dynamic or online BOTHE problem variants via using the stored pheromone trail as a warm start \cite{montemanni2005ant}.
 
 For illustration, we solve and analyze a series of three BOTOHE problem instances for an information-gathering mission on:
-(1) a stochastic block model graph with three communities;
-(2) a real-world graph modeling (2a) the San Diego art museum and (2b) the Satsop Nuclear Power Plant.
-We benchmark bi-objective ACO against random search and simulated annealing; quantify the contribution of the greedy heuristics and pheromone to the search efficiency of ACO through two ablation studies; and compare ACO performance when (a) using a single pair of pheromone trails that is shared among robots compared to (b) granting each robot its own pair of pheromone trails.
+(1) a synthetic graph, sampled from a stochastic block model, with two communities;
+(2) real-world graphs modeling (2a) the San Diego art museum and (2b) the [unfinished] Satsop Nuclear Power Plant in Washington.
+We explore the Pareto-optimal set of robot-team trail plans for the art museum to gain insights.
+For each problem instance, we quantify the contribution of (a) the greedy heuristics and (b) the pheromone to the search efficiency of ACO through two ablation studies. We also benchmark bi-objective ACO against (a) random search and (b) bi-objective simulated annealing.
 % from the Defense Advanced Research Projects Agency (DARPA) Subterranean (SubT) robotics challenge \cite{chung2023into} (Alpha course of the Urban Circuit Network \cite{github_darpa_subt}).
 
 \begin{figure}[h!]
@@ -211,7 +212,6 @@ We benchmark bi-objective ACO against random search and simulated annealing; qua
 
 \subsection{Problem setup}
 Here, we frame the Bi-Objective robot-Team Orienteering in Hazardous Environments (BOTOHE) problem. 
-
 
 A homogenous team of $K$ robots are mobile in an environment modeled as a directed graph $G=(\mathcal{V}, \mathcal{E})$. Each node $v \in \mathcal{V}$ represents a location in the environment (e.g., a room in a building). Each arc $(v, v^\prime) \in\mathcal{E}$, an ordered pair of distinct nodes, represents a one-way, direct spatial connection (e.g.\ a door- or hall-way) to travel from node $v$ to node $v^\prime$. 
 \emph{Mobility} of the robots implies they may walk on the graph $G$, i.e. sequentially hop from a node $v$ to another node $v^\prime$ via traversing arc $(v, v^\prime)\in\mathcal{E}$.
@@ -393,8 +393,6 @@ Seen from eqn.~\ref{eq:R_sum} and the linearity of the expectation operator, the
 \begin{equation}
 	\mathbb{E}[S(\mathcal{P}=\{\rho_1, ..., \rho_K\})]=\sum_{k=1}^K \mathbb{E}[S_{\lvert \rho_k \rvert}(\rho_k)] = \sum_{k=1}^K  \pi[S_{\lvert \rho_k \rvert}(\rho_k) = 1] \label{eq:formula_obj2}
 \end{equation} with $\pi[S_{\lvert \rho_k \rvert}(\rho_k) = 1]$ given in eqn.~\ref{eq:pi_S_n}.
-
-
 
 \subsubsection{Expected team reward}
 Now, we write a formula for the expected team reward, $\mathbb{E}[R(\mathcal{P})]$. 
@@ -602,16 +600,19 @@ We initialize the pheromone on all arcs with $\tau_{R,S}(v, v^\prime)=1$, to all
 % TODO explain rho nottaion. gotta expand that. the rho_k^(p) not defined.
 
 \subsection{Shared versus per-robot pheromone maps}
-The reward and survival pheromone maps are shared by the ant colony as a collective memory.
-In the trail construction rule in eqn.~\ref{eq:prob_x_y} and the pheromone laying rule in eqn.~\ref{eq:tau_update}, the pheromone maps are also shared by the robots on the team.
-Instead, we experiment with an additional ACO variant where $K$ pheromone maps $\{\tau_{R}^{(k)}(v, v^\prime)\}_{k=1}^K$ are maintained and individualized to each robot on the team.
-When an ant constructs a trail for robot $k$, it is biased by the pheromone maps $\tau_{R, S}^{(k)}(v, v^\prime)$. More, an ant updates the pheromone map $\tau_{R, S}^{(k)}(v, v^\prime)$ using only robot $k$'s trail in the Pareto-optimal team trail plan. 
-Clashing with approach, the robot team is homogenous, implying permutation-invariance in the order in which we store the trails in the robot-team trail plan.
-Consequently, we promote symmetry-breaking during pheromone-laying by first sorting the robots in a trail plan by the lengths of their trails. The first (last) pheromone trail corresponds with the robot with the shortest (longest) trail. 
-(One could imagine more sophistical approaches for sorting the robots to promote symmetry breaking.) Intuitively, allocating one pair of pheromone trails to each robot instead of sharing a pair of pheromone maps among all robots could either
-(1) slow convergence, since feedback is now not shared among robots, or 
-(2) speed convergence, as now pheromone can explicitly promote e.g. the first-constructed robot trail to explore a different region of the graph than the second. 
-Note, under the robot-shared pheromone maps, still the sequential allocation of trails to the robots is aware of the trails of the previous robots through the heuristic $\eta_R$ in eqn.~\ref{eq:eta_R}.
+The reward and survival pheromone maps are shared by the ant colony as a form of collective memory of arcs that led to Pareto-optimal trails with high expected reward and survival. Thereby, the ants in the colony collaborate in finding Pareto-optimal robot-team trail plans.
+In the trail-construction rule in eqn.~\ref{eq:prob_x_y} and the pheromone-laying rule in eqn.~\ref{eq:tau_update}, each ant uses the same pair of pheromone maps to construct the trail for each robot, too. (Still, when an ant is sequentially allocating trails to the robots, it is aware of the trails $\rho_1, ..., \rho_{k-1}$ of the previous robots when constructing the trail for robot $k$ through the heuristic $\eta_R$ in eqn.~\ref{eq:eta_R}.) This contrasts with an approach of using a distinct, independent pair of pheromone maps for each robot on the team, which requires more memory and conflicts with the inherent permutation-invariance in the homogenous team of robots.
+
+
+%Note, one may propose to 
+%Instead, we experiment with an additional ACO variant where $K$ pheromone maps $\{\tau_{R}^{(k)}(v, v^\prime)\}_{k=1}^K$ are maintained and individualized to each robot on the team.
+%When an ant constructs a trail for robot $k$, it is biased by the pheromone maps $\tau_{R, S}^{(k)}(v, v^\prime)$. More, an ant updates the pheromone map $\tau_{R, S}^{(k)}(v, v^\prime)$ using only robot $k$'s trail in the Pareto-optimal team trail plan. 
+%Clashing with approach, the robot team is homogenous, implying permutation-invariance in the order in which we store the trails in the robot-team trail plan.
+%Consequently, we promote symmetry-breaking during pheromone-laying by first sorting the robots in a trail plan by the lengths of their trails. The first (last) pheromone trail corresponds with the robot with the shortest (longest) trail. 
+%(One could imagine more sophistical approaches for sorting the robots to promote symmetry breaking.) Intuitively, allocating one pair of pheromone trails to each robot instead of sharing a pair of pheromone maps among all robots could either
+%(1) slow convergence, since feedback is now not shared among robots, or 
+%(2) speed convergence, as now pheromone can explicitly promote e.g. the first-constructed robot trail to explore a different region of the graph than the second. 
+%Note, under the robot-shared pheromone maps, still the sequential allocation of trails to the robots is aware of the trails of the previous robots through the heuristic $\eta_R$ in eqn.~\ref{eq:eta_R}.
 
 
 % The elitist ant reinforces pheromone trails belonging to the global-Pareto-optimal set to encourage future ants to explore variations of them, while reinforcing the iteration-Pareto-optimal set helps promote exploration of variants of good trails.
@@ -681,7 +682,7 @@ The node reward map $r$ is visualized by the color assigned to each node.
 \begin{figure}[h!]
     \centering
     	\includegraphics[width=0.6\textwidth]{art_museum_full_setup.pdf}
-    \caption{Our TOHE problem instance. The directed graph represents the two-floor San Diego art museum with distinct rooms (nodes) connected by doorways or a stairway (arcs). The arcs are colored according to robot survival probabilities. The nodes are colored according to rewards offered to the team when a robot visits. The three robots (planes) initially reside at the base node. % TODO use robot emoji
+    \caption{BOTOHE problem instances. The directed graph represents the two-floor San Diego art museum with distinct rooms (nodes) connected by doorways or a stairway (arcs). The arcs are colored according to robot survival probabilities. The nodes are colored according to rewards offered to the team when a robot visits. The three robots (planes) initially reside at the base node. % TODO use robot emoji
     } \label{fig:ex_setup}
 \end{figure}
 

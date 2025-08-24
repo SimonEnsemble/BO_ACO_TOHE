@@ -50,7 +50,7 @@ md"run simualted annealing? $(@bind run_sa CheckBox(default=false))"
 
 # ╔═╡ 0fb3f9be-454b-4ff1-a619-91e67ec92025
 begin
-	problem_instance = "block model"
+	problem_instance = "power_plant"
 	# ["power_plant", "art_museum", "random", "block model", "complete"], 
 
 	nb_iters = 0
@@ -168,39 +168,50 @@ begin
 		local Δ = 1.0
 		adjust_layout!(20, -2*Δ, 0.0)
 		adjust_layout!(21, 0.0, -Δ)
-		adjust_layout!(18, 2*Δ, 0.0)
+		adjust_layout!(18, -1.5*Δ, 0.0)
 		adjust_layout!(5, -Δ/2, 0.0)
 		adjust_layout!(7, 0.0, Δ/2)
 		adjust_layout!(13, 0.0, -Δ/2)
 		adjust_layout!(4, 0.0, -Δ/2)
 		adjust_layout!(8, Δ/2, 0.0)
 		adjust_layout!(2, Δ/2, 0.0)
+		adjust_layout!(19, -2.2*Δ, -Δ/2)
 		robot_radius = 0.3
 	end
 end
 
 # ╔═╡ 79dd4f91-8a4a-4be1-8013-c9b6dfa56a75
 begin	
-	fig = viz_setup(
+	local fig = viz_setup(
 		top, nlabels=true, robot_radius=robot_radius,
 		savename=problem_instance * "_full_setup", 
 		depict_r=false, depict_ω=true, show_robots=true, 
 		layout=layout, node_size=23,
 		show_colorbars=top.name == "art museum"
 	)
+	local ax =  current_axis()
 	if problem_instance == "art_museum"
-		ax = current_axis()
 		for (i, pos) in zip(1:2, [(2.75, 3.6), (3.75, -1.75)])
 			text!(ax, pos, text="floor #$i", 
 				align=(:center, :center), font=firasans("Light")
 			)
 		end
-	end
-	if problem_instance == "power_plant"
-		resize!(fig.scene, (the_size[1] * 1.4, the_size[1] * 1.4))
+	elseif top.name == "synthetic (2 communities)"
+		for (i, pos) in zip(1:2, [(-3.5, 0.0), (2, 1.5)])
+			text!(ax, pos, text="community\n#$i", 
+				align=(:center, :center), font=firasans("Light")
+			)
+		end
+	elseif top.name == "nuclear power plant"
+		resize!(fig.scene, (the_size[1] * 1.2, the_size[1] * 1.2))
+		for (i, pos) in zip(1:2, [(4, 2.5), (-7.0, 3.5)])
+			text!(ax, pos, text="floor #$i", 
+				align=(:center, :center), font=firasans("Light")
+			)
+		end
 	end
 	resize_to_layout!(fig)
-	save("paper/" * problem_instance * "_full_setup.pdf", fig)
+	save("paper/" * top.name * "_full_setup.pdf", fig)
 	fig
 end
 
@@ -308,7 +319,11 @@ viz_soln(
 md"## viz pheremone"
 
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
-viz_pheremone(ress[run_id].pheremone, top, savename="paper/pheremone", layout=layout)
+viz_pheremone(
+	ress[run_id].pheremone, top, 
+	savename="paper/pheremone_$(top.name)", 
+	layout=layout
+)
 
 # ╔═╡ 514851fe-da59-4885-9dc8-0c9fb0c02223
 md"# baselines
@@ -496,7 +511,7 @@ begin
 	fig[1, 2] = Legend(
 		fig, ax, "search algorithm", framevisible = false, unique=true
 	)
-	save("paper/ACO_comparison.pdf", fig)
+	save("paper/ACO_performance_$(top.name).pdf", fig)
 	fig
 end
 
