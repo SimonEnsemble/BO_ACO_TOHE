@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.13
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -74,9 +74,9 @@ begin
 	# "block model", "nuclear power plant
 	# ["power_plant", "art_museum", "random", "block model", "complete"], 
 
-	nb_iters = 25
+	nb_iters = 100000
 
-	n_runs = 2
+	n_runs = 4
 
 	run_checks = false
 
@@ -499,7 +499,7 @@ factor into weights for aggregeated objectives and iters per single objective pr
 "
 
 # ╔═╡ 1f49a5d2-46df-4750-8600-16c9a70d14d5
-sa_iters = [10, 100] * nb_ants #, 500, 1000, 5000, 10000] * nb_ants
+sa_iters = [10, 100, 1000, 10000, 100000] * nb_ants
 
 # ╔═╡ f220ba3d-8c0e-4ee1-ae60-931eb77c0b03
 cooling_schedule = CoolingSchedule(0.2, 0.95)
@@ -602,6 +602,7 @@ begin
 				scatter!(
 					[sa_res.total_nb_iters for sa_res in results[r]] / nb_ants,
 					[sa_res.area for sa_res in results[r]],
+					strokewidth=1, strokecolor="gray",
 					color=(algo_to_color[algo], 0.5),
 					label=algo
 				)
@@ -620,6 +621,71 @@ begin
 		fig, ax, "search algorithm", framevisible = false, unique=true
 	)
 	save("paper/ACO_performance_$(top.name).pdf", fig)
+	fig
+end
+
+# ╔═╡ bf1f5784-52fa-4e24-ba2d-56aaf4e625c5
+search_results["simulated annealing"][1]
+
+# ╔═╡ de4b52e6-df86-42d6-b49a-df01d44b9a92
+begin
+	local fig = Figure(size=(700, 400))
+	local ax = Axis(
+		fig[1, 1], 
+		xlabel="# iterations", 
+		ylabel="Pareto-set quality",
+		xscale=log10
+	)
+	for algo in algos
+		local results = search_results[algo]
+		
+		if algo == "simulated annealing"
+			iters = [sr.total_nb_iters for sr in results[1]] / nb_ants
+			μ = [
+				mean(results[r][i].area for r = 1:n_runs)
+				for i = 1:length(iters)
+			]
+			σ = [
+				std(results[r][i].area for r = 1:n_runs)
+				for i = 1:length(iters)
+			]
+			scatter!(iters, μ,
+				strokewidth=1, strokecolor="gray",
+				color=(algo_to_color[algo], 0.5),
+				label=algo
+			)
+			errorbars!(
+				iters, μ, σ, whiskerwidth=10, color="gray"
+			)
+		else
+			# ACO
+			n = results[1].nb_iters
+			
+			μ = mean(results[r].areas for r = 1:n_runs)
+			σ = [
+				std(
+					[results[r].areas[i] for r = 1:n_runs]
+				) 
+				for i = 1:n
+			]
+			
+			lines!(
+				1:n, μ, 
+				label=algo, linewidth=3, color=algo_to_color[algo]
+			)
+			band!(1:n, μ .- σ, μ .+ σ, color=(algo_to_color[algo], 0.5))
+		end
+	end
+	
+	# SA
+	local results = search_results["simulated annealing"]
+	
+	
+	xlims!(1, nb_iters)
+	fig[1, 2] = Legend(
+		fig, ax, "search algorithm", framevisible = false, unique=true
+	)
+	save("paper/ACO_performance_banded_$(top.name).pdf", fig)
 	fig
 end
 
@@ -681,3 +747,5 @@ end
 # ╠═a9e167d0-8c86-4ad7-aac0-35beeb060324
 # ╠═d9eb33a6-a374-4c20-bd18-dbf5a5c845eb
 # ╠═0808a99f-1f55-4b0a-81e9-3f511c9f55d5
+# ╠═bf1f5784-52fa-4e24-ba2d-56aaf4e625c5
+# ╠═de4b52e6-df86-42d6-b49a-df01d44b9a92
