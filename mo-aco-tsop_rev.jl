@@ -19,7 +19,7 @@ end
 # ╔═╡ d04e8854-3557-11ee-3f0a-2f68a1123873
 begin
 	import Pkg; Pkg.activate("aco")
-	using Revise, Graphs, GraphMakie, MetaGraphs, CairoMakie, ColorSchemes, Distributions, NetworkLayout, Random, PlutoUI, StatsBase
+	using Revise, Graphs, GraphMakie, MetaGraphs, CairoMakie, ColorSchemes, Distributions, NetworkLayout, Random, PlutoUI, StatsBase, JLD2
 
 	import AlgebraOfGraphics: set_aog_theme!, firasans, wongcolors
 	set_aog_theme!(fonts=[firasans("Light"), firasans("Light")])
@@ -45,19 +45,44 @@ Threads.nthreads()
 # ╔═╡ 73a53f9c-e981-44d6-9b0c-00a6fca5c5b8
 md"# 🔘 settings"
 
+# ╔═╡ 8b6be951-185f-488a-9ef1-f3b40ce9ecc8
+md"try loading saved results? $(@bind load_saved_res CheckBox(default=true))"
+
+# ╔═╡ 9b00deb7-6edb-45fe-bc55-00e8c581c289
+md"save results? $(@bind save_res CheckBox(default=true))"
+
+# ╔═╡ cb8824e4-50d5-4fc5-a69a-5f81d51c0c8c
+results_dir = "search_results"
+
+# ╔═╡ 2874cce9-86ec-48b7-87f6-a2d6d11b7f17
+mkpath(results_dir)
+
 # ╔═╡ 063a4b94-05f3-4e78-8059-7ab1886b521b
 md"run simualted annealing? $(@bind run_sa CheckBox(default=false))"
 
+# ╔═╡ 5b8823d0-b0c9-49df-b69b-7c2a3370245b
+md"run random? $(@bind run_random CheckBox(default=false))"
+
+# ╔═╡ e4f7f56b-f4d2-4f90-98d0-c2164c6e9d19
+md"run pheromone/heuristic ablation study? $(@bind run_ablation CheckBox(default=false))"
+
 # ╔═╡ 0fb3f9be-454b-4ff1-a619-91e67ec92025
 begin
-	problem_instance = "power_plant"
+	problem_instance = "art museum"
+	problem_instance = "nuclear power plant"
+	problem_instance = "block model"
+	# "block model", "nuclear power plant
 	# ["power_plant", "art_museum", "random", "block model", "complete"], 
 
-	nb_iters = 0
+	nb_iters = 25
 
-	n_runs = 4
+	n_runs = 2
 
 	run_checks = false
+
+	savetag = "_$(problem_instance)_$(nb_iters)_iter_$(n_runs)_runs"
+
+	search_results = Dict()
 end
 
 # ╔═╡ 613ad2a0-abb7-47f5-b477-82351f54894a
@@ -74,9 +99,9 @@ md"
 "
 
 # ╔═╡ bdb5d550-13f6-4d8d-9a74-14b889efe7a2
-if problem_instance == "power_plant"
+if problem_instance == "nuclear power plant"
 	top = darpa_urban_environment(2)
-elseif problem_instance == "art_museum"
+elseif problem_instance == "art museum"
 	top = art_museum(3)
 elseif problem_instance == "random"
 	top = generate_random_top(30, 5)
@@ -126,10 +151,10 @@ begin
 		layout[i] = layout[i] + Point2{Float64}(Δ_x, Δ_y)
 	end
 	
-	if problem_instance == "art_museum"
+	if problem_instance == "art museum"
 		layout = art_museum_layout(8.0)
 		robot_radius = 0.45
-	elseif problem_instance == "power_plant"
+	elseif problem_instance == "nuclear power plant"
 		layout = Spring(iterations=350, C=2.0, initialtemp=1.5)(top.g)
 		robot_radius = 0.3
 		# adjustments
@@ -190,7 +215,7 @@ begin
 		show_colorbars=top.name == "art museum"
 	)
 	local ax =  current_axis()
-	if problem_instance == "art_museum"
+	if problem_instance == "art museum"
 		for (i, pos) in zip(1:2, [(2.75, 3.6), (3.75, -1.75)])
 			text!(ax, pos, text="floor #$i", 
 				align=(:center, :center), font=firasans("Light")
@@ -202,7 +227,7 @@ begin
 				align=(:center, :center), font=firasans("Light")
 			)
 		end
-	elseif top.name == "nuclear power plant"
+	elseif problem_instance == "nuclear power plant"
 		resize!(fig.scene, (the_size[1] * 1.2, the_size[1] * 1.2))
 		for (i, pos) in zip(1:2, [(4, 2.5), (-7.0, 3.5)])
 			text!(ax, pos, text="floor #$i", 
@@ -244,20 +269,37 @@ md"
 
 # ╔═╡ a8e27a0e-89da-4206-a7e2-94f796cac8b4
 begin
-	ress = [MO_ACO_run() for r = 1:n_runs]
-	@time Threads.@threads for r = 1:n_runs
-		ress[r] = mo_aco(
-			top, 
-			verbose=false, 
-			nb_ants=nb_ants, 
-			nb_iters=nb_iters,
-			use_heuristic=true,
-			use_pheremone=true,
-			run_checks=run_checks,
-			ρ=ρ,
-			my_seed=my_seeds[r]
-		)
+	# filename for storage of results
+	local filename = joinpath(results_dir, "aco_$savetag.jld2")
+
+	# if load save results, try.
+	if load_saved_res & isfile(filename)
+		@info "loading previous search results"
+		local results = load(filename, "results")
+	else
+		local results = [MO_ACO_run() for r = 1:n_runs]
+		
+		Threads.@threads for r = 1:n_runs
+			results[r] = mo_aco(
+				top, 
+				verbose=false, 
+				nb_ants=nb_ants, 
+				nb_iters=nb_iters,
+				use_heuristic=true,
+				use_pheremone=true,
+				run_checks=run_checks,
+				ρ=ρ,
+				my_seed=my_seeds[r]
+			)
+		end
+		
+		if save_res
+			@info "writing results to file"
+			jldsave(filename; results)
+		end
 	end
+
+	search_results["ACO"] = results
 end
 
 # ╔═╡ 3a1caac3-dd55-42fb-91b2-2f9c3001c22c
@@ -267,10 +309,10 @@ md"
 area indicator at end of search:"
 
 # ╔═╡ 793286fa-ff36-44bb-baaf-e7fd819c5aa4
-[res.areas[end] for res in ress]
+[res.areas[end] for res in search_results["ACO"]]
 
 # ╔═╡ 92d564b1-17f1-4fd1-9e76-8ea1b65c127a
-viz_progress(ress, savename="progress")
+viz_progress(search_results["ACO"], savename="progress")
 
 # ╔═╡ 3d98df3e-ec41-4685-b15d-bd99ec4bd5f7
 md"
@@ -278,11 +320,11 @@ md"
 
 run browser: $(@bind run_id PlutoUI.Slider(1:n_runs))
 
-solution browser: $(@bind soln_id PlutoUI.Slider(1:length(ress[1].global_pareto_solns)))
+solution browser: $(@bind soln_id PlutoUI.Slider(1:length(search_results[\"ACO\"][run_id].global_pareto_solns)))
 "
 
 # ╔═╡ f89383c4-e46c-4cc2-967a-11bd451ec486
-ress[run_id].global_pareto_solns[soln_id].robots[1].trail
+search_results["ACO"][run_id].global_pareto_solns[soln_id].robots[1].trail
 
 # ╔═╡ 9d49add3-8b03-402d-aa67-a173a74a2995
 run_id
@@ -292,7 +334,9 @@ soln_id
 
 # ╔═╡ b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
 viz_soln(
-	ress[run_id].global_pareto_solns[soln_id], top, show_𝔼=true, layout=layout, robot_radius=robot_radius, elabels=true, only_first_elabel=true
+	search_results["ACO"][run_id].global_pareto_solns[soln_id], top, 
+	show_𝔼=true, layout=layout, robot_radius=robot_radius, 
+	elabels=true, only_first_elabel=true
 )
 
 # ╔═╡ aca53592-e8d5-4640-951a-7acca6241ea3
@@ -300,17 +344,20 @@ ids_hl = [13, 20]#, 133, 178]
 
 # ╔═╡ 4769582f-6498-4f14-a965-ed109b7f97d1
 viz_Pareto_front(
-	ress[run_id].global_pareto_solns, size=(300, 300), ids_hl=ids_hl, savename="pareto_front", incl_legend=false
+	search_results["ACO"][run_id].global_pareto_solns, size=(300, 300), ids_hl=ids_hl, savename="pareto_front_$(top.name)", incl_legend=false
 )
 
 # ╔═╡ 60917dfc-8342-4bae-abec-d64eab350c15
 for soln_id in ids_hl
-	viz_soln(ress[run_id].global_pareto_solns[soln_id], top, show_𝔼=false, savename="a_soln_$soln_id", layout=layout, robot_radius=robot_radius, elabels=true, only_first_elabel=true)
+	viz_soln(
+		search_results["ACO"][run_id].global_pareto_solns[soln_id], top,
+		show_𝔼=false, savename="a_soln_$soln_id", layout=layout, robot_radius=robot_radius, elabels=true, only_first_elabel=true
+	)
 end
 
 # ╔═╡ 751c4203-88b1-40dd-9a96-926cd614aef8
 viz_soln(
-	ress[run_id].global_pareto_solns[soln_id], top, show_𝔼=false, 
+	search_results["ACO"][run_id].global_pareto_solns[soln_id], top, show_𝔼=false, 
 	# savename="a_soln",
 	layout=layout, robot_radius=robot_radius
 )
@@ -320,7 +367,7 @@ md"## viz pheremone"
 
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 viz_pheremone(
-	ress[run_id].pheremone, top, 
+	search_results["ACO"][run_id].pheremone, top, 
 	savename="paper/pheremone_$(top.name)", 
 	layout=layout
 )
@@ -334,23 +381,39 @@ md"## 🧠 heuristic-guided search"
 
 # ╔═╡ 67c9334e-1155-4ef3-8d75-030dcfc1e570
 begin
-	ress_heuristic_only = [MO_ACO_run() for r = 1:n_runs]
-	Threads.@threads for r = 1:n_runs
-		ress_heuristic_only[r] = mo_aco(
-			top, 
-			verbose=false, 
-			nb_ants=nb_ants, 
-			nb_iters=nb_iters,
-			use_heuristic=true,
-			use_pheremone=false,
-			run_checks=run_checks,
-			my_seed=my_seeds[r]
-		)
+	# filename for storage of results
+	local filename = joinpath(results_dir, "heuristic_only_$(nb_iters)_iters.jld2")
+
+	# if load save results, try.
+	if load_saved_res & isfile(filename)
+		@info "loading previous search results"
+		local results = load(filename, "results")
+	else
+		local results = [MO_ACO_run() for r = 1:n_runs]
+		Threads.@threads for r = 1:n_runs
+			results[r] = mo_aco(
+				top, 
+				verbose=false, 
+				nb_ants=nb_ants, 
+				nb_iters=nb_iters,
+				use_heuristic=true,
+				use_pheremone=false,
+				run_checks=run_checks,
+				my_seed=my_seeds[r]
+			)
+		end
+		
+		if save_res
+			@info "writing results to file"
+			jldsave(filename; results)
+		end
 	end
+
+	search_results["ACO (no pheromone)"] = results
 end
 
 # ╔═╡ 5defd4be-0e97-4826-96b6-8c2cc77e0c08
-md"## 🐜 pheremone only
+md"## 🐜 pheromone only
 BO-ACO with:
 
 ✔ pheremone
@@ -358,20 +421,36 @@ BO-ACO with:
 
 # ╔═╡ 3b94a9a8-93c8-4e46-ae23-63374d368b16
 begin
-	ress_pheremone_only = [MO_ACO_run() for r = 1:n_runs]
-	Threads.@threads for r = 1:n_runs
-		ress_pheremone_only[r] = mo_aco(
-			top, 
-			verbose=false, 
-			nb_ants=nb_ants, 
-			nb_iters=nb_iters,
-			use_heuristic=false,
-			use_pheremone=true,
-			run_checks=run_checks,
-			ρ=ρ,
-			my_seed=my_seeds[r]
+	# filename for storage of results
+	local filename = joinpath(results_dir, "pheromone_only_$savetag.jld2")
+
+	# if load save results, try.
+	if load_saved_res & isfile(filename)
+		@info "loading previous search results"
+		local results = load(filename, "results")
+	else
+		local results = [MO_ACO_run() for r = 1:n_runs]
+		Threads.@threads for r = 1:n_runs
+			results[r] = mo_aco(
+				top, 
+				verbose=false, 
+				nb_ants=nb_ants, 
+				nb_iters=nb_iters,
+				use_heuristic=false,
+				use_pheremone=true,
+				run_checks=run_checks,
+				ρ=ρ,
+				my_seed=my_seeds[r]
 		)
+		end
+		
+		if save_res
+			@info "writing results to file"
+			jldsave(filename; results)
+		end
 	end
+		
+	search_results["ACO (no heuristic)"] = results
 end
 
 # ╔═╡ b566ec79-c4a7-47b5-8620-e10549252554
@@ -379,19 +458,35 @@ md"## 🎲 random search"
 
 # ╔═╡ 2400b72e-2d1a-4c2e-91c7-14c8ac92cc11
 begin
-	ress_random = [MO_ACO_run() for r = 1:n_runs]
-	Threads.@threads for r = 1:n_runs
-		ress_random[r] = mo_aco(
-			top, 
-			verbose=false, 
-			nb_ants=nb_ants, 
-			nb_iters=nb_iters,
-			use_heuristic=false,
-			use_pheremone=false,
-			run_checks=run_checks,
-			my_seed=my_seeds[r]
+	# filename for storage of results
+	local filename = joinpath(results_dir, "random_$savetag.jld2")
+
+	# if load save results, try.
+	if load_saved_res & isfile(filename)
+		@info "loading previous search results"
+		local results = load(filename, "results")
+	else
+		local results = [MO_ACO_run() for r = 1:n_runs]
+		Threads.@threads for r = 1:n_runs
+			results[r] = mo_aco(
+				top, 
+				verbose=false, 
+				nb_ants=nb_ants, 
+				nb_iters=nb_iters,
+				use_heuristic=false,
+				use_pheremone=false,
+				run_checks=run_checks,
+				my_seed=my_seeds[r]
 		)
+		end
+		
+		if save_res
+			@info "writing results to file"
+			jldsave(filename; results)
+		end
 	end
+		
+	search_results["random"] = results
 end
 
 # ╔═╡ 8c1b4a18-2a7a-47b0-aeff-27014ff351a9
@@ -404,18 +499,24 @@ factor into weights for aggregeated objectives and iters per single objective pr
 "
 
 # ╔═╡ 1f49a5d2-46df-4750-8600-16c9a70d14d5
-sa_iters = [10, 100, 500, 1000, 5000, 10000] * nb_ants
+sa_iters = [10, 100] * nb_ants #, 500, 1000, 5000, 10000] * nb_ants
 
 # ╔═╡ f220ba3d-8c0e-4ee1-ae60-931eb77c0b03
 cooling_schedule = CoolingSchedule(0.2, 0.95)
 
 # ╔═╡ 7fccd71f-8864-443e-851a-af529eeb02f8
 begin
-	ress_sa = [[MO_SA_Run()] for r = 1:n_runs]
-	if run_sa
+	# filename for storage of results
+	local filename = joinpath(results_dir, "sa_$savetag.jld2")
+
+	# if load save results, try.
+	if load_saved_res & isfile(filename)
+		@info "loading previous search results"
+		local results = load(filename, "results")
+	else
+		local results = [[MO_SA_Run()] for r = 1:n_runs]
 		Threads.@threads for r = 1:n_runs
-			ress_sa[r] = [
-				mo_simulated_annealing(
+			results[r] = [mo_simulated_annealing(
 					top, round(Int, sqrt(i)), round(Int, sqrt(i)), 
 					# cooling schedule
 					cooling_schedule, 
@@ -426,31 +527,37 @@ begin
 				for i in sa_iters
 			]
 		end
+		
+		if save_res
+			@info "writing results to file"
+			jldsave(filename; results)
+		end
 	end
+		
+	search_results["simulated annealing"] = results
 end
 
 # ╔═╡ c30ea441-6814-41b4-b9f2-458d701cebb6
-viz_agg_objectives(ress_sa[1][2], savename="simulated_annealing_convergence.pdf")
-
-# ╔═╡ a3c5e8b6-99f9-491a-b72a-f73a2602f2fc
-length(ress_sa[1][end].pareto_solns)
-
-# ╔═╡ d4df7c4e-b552-4441-8871-9eab1a9675cf
-ress_sa[1][end].total_nb_iters
+viz_agg_objectives(
+	search_results["simulated annealing"][1][2], 
+	savename="simulated_annealing_convergence_$(top.name).pdf"
+)
 
 # ╔═╡ e9d3fa8a-8297-450f-a060-ba555205792a
 begin
+	local res_sa = search_results["simulated annealing"][1][end]
+	
 	local fig = Figure()
 	local ax = Axis(fig[1, 1], xlabel="E(R)", ylabel="E(S)")
 	scatter!(
-		[s.objs.r for s in ress_sa[1][end].pareto_solns], 
-		[s.objs.s for s in ress_sa[1][end].pareto_solns],
-		color="orange", label="SA: # iters: $(ress_sa[1][end].total_nb_iters/nb_ants)"
+		[s.objs.r for s in res_sa.pareto_solns], 
+		[s.objs.s for s in res_sa.pareto_solns],
+		color="orange", label="SA: # iters: $(res_sa.total_nb_iters/nb_ants)"
 	)
 
 	scatter!(
-		[s.objs.r for s in ress[1].global_pareto_solns], 
-		[s.objs.s for s in ress[1].global_pareto_solns],
+		[s.objs.r for s in search_results["ACO"][1].global_pareto_solns], 
+		[s.objs.s for s in search_results["ACO"][1].global_pareto_solns],
 		color="green", label="ACO: # iters $nb_iters"
 	)
 	axislegend()
@@ -458,17 +565,26 @@ begin
 	fig
 end
 
-# ╔═╡ 74a26275-d654-4187-935b-fc42046e6af4
-ress[1].global_pareto_solns
-
-# ╔═╡ 6d5b2eda-06ea-4561-aa78-0249f97be733
-area_indicator(ress_sa[1][end].pareto_solns, 1.0, 1)
-
-# ╔═╡ 99815c74-b87e-4ec8-8b16-ec40861a2c82
-area_indicator(ress_random[1].global_pareto_solns, 1.0, 1)
-
 # ╔═╡ 272b6d1a-0e4f-4f2e-90db-eb328569497c
 md"## 👓 compare searches"
+
+# ╔═╡ a9e167d0-8c86-4ad7-aac0-35beeb060324
+algos = [
+	"ACO", 
+	"ACO (no heuristic)", 
+	"ACO (no pheromone)", 
+	"random", 
+	"simulated annealing"
+]
+
+# ╔═╡ d9eb33a6-a374-4c20-bd18-dbf5a5c845eb
+algo_to_color = Dict(
+	"ACO" => wongcolors()[1],
+	"ACO (no heuristic)" => wongcolors()[2],
+	"ACO (no pheromone)" => wongcolors()[3],
+	"random" => wongcolors()[4],
+	"simulated annealing" => wongcolors()[7]
+)
 
 # ╔═╡ 0808a99f-1f55-4b0a-81e9-3f511c9f55d5
 begin
@@ -480,34 +596,26 @@ begin
 		xscale=log10
 	)
 	for r = 1:n_runs
-		# ACOs
-		lines!(
-			1:ress[r].nb_iters, ress[r].areas, 
-			label="ACO", linewidth=3, color=(wongcolors()[1], 0.5)
-		)
-		lines!(
-			1:ress_pheremone_only[r].nb_iters, ress_pheremone_only[r].areas, 
-			label="heuristic ablation", linewidth=3, color=(wongcolors()[2], 0.5)
-		)
-		lines!(
-			1:ress_heuristic_only[r].nb_iters, ress_heuristic_only[r].areas, 
-			label="pheromone ablation", linewidth=3, color=(wongcolors()[3], 0.5)
-		)
-		lines!(
-			1:ress_random[r].nb_iters, ress_random[r].areas, 
-			label="random", linewidth=3, color=(wongcolors()[4], 0.5)
-		)
-
-		# simulated annealning
-		#  divide by # of ants to give each same # of evals
-		scatter!(
-			[sa_res.total_nb_iters for sa_res in ress_sa[r]] / nb_ants,
-			[sa_res.area for sa_res in ress_sa[r]],
-			color=(wongcolors()[7], 0.5),
-			label="simulated annealing"
-		)
+		for algo in algos
+			local results = search_results[algo]
+			if algo == "simulated annealing"
+				scatter!(
+					[sa_res.total_nb_iters for sa_res in results[r]] / nb_ants,
+					[sa_res.area for sa_res in results[r]],
+					color=(algo_to_color[algo], 0.5),
+					label=algo
+				)
+			else
+				# ACOs
+				lines!(
+					1:results[r].nb_iters, results[r].areas, 
+					label=algo, linewidth=3, color=(algo_to_color[algo], 0.5)
+				)
+			end
+				
+		end
 	end
-	# xlims!(1, nb_iters)
+	xlims!(1, nb_iters)
 	fig[1, 2] = Legend(
 		fig, ax, "search algorithm", framevisible = false, unique=true
 	)
@@ -520,7 +628,13 @@ end
 # ╠═e136cdee-f7c1-4add-9024-70351646bf24
 # ╠═2bfd9bc7-a6d9-4fa3-810a-710ebde2bd5c
 # ╟─73a53f9c-e981-44d6-9b0c-00a6fca5c5b8
+# ╟─8b6be951-185f-488a-9ef1-f3b40ce9ecc8
+# ╟─9b00deb7-6edb-45fe-bc55-00e8c581c289
+# ╠═cb8824e4-50d5-4fc5-a69a-5f81d51c0c8c
+# ╠═2874cce9-86ec-48b7-87f6-a2d6d11b7f17
 # ╟─063a4b94-05f3-4e78-8059-7ab1886b521b
+# ╟─5b8823d0-b0c9-49df-b69b-7c2a3370245b
+# ╟─e4f7f56b-f4d2-4f90-98d0-c2164c6e9d19
 # ╠═0fb3f9be-454b-4ff1-a619-91e67ec92025
 # ╟─613ad2a0-abb7-47f5-b477-82351f54894a
 # ╠═bdb5d550-13f6-4d8d-9a74-14b889efe7a2
@@ -562,11 +676,8 @@ end
 # ╠═f220ba3d-8c0e-4ee1-ae60-931eb77c0b03
 # ╠═7fccd71f-8864-443e-851a-af529eeb02f8
 # ╠═c30ea441-6814-41b4-b9f2-458d701cebb6
-# ╠═a3c5e8b6-99f9-491a-b72a-f73a2602f2fc
-# ╠═d4df7c4e-b552-4441-8871-9eab1a9675cf
 # ╠═e9d3fa8a-8297-450f-a060-ba555205792a
-# ╠═74a26275-d654-4187-935b-fc42046e6af4
-# ╠═6d5b2eda-06ea-4561-aa78-0249f97be733
-# ╠═99815c74-b87e-4ec8-8b16-ec40861a2c82
 # ╟─272b6d1a-0e4f-4f2e-90db-eb328569497c
+# ╠═a9e167d0-8c86-4ad7-aac0-35beeb060324
+# ╠═d9eb33a6-a374-4c20-bd18-dbf5a5c845eb
 # ╠═0808a99f-1f55-4b0a-81e9-3f511c9f55d5
