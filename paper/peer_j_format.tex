@@ -525,7 +525,9 @@ Each iteration, every worker ant stochastically constructs a team trail plan $\m
 
 A worker ant constructs a robot trail by iteratively applying a stochastic, partial-trail extension rule until the closed trail is complete. Suppose an ant with objective-balancing parameter $\lambda$ is constructing the closed trail for robot $k$, $\rho_k$, and currently resides at node $v=\rho_k[i]$.
 Namely, the ant has selected (i) the trails for the previous $k-1$ robots, $(\rho_1, ..., \rho_{k-1})$, and (ii) an incomplete/partial trail for robot $k$, $\tilde{\rho_k}=(v_b, \rho_k[1], ..., \rho_k[i]=v)$, giving its first $i$ arc-hops.
-The probability of next hopping to node $v^\prime$ across arc $(v, v^\prime)\in\mathcal{E}$ not yet traversed in the partial trail $\tilde{\rho_k}$ is:
+The ant extends the partial trail $\tilde{\rho_k}$ for robot $k$ by choosing the next node $\rho_k[i+1]$  
+via a roulette-wheel selection of outgoing arcs of $v$ not yet traversed in $\tilde{\rho_k}$.
+Specifically, the probability of next hopping to node $v^\prime$ across arc $(v, v^\prime)\in\mathcal{E}$ not yet traversed in the partial trail $\tilde{\rho_k}$ is:
  \begin{equation}
 	\pi(v^\prime \mid \rho_1, ..., \rho_{k-1}, \tilde{\rho_k}) \propto 
 		 \left[\tau_R(v, v^\prime) \eta_R(v, v^\prime; \rho_1, ..., \rho_{k-1},\tilde{\rho_k}) \right]^{1-\lambda} \left[ \tau_S(v, v^\prime) \eta_S(v, v^\prime) \right]^\lambda.
@@ -595,13 +597,13 @@ where $\kappa_{v, v^\prime}(\mathcal{P}^*_p)$ counts the number of times arc $(v
 %The latter two sums count the number of times the arc $(v, v^\prime)$ appears in $\mathcal{P}^*_p$.
 By construction, arcs that receive the most reward (survival) pheromone frequently belong to trails in the Pareto-optimal team trail plans with high reward (survival).
 
-
 We initialize the pheromone on all arcs with $\tau_{R,S}(v, v^\prime)=1$, to allow the heuristic to completely guide the first iteration. 
 % TODO explain rho nottaion. gotta expand that. the rho_k^(p) not defined.
 
 \subsection{Shared versus per-robot pheromone maps}
-The reward and survival pheromone maps are shared by the ant colony as a form of collective memory of arcs that led to Pareto-optimal trails with high expected reward and survival. Thereby, the ants in the colony collaborate in finding Pareto-optimal robot-team trail plans.
-In the trail-construction rule in eqn.~\ref{eq:prob_x_y} and the pheromone-laying rule in eqn.~\ref{eq:tau_update}, each ant uses the same pair of pheromone maps to construct the trail for each robot, too. (Still, when an ant is sequentially allocating trails to the robots, it is aware of the trails $\rho_1, ..., \rho_{k-1}$ of the previous robots when constructing the trail for robot $k$ through the heuristic $\eta_R$ in eqn.~\ref{eq:eta_R}.) This contrasts with an approach of using a distinct, independent pair of pheromone maps for each robot on the team, which requires more memory and conflicts with the inherent permutation-invariance in the homogenous team of robots.
+The reward and survival pheromone maps are shared by the ant colony as a form of collective memory of arcs that led to Pareto-optimal trails with high expected reward and survival. Through sharing the two pheromone maps, the ants in the colony, despite focusing on different regions of the Pareto-front, collaborate in finding Pareto-optimal robot-team trail plans.
+More, seen in the trail-construction rule in eqn.~\ref{eq:prob_x_y} and the pheromone-laying rule in eqn.~\ref{eq:tau_update}, each ant uses the same pair of pheromone trails to construct the trail plan for all of the robots. (Still, through the heuristic $\eta_R$ in eqn.~\ref{eq:eta_R}, when an ant is sequentially allocating trails to the robots, it is aware of the trail plans $\rho_1, ..., \rho_{k-1}$ for the previously-planned robots when constructing the trail plan for robot $k$ .)
+A contrasting approach is to maintain a distinct, independent pair of pheromone maps for each robot on the team \cite{bell2004ant}. However, allocating a pair of pheromone maps for each robot on the team would require more memory and seems to conflict with the inherent permutation-invariance in the homogenous team of robots (though, after trails are assigned, the robots could be sorted by some feature of the trails).
 
 
 %Note, one may propose to 
@@ -627,6 +629,8 @@ From iteration-to-iteration, we measure the quality of the global [approximate] 
 	\Big \rvert \label{eq:q}
 \end{equation}
 illustrated with the shaded yellow area in Fig.~\ref{fig:pareto_optimal}.
+To disallow the reward objective from dominating the survival objective, or vice versa, in the area indicator, here report the normalized area indicator by first normalizing the expected 
+(i) survival by the number of robots and (ii) reward by the sum of rewards over nodes.
 
 \section{Results}
 We now implement bi-objective ant colony optimization to search for Pareto-optimal robot-team trail plans for an instance of bi-objective team orienteering in a hazardous environment. 
@@ -682,7 +686,11 @@ The node reward map $r$ is visualized by the color assigned to each node.
 \begin{figure}[h!]
     \centering
     	\includegraphics[width=0.6\textwidth]{art_museum_full_setup.pdf}
-    \caption{BOTOHE problem instances. The directed graph represents the two-floor San Diego art museum with distinct rooms (nodes) connected by doorways or a stairway (arcs). The arcs are colored according to robot survival probabilities. The nodes are colored according to rewards offered to the team when a robot visits. The three robots (planes) initially reside at the base node. % TODO use robot emoji
+    \caption{BOTOHE problem instances: 
+    (a) A synthetic, two-community graph. 
+    (b) The San Diego Art Museum.
+    (c) The Satsop Nuclear Power Plant.
+    Arcs are colored according to robot survival probabilities. Nodes are colored according to rewards offered to the team when a robot visits. The robots (planes) initially reside at the base node. % TODO use robot emoji
     } \label{fig:ex_setup}
 \end{figure}
 
@@ -759,7 +767,7 @@ We employed bi-objective ant colony optimization to search for the Pareto-optima
 \paragraph{Future work.}
 %Much future work remains for path-planning of robots in adversarial/hazardous environments.
 % harvesting the reward is dangerous. not visiting. 
-For the BOTOHE we have posed, we wish to (i) tackle the online version with ACO, where the robots adapt their planned trails during the mission, in response to observed failures of robots, (ii) devise local search methods to improve the robot trails the ants found, accelerating the convergence of ACO \cite{dorigo2006ant}, (iii) benchmark non-sequential methods to allocate trails to robots with ACO \cite{ke2008ants}, and (iv) employ multi-colony ant optimization \cite{iredi2001bi}.
+For the BOTOHE we have posed, we wish to (i) devise an ACO algorithm to handle the online setting, where the robots adapt their planned trails during the mission, in response to observed failures of robots, (ii) devise local search methods to improve the robot trails the ants found, accelerating the convergence of ACO \cite{dorigo2006ant}, (iii) devise and benchmark non-sequential ACO schemes to concurrently extend the trail plans of the robots \cite{ke2008ants}, and (iv) employ multi-colony bi-objective ant optimization \cite{iredi2001bi}.
 
 Interesting and practical extensions of robot-team orienteering in adversarial/hazardous environments abstracted a graphs include treating (some of these ideas from Ref.~\cite{jorgensen2018team}): 
 (i) a heterogenous team of robots with different (a) capabilities to harvest rewards from nodes and (b) survival probabilities for each arc traversal owing to e.g.\ stealth;
@@ -774,8 +782,6 @@ Interesting and practical extensions of robot-team orienteering in adversarial/h
 Another interesting direction is to learn/modify the survival probabilities associated with the edges of the graph from data over repeated missions (an inverse problem \cite{burton1992instance}). 
 Specifically, suppose we are uncertain about the survival probability $\omega(i, j)$ of each arc $(i,j)$. Within a Bayesian inference framework, we may impose a prior distribution on each $\omega(i,j)$. Then, when a robot survives or gets destroyed during a mission, we update the prior distribution. 
 The trail-planning of the robots over sequential missions may then balance (a) exploitation to harvest the most reward and take what appear to be, under uncertainty, the safest trails and (b) exploration to find even safer trails.
-
-Finally, instead of abstracting the environment as a graph, one could path-plan for robots in a continuous space with obstacles. 
 
 \section*{Acknowledgements} CMS acknowledges the Office of Naval Research Summer Faculty Research Program.
 
