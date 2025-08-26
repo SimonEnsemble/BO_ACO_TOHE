@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.11
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -63,7 +63,7 @@ md"run simualted annealing? $(@bind run_sa CheckBox(default=false))"
 # ╔═╡ 0fb3f9be-454b-4ff1-a619-91e67ec92025
 begin
 	problem_instance = "art museum"
-	problem_instance = "nuclear power plant"
+	# problem_instance = "nuclear power plant"
 	problem_instance = "block model"
 	# "block model", "nuclear power plant
 	# ["power_plant", "art_museum", "random", "block model", "complete"], 
@@ -205,7 +205,7 @@ begin
 		top, nlabels=false, robot_radius=robot_radius,
 		savename=problem_instance * "_full_setup", 
 		depict_r=true, depict_ω=true, 
-		show_robots=false, 
+		show_robots=true, 
 		layout=layout, node_size=23,
 		show_colorbars=true#top.name == "art museum"
 	)
@@ -324,7 +324,11 @@ viz_soln(
 )
 
 # ╔═╡ aca53592-e8d5-4640-951a-7acca6241ea3
-ids_hl = [100, 300]#, 133, 178]
+if problem_instance == "block model"
+	ids_hl = [100, 300]
+else
+	ids_hl = Int[]
+end
 
 # ╔═╡ 4769582f-6498-4f14-a965-ed109b7f97d1
 viz_Pareto_front(
@@ -366,7 +370,7 @@ md"## 🧠 heuristic-guided search"
 # ╔═╡ 67c9334e-1155-4ef3-8d75-030dcfc1e570
 begin
 	# filename for storage of results
-	local filename = joinpath(results_dir, "heuristic_only_$(nb_iters)_iters.jld2")
+	local filename = joinpath(results_dir, "heuristic_only_$savetag.jld2")
 
 	# if load save results, try.
 	if load_saved_res & isfile(filename)
