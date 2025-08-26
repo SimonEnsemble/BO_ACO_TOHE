@@ -63,19 +63,20 @@ md"run simualted annealing? $(@bind run_sa CheckBox(default=false))"
 # ╔═╡ 0fb3f9be-454b-4ff1-a619-91e67ec92025
 begin
 	problem_instance = "art museum"
-	# problem_instance = "nuclear power plant"
-	problem_instance = "block model"
+	problem_instance = "nuclear power plant"
+	# problem_instance = "block model"
 	# "block model", "nuclear power plant
 	# ["power_plant", "art_museum", "random", "block model", "complete"], 
 
-	nb_iters = 10000
+	nb_iters = problem_instance == "nuclear power plant" ? 100_000 : 10_000
 
 	n_runs = 4
 
 	run_checks = false
 
 	savetag = "_$(problem_instance)_$(nb_iters)_iter_$(n_runs)_runs"
-
+	println(savetag)
+	
 	search_results = Dict()
 end
 
@@ -486,16 +487,22 @@ md"iters. a bit different than ACO since gotta re-run for each number of iters.
 factor into weights for aggregeated objectives and iters per single objective problem.
 "
 
+# ╔═╡ 161d9d45-51eb-489e-befa-23e05b4f56dc
+problem_instance == "nuclear power plant"
+
 # ╔═╡ 1f49a5d2-46df-4750-8600-16c9a70d14d5
 begin
 	sa_iters = [10, 100, 1000, 10000] * nb_ants
-	if top.name == "nuclear power plant"
+	if problem_instance == "nuclear power plant"
 		push!(sa_iters, 100000 * nb_ants)
 	end
 end
 
 # ╔═╡ f220ba3d-8c0e-4ee1-ae60-931eb77c0b03
 cooling_schedule = CoolingSchedule(0.2, 0.95)
+
+# ╔═╡ 068e56df-7316-4b94-aceb-699e5b92d380
+savetag
 
 # ╔═╡ 7fccd71f-8864-443e-851a-af529eeb02f8
 begin
@@ -635,6 +642,7 @@ begin
 		
 		if algo == "simulated annealing"
 			iters = [sr.total_nb_iters for sr in results[1]] / nb_ants
+			@show iters
 			μ = [
 				mean(results[r][i].area for r = 1:n_runs)
 				for i = 1:length(iters)
@@ -726,8 +734,10 @@ end
 # ╠═2400b72e-2d1a-4c2e-91c7-14c8ac92cc11
 # ╟─8c1b4a18-2a7a-47b0-aeff-27014ff351a9
 # ╟─c7aa05d2-824d-4744-845d-04c6ab3e1d80
+# ╠═161d9d45-51eb-489e-befa-23e05b4f56dc
 # ╠═1f49a5d2-46df-4750-8600-16c9a70d14d5
 # ╠═f220ba3d-8c0e-4ee1-ae60-931eb77c0b03
+# ╠═068e56df-7316-4b94-aceb-699e5b92d380
 # ╠═7fccd71f-8864-443e-851a-af529eeb02f8
 # ╠═c30ea441-6814-41b4-b9f2-458d701cebb6
 # ╠═e9d3fa8a-8297-450f-a060-ba555205792a
