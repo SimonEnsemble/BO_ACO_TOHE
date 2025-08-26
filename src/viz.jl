@@ -89,7 +89,7 @@ function viz_Pareto_front(
         upper_xlim=nothing,
         incl_legend::Bool=true
     )
-    fig = Figure(size=size)
+    fig = Figure(size=size, backgroundcolor=:transparent)
     ax = Axis(
         fig[1, 1],
         xlabel="𝔼[team rewards]",
@@ -107,7 +107,7 @@ function viz_Pareto_front(
     if length(ids_hl) > 0
         scatter!(
             ax, [s.objs.r for s in solns[ids_hl]], [s.objs.s for s in solns[ids_hl]],
-            color=Cycled(3), strokewidth=2
+            color=Cycled(4), strokewidth=2
         )
     end
     if ! isnothing(savename)
@@ -150,7 +150,7 @@ function viz_setup(
     g = deepcopy(top.g)
 
     # assign node color based on rewards
-    reward_color_scheme = reverse(ColorSchemes.acton)
+    reward_color_scheme = ColorSchemes.nuuk
     rewards = [get_r(top, v) for v in vertices(g)]
     crangescale_r = (0.0, round(maximum(rewards), digits=1))
     if depict_r
@@ -160,9 +160,9 @@ function viz_setup(
     end
 
     # assign edge color based on probability of survival
-    survival_color_scheme = reverse(ColorSchemes.inferno)
+    survival_color_scheme = reverse(ColorSchemes.amp)
     edge_surivival_probs = [get_ω(top, ed.src, ed.dst) for ed in edges(g)]
-    crangescale_s = (maximum([0.0, minimum(edge_surivival_probs) - 0.05]), 1.0)
+    crangescale_s = (floor(minimum(edge_surivival_probs), digits=1), 1.0)
     if depict_ω
         edge_color = [get(survival_color_scheme, p, crangescale_s) for p in edge_surivival_probs]
     else
@@ -361,7 +361,7 @@ function viz_soln(
         layout = _g_layout(top)
     end
     
-    fig = Figure(size=(300 * top.nb_robots, 400))
+    fig = Figure(size=(300 * top.nb_robots, 400), backgroundcolor=:transparent)
     axs = [
         Axis(
             fig[1, r], 
@@ -408,7 +408,11 @@ function viz_soln(
             if elabels
                 the_elabels = ["$(get_prop(r_trail, e, :step))" for e in edges(r_trail)]
                 if only_first_elabel
-                    the_elabels[2:end] .= ""
+                    for (i, ed) in enumerate(edges(r_trail))
+                        if ! ((ed.src == robot.trail[1]) && (ed.dst == robot.trail[2]))
+                            the_elabels[i] = ""
+                        end
+                    end
                 end
             else
                 the_elabels = nothing
@@ -512,7 +516,8 @@ function viz_pheremone(
     axs_hist = [
         Axis(
             fig[2, i],
-            ylabel="# arcs"
+            ylabel="# arcs",
+            xticks=LinearTicks(4)
         )
         for i = 1:2
     ]

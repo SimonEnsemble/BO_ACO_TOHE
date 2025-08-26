@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.5
+# v0.20.11
 
 using Markdown
 using InteractiveUtils
@@ -60,12 +60,6 @@ mkpath(results_dir)
 # ╔═╡ 063a4b94-05f3-4e78-8059-7ab1886b521b
 md"run simualted annealing? $(@bind run_sa CheckBox(default=false))"
 
-# ╔═╡ 5b8823d0-b0c9-49df-b69b-7c2a3370245b
-md"run random? $(@bind run_random CheckBox(default=false))"
-
-# ╔═╡ e4f7f56b-f4d2-4f90-98d0-c2164c6e9d19
-md"run pheromone/heuristic ablation study? $(@bind run_ablation CheckBox(default=false))"
-
 # ╔═╡ 0fb3f9be-454b-4ff1-a619-91e67ec92025
 begin
 	problem_instance = "art museum"
@@ -74,7 +68,7 @@ begin
 	# "block model", "nuclear power plant
 	# ["power_plant", "art_museum", "random", "block model", "complete"], 
 
-	nb_iters = 100000
+	nb_iters = 10000
 
 	n_runs = 4
 
@@ -201,18 +195,19 @@ begin
 		adjust_layout!(8, Δ/2, 0.0)
 		adjust_layout!(2, Δ/2, 0.0)
 		adjust_layout!(19, -2.2*Δ, -Δ/2)
-		robot_radius = 0.3
+		robot_radius = 0.35
 	end
 end
 
 # ╔═╡ 79dd4f91-8a4a-4be1-8013-c9b6dfa56a75
 begin	
 	local fig = viz_setup(
-		top, nlabels=true, robot_radius=robot_radius,
+		top, nlabels=false, robot_radius=robot_radius,
 		savename=problem_instance * "_full_setup", 
-		depict_r=false, depict_ω=true, show_robots=true, 
+		depict_r=true, depict_ω=true, 
+		show_robots=false, 
 		layout=layout, node_size=23,
-		show_colorbars=top.name == "art museum"
+		show_colorbars=true#top.name == "art museum"
 	)
 	local ax =  current_axis()
 	if problem_instance == "art museum"
@@ -222,13 +217,14 @@ begin
 			)
 		end
 	elseif top.name == "synthetic (2 communities)"
-		for (i, pos) in zip(1:2, [(-3.5, 0.0), (2, 1.5)])
+		resize!(fig.scene, (the_size[1] * 1.1, the_size[1]))
+		for (i, pos) in zip(1:2, [(-3.6, 0.0), (2, 1.5)])
 			text!(ax, pos, text="community\n#$i", 
 				align=(:center, :center), font=firasans("Light")
 			)
 		end
 	elseif problem_instance == "nuclear power plant"
-		resize!(fig.scene, (the_size[1] * 1.2, the_size[1] * 1.2))
+		resize!(fig.scene, (the_size[1] * 1.3, the_size[1] * 1.3))
 		for (i, pos) in zip(1:2, [(4, 2.5), (-7.0, 3.5)])
 			text!(ax, pos, text="floor #$i", 
 				align=(:center, :center), font=firasans("Light")
@@ -308,11 +304,8 @@ md"
 
 area indicator at end of search:"
 
-# ╔═╡ 793286fa-ff36-44bb-baaf-e7fd819c5aa4
-[res.areas[end] for res in search_results["ACO"]]
-
 # ╔═╡ 92d564b1-17f1-4fd1-9e76-8ea1b65c127a
-viz_progress(search_results["ACO"], savename="progress")
+viz_progress(search_results["ACO"])
 
 # ╔═╡ 3d98df3e-ec41-4685-b15d-bd99ec4bd5f7
 md"
@@ -323,15 +316,6 @@ run browser: $(@bind run_id PlutoUI.Slider(1:n_runs))
 solution browser: $(@bind soln_id PlutoUI.Slider(1:length(search_results[\"ACO\"][run_id].global_pareto_solns)))
 "
 
-# ╔═╡ f89383c4-e46c-4cc2-967a-11bd451ec486
-search_results["ACO"][run_id].global_pareto_solns[soln_id].robots[1].trail
-
-# ╔═╡ 9d49add3-8b03-402d-aa67-a173a74a2995
-run_id
-
-# ╔═╡ f2f8de8e-629c-45eb-81f2-9898777678ff
-soln_id
-
 # ╔═╡ b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
 viz_soln(
 	search_results["ACO"][run_id].global_pareto_solns[soln_id], top, 
@@ -340,7 +324,7 @@ viz_soln(
 )
 
 # ╔═╡ aca53592-e8d5-4640-951a-7acca6241ea3
-ids_hl = [13, 20]#, 133, 178]
+ids_hl = [100, 300]#, 133, 178]
 
 # ╔═╡ 4769582f-6498-4f14-a965-ed109b7f97d1
 viz_Pareto_front(
@@ -351,7 +335,7 @@ viz_Pareto_front(
 for soln_id in ids_hl
 	viz_soln(
 		search_results["ACO"][run_id].global_pareto_solns[soln_id], top,
-		show_𝔼=false, savename="a_soln_$soln_id", layout=layout, robot_radius=robot_radius, elabels=true, only_first_elabel=true
+		show_𝔼=false, savename="$(top.name)_soln_$soln_id", layout=layout, robot_radius=robot_radius, elabels=true, only_first_elabel=true
 	)
 end
 
@@ -499,7 +483,12 @@ factor into weights for aggregeated objectives and iters per single objective pr
 "
 
 # ╔═╡ 1f49a5d2-46df-4750-8600-16c9a70d14d5
-sa_iters = [10, 100, 1000, 10000, 100000] * nb_ants
+begin
+	sa_iters = [10, 100, 1000, 10000] * nb_ants
+	if top.name == "nuclear power plant"
+		push!(sa_iters, 100000 * nb_ants)
+	end
+end
 
 # ╔═╡ f220ba3d-8c0e-4ee1-ae60-931eb77c0b03
 cooling_schedule = CoolingSchedule(0.2, 0.95)
@@ -515,22 +504,24 @@ begin
 		local results = load(filename, "results")
 	else
 		local results = [[MO_SA_Run()] for r = 1:n_runs]
-		Threads.@threads for r = 1:n_runs
-			results[r] = [mo_simulated_annealing(
-					top, round(Int, sqrt(i)), round(Int, sqrt(i)), 
-					# cooling schedule
-					cooling_schedule, 
-					my_seed=my_seeds[r], run_checks=run_checks,
-					nb_trail_perturbations_per_iter=top.nb_robots,
-					p_restart=0.05
-				)
-				for i in sa_iters
-			]
-		end
-		
-		if save_res
-			@info "writing results to file"
-			jldsave(filename; results)
+		if run_sa
+			Threads.@threads for r = 1:n_runs
+				results[r] = [mo_simulated_annealing(
+						top, round(Int, sqrt(i)), round(Int, sqrt(i)), 
+						# cooling schedule
+						cooling_schedule, 
+						my_seed=my_seeds[r], run_checks=run_checks,
+						nb_trail_perturbations_per_iter=top.nb_robots,
+						p_restart=0.05
+					)
+					for i in sa_iters
+				]
+			end
+
+			if save_res
+				@info "writing results to file"
+				jldsave(filename; results)
+			end
 		end
 	end
 		
@@ -620,7 +611,6 @@ begin
 	fig[1, 2] = Legend(
 		fig, ax, "search algorithm", framevisible = false, unique=true
 	)
-	save("paper/ACO_performance_$(top.name).pdf", fig)
 	fig
 end
 
@@ -629,7 +619,7 @@ search_results["simulated annealing"][1]
 
 # ╔═╡ de4b52e6-df86-42d6-b49a-df01d44b9a92
 begin
-	local fig = Figure(size=(700, 400))
+	local fig = Figure(size=(550, 400), backgroundcolor=:transparent)
 	local ax = Axis(
 		fig[1, 1], 
 		xlabel="# iterations", 
@@ -649,13 +639,13 @@ begin
 				std(results[r][i].area for r = 1:n_runs)
 				for i = 1:length(iters)
 			]
-			scatter!(iters, μ,
-				strokewidth=1, strokecolor="gray",
-				color=(algo_to_color[algo], 0.5),
-				label=algo
-			)
 			errorbars!(
-				iters, μ, σ, whiskerwidth=10, color="gray"
+				iters, μ, σ, whiskerwidth=12, color="gray"
+			)
+			scatter!(iters, μ,
+				strokewidth=2, strokecolor="gray",
+				color=algo_to_color[algo],
+				label=algo
 			)
 		else
 			# ACO
@@ -680,12 +670,12 @@ begin
 	# SA
 	local results = search_results["simulated annealing"]
 	
-	
-	xlims!(1, nb_iters)
-	fig[1, 2] = Legend(
-		fig, ax, "search algorithm", framevisible = false, unique=true
-	)
-	save("paper/ACO_performance_banded_$(top.name).pdf", fig)
+	xlims!(1, nb_iters+5000)
+	axislegend("search algorithm", position=:rb)
+	# fig[1, 2] = Legend(
+	# 	fig, ax, "search algorithm", framevisible = false, unique=true
+	# )
+	save("paper/ACO_performance_$(top.name).pdf", fig)
 	fig
 end
 
@@ -699,8 +689,6 @@ end
 # ╠═cb8824e4-50d5-4fc5-a69a-5f81d51c0c8c
 # ╠═2874cce9-86ec-48b7-87f6-a2d6d11b7f17
 # ╟─063a4b94-05f3-4e78-8059-7ab1886b521b
-# ╟─5b8823d0-b0c9-49df-b69b-7c2a3370245b
-# ╟─e4f7f56b-f4d2-4f90-98d0-c2164c6e9d19
 # ╠═0fb3f9be-454b-4ff1-a619-91e67ec92025
 # ╟─613ad2a0-abb7-47f5-b477-82351f54894a
 # ╠═bdb5d550-13f6-4d8d-9a74-14b889efe7a2
@@ -716,12 +704,8 @@ end
 # ╟─4e0244cb-f853-4156-ba5f-392592a12d9d
 # ╠═a8e27a0e-89da-4206-a7e2-94f796cac8b4
 # ╟─3a1caac3-dd55-42fb-91b2-2f9c3001c22c
-# ╠═793286fa-ff36-44bb-baaf-e7fd819c5aa4
 # ╠═92d564b1-17f1-4fd1-9e76-8ea1b65c127a
 # ╟─3d98df3e-ec41-4685-b15d-bd99ec4bd5f7
-# ╠═f89383c4-e46c-4cc2-967a-11bd451ec486
-# ╠═9d49add3-8b03-402d-aa67-a173a74a2995
-# ╠═f2f8de8e-629c-45eb-81f2-9898777678ff
 # ╠═b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
 # ╠═aca53592-e8d5-4640-951a-7acca6241ea3
 # ╠═4769582f-6498-4f14-a965-ed109b7f97d1
