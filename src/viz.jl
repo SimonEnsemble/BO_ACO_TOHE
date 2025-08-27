@@ -27,7 +27,8 @@ function _viz_objectives!(ax, solns::Vector{Soln}; label=nothing, markersize=14)
         [soln.objs.s for soln in solns],
         label=label,
         markersize=markersize,
-        strokewidth=2,
+        strokewidth=1,
+        strokecolor="black",
         color=Cycled(2)
     )
 end
@@ -107,7 +108,7 @@ function viz_Pareto_front(
     if length(ids_hl) > 0
         scatter!(
             ax, [s.objs.r for s in solns[ids_hl]], [s.objs.s for s in solns[ids_hl]],
-            color=Cycled(4), strokewidth=2
+            color=Cycled(5), strokewidth=2
         )
     end
     if ! isnothing(savename)
@@ -174,7 +175,7 @@ function viz_setup(
         layout = _g_layout(top, C=C)
     end
     
-    fig = Figure()
+    fig = Figure(backgroundcolor=:transparent)
     ax = Axis(fig[1, 1], aspect=DataAspect(), title=top.name)
     hidespines!(ax)
     hidedecorations!(ax)
@@ -490,7 +491,7 @@ function viz_pheremone(
             for ed in edges(g)],
     ]
 
-    fig = Figure()
+    fig = Figure(backgroundcolor=:transparent)
     axs = [Axis(fig[1, i], aspect=DataAspect()) for i = 1:2]
     rowsize!(fig.layout, 1, Relative(0.75))
     colgap!(fig.layout, 1, Relative(0.02))

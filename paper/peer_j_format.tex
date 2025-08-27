@@ -602,8 +602,9 @@ We initialize the pheromone on all arcs with $\tau_{R,S}(v, v^\prime)=1$, to all
 
 \subsection{Shared versus per-robot pheromone maps}
 The reward and survival pheromone maps are shared by the ant colony as a form of collective memory of arcs that led to Pareto-optimal trails with high expected reward and survival. Through sharing the two pheromone maps, the ants in the colony, despite focusing on different regions of the Pareto-front, collaborate in finding Pareto-optimal robot-team trail plans.
-More, seen in the trail-construction rule in eqn.~\ref{eq:prob_x_y} and the pheromone-laying rule in eqn.~\ref{eq:tau_update}, each ant uses the same pair of pheromone trails to construct the trail plan for all of the robots. (Still, through the heuristic $\eta_R$ in eqn.~\ref{eq:eta_R}, when an ant is sequentially allocating trails to the robots, it is aware of the trail plans $\rho_1, ..., \rho_{k-1}$ for the previously-planned robots when constructing the trail plan for robot $k$ .)
-A contrasting approach is to maintain a distinct, independent pair of pheromone maps for each robot on the team \cite{bell2004ant}. However, allocating a pair of pheromone maps for each robot on the team would require more memory and seems to conflict with the inherent permutation-invariance in the homogenous team of robots (though, after trails are assigned, the robots could be sorted by some feature of the trails).
+More, seen in the trail-construction rule in eqn.~\ref{eq:prob_x_y} and the pheromone-laying rule in eqn.~\ref{eq:tau_update}, each ant uses the same pair of pheromone trails to construct the trail plan for all of the robots. (Still, through the heuristic $\eta_R$ in eqn.~\ref{eq:eta_R}, when an ant is sequentially allocating trails to the robots, it is aware of the trail plans $\rho_1, ..., \rho_{k-1}$ for the previously-planned robots when constructing the trail plan $\rho_k$ for robot $k$.)
+A contrasting approach is to maintain a distinct, independent pair of pheromone maps for each robot on the team \cite{bell2004ant}. 
+This would allow pheromone to explicitly promote sending the first robot to one region of the graph, the second robot to a different region, and so on. However, allocating a pair of pheromone trails to each robot would require more memory and seems to conflict with the inherent permutation-invariance in the homogenous team of robots. Though, order could be imposed onto the robots after their trails are assigned, based on features of their trails.
 
 
 %Note, one may propose to 
@@ -629,15 +630,42 @@ From iteration-to-iteration, we measure the quality of the global [approximate] 
 	\Big \rvert \label{eq:q}
 \end{equation}
 illustrated with the shaded yellow area in Fig.~\ref{fig:pareto_optimal}.
-To disallow the reward objective from dominating the survival objective, or vice versa, in the area indicator, here report the normalized area indicator by first normalizing the expected 
+To disallow one objective to dominate the area indicator, we report the normalized area indicator by first normalizing the expected 
 (i) survival by the number of robots and (ii) reward by the sum of rewards over nodes.
 
 \section{Results}
-We now implement bi-objective ant colony optimization to search for Pareto-optimal robot-team trail plans for an instance of bi-objective team orienteering in a hazardous environment. 
-We visualize the pheromone trail and some of the Pareto-optimal solutions to gain intuition. We also conduct an ablation study to quantify the importance of the pheromone and heuristics for guiding the search.
-Our Julia code to reproduce our results and modify and build upon with more complexity is available at \url{github.com/SimonEnsemble/BO_ACO_TOHE}.
+We now implement bi-objective ant colony optimization (ACO) to search for Pareto-optimal robot-team trail plans for three instances of the bi-objective team orienteering in a hazardous environment (BOTOHE) problem. 
+We visualize the pheromone trail and some of the Pareto-optimal solutions to gain intuition; 
+conduct an ablation study to quantify the importance of the pheromone and heuristics for guiding the search;
+and benchmark ACO against [naive] random search and [more competitive] simulated annealing. 
+Our Julia code to reproduce our results is available at \url{github.com/SimonEnsemble/BO_ACO_TOHE}.
 
-\subsection{Problem setup} 
+\subsection{Synthetic graph with two communities}
+
+\begin{figure}[h!]
+    \centering
+    	\includegraphics[width=\textwidth]{block_model_results.pdf}
+    \caption{
+    BOTOHE problem on a random, two-community graph. 
+    (a) Problem setup: the directed graph, robot team at the base node, node rewards, and edge survival probabilities. 
+    (b) Performance of different search algorithms at finding the Pareto-optimal team-trail plans as iterations proceed. Average and standard deviation over four runs depicted.
+    (c) Pareto front of robot-team trail plans at the end of a run of ACO with three plans shown (from top to bottom: high-survival, low-reward; medium-survival, medium reward; low-survival, high-reward).
+    (d) Pheromone trails at the end of a run of ACO.
+    } \label{fig:two_community}
+\end{figure}
+
+\subsection{San Diego Art Museum}
+\paragraph{Problem setup.}
+A team of $K=3$ mobile robots are assigned an information-gathering mission in the San Diego Museum of Art. 
+We selected this art museum for (i) its rich connectivity between galleries, giving an interesting example, and (ii) its small size, allowing us to visualize, interpret, and intuit the solution to a BOTOHE problem on it.
+We spatially model the art museum as a directed graph $G=(\mathcal{V}, \mathcal{E})$.
+The set of 27 nodes $\mathcal{V}$ represents the 23 art galleries (rooms), the outside entrance to the building (base node $v_b$), the main entrance rooms on the first and second floors, and the stairway.
+The set of arcs $\mathcal{E}$ represents direct passages/doorways between the rooms. 
+
+\subsection{Satsop Nuclear Power Plant}
+
+
+
 A team of $K=3$ mobile robots are assigned an information-gathering mission in the San Diego Museum of Art. 
 We selected this art museum for (i) its rich connectivity between galleries, giving an interesting example, and (ii) its small size, allowing us to visualize, interpret, and intuit the solution to a BOTOHE problem on it.
 %The robots are equipped with omnidirectional cameras and can transmit images of the art back to the command center outside of the museum. Suppose adversarial security guards in the museum seek to prevent imaging of the art. 
@@ -756,7 +784,7 @@ Finally, the fourth plan uses all three robots with much redundancy to achieve h
 
 
 \section{Discussion}
-Many applications for mobile robot teams---ranging from information-gathering, resource-delivery, chemical plume source localization, forest fire fighting, to resource delivery---involve traversing environments with hazards e.g., corrosive chemicals, attacking adversaries, obstacles, or rough terrain/seas. 
+Many applications for mobile robot teams---ranging from information-gathering, resource-delivery, detecting and mapping CBRN (chemical, biological, radiological, and nuclear) hazards, forest fire fighting, resource delivery, to protection of wildlife from poachers---involve traversing environments with hazards e.g., corrosive chemicals, adversaries with attack capabilities, obstacles, rough terrain/seas, or high winds. 
 For each application, the robots must coordinate their trails for the team-level objective in a risk-aware manner: select the subset of locations to visit, assign the safest trails to the robots, balance reward and risk to the robots, and build redundancy into the plans to make the objective robust to the failure of robots on the team. 
 
 Heavily inspired by the Team Surviving Orienteers Problem \cite{jorgensen2018team,jorgensen2017matroid,jorgensen2024matroid}, we posed the bi-objective team orienteering in a hazardous environment (BOTHE) problem. 
@@ -767,12 +795,16 @@ We employed bi-objective ant colony optimization to search for the Pareto-optima
 \paragraph{Future work.}
 %Much future work remains for path-planning of robots in adversarial/hazardous environments.
 % harvesting the reward is dangerous. not visiting. 
-For the BOTOHE we have posed, we wish to (i) devise an ACO algorithm to handle the online setting, where the robots adapt their planned trails during the mission, in response to observed failures of robots, (ii) devise local search methods to improve the robot trails the ants found, accelerating the convergence of ACO \cite{dorigo2006ant}, (iii) devise and benchmark non-sequential ACO schemes to concurrently extend the trail plans of the robots \cite{ke2008ants}, and (iv) employ multi-colony bi-objective ant optimization \cite{iredi2001bi}.
+For the BOTOHE we have posed, we wish to 
+(i) devise an ACO algorithm to handle the online setting, where the robots adapt their planned trails during the mission, in response to observed failures of robots; 
+(ii) devise local search algorithms to improve the robot trails the ants found after each iteration, accelerating the convergence of ACO \cite{dorigo2006ant}, 
+(iii) devise and benchmark non-sequential ACO schemes to concurrently extend the trail plans of the robots \cite{ke2008ants}, and 
+(iv) employ multi-colony bi-objective ant optimization \cite{iredi2001bi}.
 
 Interesting and practical extensions of robot-team orienteering in adversarial/hazardous environments abstracted a graphs include treating (some of these ideas from Ref.~\cite{jorgensen2018team}): 
 (i) a heterogenous team of robots with different (a) capabilities to harvest rewards from nodes and (b) survival probabilities for each arc traversal owing to e.g.\ stealth;
 (ii) more complicated reward structures, e.g., time-dependent, stochastic, non-additive (correlated \cite{yu2014correlated}), multi-category, or multi-visit rewards;
-(iii) fuel/battery constraints of the robots and nodes representing refueling, recharging, or battery-switching stations \cite{asghar2023risk,khuller2011fill,liao2016electric,yu2019coverage}; 
+(iii) fuel/battery constraints of the robots via nodes representing refueling, recharging, or battery-switching stations \cite{asghar2023risk,khuller2011fill,liao2016electric,yu2019coverage}; 
 (iv) constraints on the rewards a robot can harvest e.g.\ for resource delivery applications where each robot holds limited cargo capacity \cite{coelho2014thirty};
 (v) non-binary surviving states of the robots due to various levels of damage;
 (vi) non-independent events of robots surviving arc-traversals;
@@ -780,7 +812,7 @@ Interesting and practical extensions of robot-team orienteering in adversarial/h
 % TODO: cite green vehicle routing
 
 Another interesting direction is to learn/modify the survival probabilities associated with the edges of the graph from data over repeated missions (an inverse problem \cite{burton1992instance}). 
-Specifically, suppose we are uncertain about the survival probability $\omega(i, j)$ of each arc $(i,j)$. Within a Bayesian inference framework, we may impose a prior distribution on each $\omega(i,j)$. Then, when a robot survives or gets destroyed during a mission, we update the prior distribution. 
+Specifically, suppose we are uncertain about the survival probability $\omega(i, j)$ of each arc $(i,j)$. Within a Bayesian inference framework, we may impose a prior distribution on each $\omega(i,j)$. Then, when a robot survives or gets destroyed during a mission, we update the prior distribution with this feedback and the trail the robot took. 
 The trail-planning of the robots over sequential missions may then balance (a) exploitation to harvest the most reward and take what appear to be, under uncertainty, the safest trails and (b) exploration to find even safer trails.
 
 \section*{Acknowledgements} CMS acknowledges the Office of Naval Research Summer Faculty Research Program.
