@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.5
+# v0.20.11
 
 using Markdown
 using InteractiveUtils
@@ -64,7 +64,7 @@ md"run simualted annealing? $(@bind run_sa CheckBox(default=false))"
 begin
 	problem_instance = "art museum"
 	problem_instance = "nuclear power plant"
-	# problem_instance = "block model"
+	problem_instance = "block model"
 	# "block model", "nuclear power plant
 	# ["power_plant", "art_museum", "random", "block model", "complete"], 
 
@@ -233,7 +233,7 @@ begin
 		end
 	end
 	resize_to_layout!(fig)
-	save("paper/" * top.name * "_full_setup.pdf", fig)
+	save(top.name * "_full_setup.pdf", fig)
 	fig
 end
 
@@ -326,7 +326,7 @@ viz_soln(
 
 # ╔═╡ aca53592-e8d5-4640-951a-7acca6241ea3
 if problem_instance == "block model"
-	ids_hl = [100, 300]
+	ids_hl = [100, 249, 325]
 else
 	ids_hl = Int[]
 end
@@ -336,20 +336,20 @@ viz_Pareto_front(
 	search_results["ACO"][run_id].global_pareto_solns, size=(300, 300), ids_hl=ids_hl, savename="pareto_front_$(top.name)", incl_legend=false
 )
 
-# ╔═╡ 60917dfc-8342-4bae-abec-d64eab350c15
-for soln_id in ids_hl
-	viz_soln(
-		search_results["ACO"][run_id].global_pareto_solns[soln_id], top,
-		show_𝔼=false, savename="$(top.name)_soln_$soln_id", layout=layout, robot_radius=robot_radius, elabels=true, only_first_elabel=true
-	)
-end
-
-# ╔═╡ 751c4203-88b1-40dd-9a96-926cd614aef8
-viz_soln(
-	search_results["ACO"][run_id].global_pareto_solns[soln_id], top, show_𝔼=false, 
-	# savename="a_soln",
-	layout=layout, robot_radius=robot_radius
+# ╔═╡ d6581d5a-98f7-4c05-a9b5-d938f64c73db
+viz_pareto_opt_plan_for_fig(id_hl::Int) = viz_soln(
+	search_results["ACO"][run_id].global_pareto_solns[id_hl], top,
+	show_𝔼=false, savename="$(top.name)_soln_$id_hl", layout=layout, robot_radius=robot_radius, elabels=true, only_first_elabel=true
 )
+
+# ╔═╡ 60917dfc-8342-4bae-abec-d64eab350c15
+viz_pareto_opt_plan_for_fig(ids_hl[1])
+
+# ╔═╡ 7bacb037-a040-46b7-a03f-f30eb3f5c160
+viz_pareto_opt_plan_for_fig(ids_hl[2])
+
+# ╔═╡ b24669d5-02c9-4986-9cb8-e9f92ca568ac
+viz_pareto_opt_plan_for_fig(ids_hl[3])
 
 # ╔═╡ e55fbea2-4865-498f-abeb-86f6db202b43
 md"## viz pheremone"
@@ -357,7 +357,7 @@ md"## viz pheremone"
 # ╔═╡ 197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 viz_pheremone(
 	search_results["ACO"][run_id].pheremone, top, 
-	savename="paper/pheremone_$(top.name)", 
+	savename="pheremone_$(top.name)", 
 	layout=layout
 )
 
@@ -634,7 +634,7 @@ begin
 	local ax = Axis(
 		fig[1, 1], 
 		xlabel="# iterations", 
-		ylabel="Pareto-set quality",
+		ylabel="Pareto-set quality\n(normalized area indicator)",
 		xscale=log10
 	)
 	for algo in algos
@@ -687,7 +687,7 @@ begin
 	# fig[1, 2] = Legend(
 	# 	fig, ax, "search algorithm", framevisible = false, unique=true
 	# )
-	save("paper/ACO_performance_$(top.name).pdf", fig)
+	save("ACO_performance_$(top.name).pdf", fig)
 	fig
 end
 
@@ -721,8 +721,10 @@ end
 # ╠═b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
 # ╠═aca53592-e8d5-4640-951a-7acca6241ea3
 # ╠═4769582f-6498-4f14-a965-ed109b7f97d1
+# ╠═d6581d5a-98f7-4c05-a9b5-d938f64c73db
 # ╠═60917dfc-8342-4bae-abec-d64eab350c15
-# ╠═751c4203-88b1-40dd-9a96-926cd614aef8
+# ╠═7bacb037-a040-46b7-a03f-f30eb3f5c160
+# ╠═b24669d5-02c9-4986-9cb8-e9f92ca568ac
 # ╟─e55fbea2-4865-498f-abeb-86f6db202b43
 # ╠═197ea13f-b460-4457-a2ad-ae8d63c5e5ea
 # ╟─514851fe-da59-4885-9dc8-0c9fb0c02223
