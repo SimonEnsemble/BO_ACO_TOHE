@@ -64,7 +64,7 @@ md"run simualted annealing? $(@bind run_sa CheckBox(default=false))"
 begin
 	problem_instance = "art museum"
 	problem_instance = "nuclear power plant"
-	problem_instance = "block model"
+	# problem_instance = "block model"
 	# "block model", "nuclear power plant
 	# ["power_plant", "art_museum", "random", "block model", "complete"], 
 
@@ -151,7 +151,6 @@ begin
 		robot_radius = 0.45
 	elseif problem_instance == "nuclear power plant"
 		layout = Spring(iterations=350, C=2.0, initialtemp=1.5)(top.g)
-		robot_radius = 0.3
 		# adjustments
 		# layout
 		layout = power_plant_layout(12.0)
@@ -179,7 +178,7 @@ begin
 		adjust_layout!(22, 1.5*Δ, 0.0)
 		adjust_layout!(43, 0.5*Δ, Δ/2)
 		adjust_layout!(17, 0.0, Δ/2)
-		robot_radius = 0.565
+		robot_radius = 0.7
 	else
 		layout = Spring(iterations=100, C=10.0, initialtemp=3.5)(top.g)
 		for i = 1:length(layout)
@@ -324,11 +323,14 @@ viz_soln(
 	elabels=true, only_first_elabel=true
 )
 
+# ╔═╡ 6e67d4a4-9d91-4177-ab34-8ff4b2731a21
+length(search_results["ACO"][run_id].global_pareto_solns)
+
 # ╔═╡ aca53592-e8d5-4640-951a-7acca6241ea3
 if problem_instance == "block model"
 	ids_hl = [100, 249, 325]
-else
-	ids_hl = Int[]
+elseif problem_instance == "nuclear power plant"
+	ids_hl = [7, 55, 85]
 end
 
 # ╔═╡ 4769582f-6498-4f14-a965-ed109b7f97d1
@@ -635,7 +637,9 @@ begin
 		fig[1, 1], 
 		xlabel="# iterations", 
 		ylabel="Pareto-set quality\n(normalized area indicator)",
-		xscale=log10
+		xscale=log10,
+		xticks=LogTicks([0, 1, 2, 3, 4, 5])#$1, 10, 100, 1000, 10_000, 100_000],
+		# xticks=LogTicks(5)
 	)
 	for algo in algos
 		local results = search_results[algo]
@@ -681,8 +685,9 @@ begin
 	
 	# SA
 	local results = search_results["simulated annealing"]
-	
-	xlims!(1, nb_iters+5000)
+
+	iter_padding = problem_instance == "nuclear power plant" ? 50000 : 5000
+	xlims!(1, nb_iters + iter_padding)
 	axislegend("search algorithm", position=:rb)
 	# fig[1, 2] = Legend(
 	# 	fig, ax, "search algorithm", framevisible = false, unique=true
@@ -690,6 +695,9 @@ begin
 	save("ACO_performance_$(top.name).pdf", fig)
 	fig
 end
+
+# ╔═╡ 5a361a64-6473-4305-84b8-bb7fddfe10af
+problem_instance
 
 # ╔═╡ Cell order:
 # ╠═d04e8854-3557-11ee-3f0a-2f68a1123873
@@ -719,6 +727,7 @@ end
 # ╠═92d564b1-17f1-4fd1-9e76-8ea1b65c127a
 # ╟─3d98df3e-ec41-4685-b15d-bd99ec4bd5f7
 # ╠═b3bf0308-f5dd-4fa9-b3a7-8a1aee03fda1
+# ╠═6e67d4a4-9d91-4177-ab34-8ff4b2731a21
 # ╠═aca53592-e8d5-4640-951a-7acca6241ea3
 # ╠═4769582f-6498-4f14-a965-ed109b7f97d1
 # ╠═d6581d5a-98f7-4c05-a9b5-d938f64c73db
@@ -749,3 +758,4 @@ end
 # ╠═0808a99f-1f55-4b0a-81e9-3f511c9f55d5
 # ╠═bf1f5784-52fa-4e24-ba2d-56aaf4e625c5
 # ╠═de4b52e6-df86-42d6-b49a-df01d44b9a92
+# ╠═5a361a64-6473-4305-84b8-bb7fddfe10af
