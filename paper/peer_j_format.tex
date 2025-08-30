@@ -5,6 +5,8 @@
 \usepackage{xspace}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \usepackage{xcolor}
 \usepackage{tcolorbox} 
 \tcbuselibrary{breakable}
@@ -626,11 +628,68 @@ From iteration-to-iteration, we measure the quality of the global [approximate] 
 	q(\{\mathcal{P}^*_1, ...,\mathcal{P}^*_{P}\}):=
 	\Big \lvert 
 		\bigcup_{p=1}^P \{ o \in \mathbb{R}^2 : o \geq 0 \wedge  o \leq (\mathbb{E}[R(\mathcal{P}^*_p)], \mathbb{E}[S(\mathcal{P}^*_p)]) \} 
-	\Big \rvert \label{eq:q}
+	\Big \rvert \label{eq:q}	
 \end{equation}
 illustrated with the shaded yellow area in Fig.~\ref{fig:pareto_optimal}.
 To disallow one objective to dominate the area indicator, we report the normalized area indicator by first normalizing the expected 
 (i) survival by the number of robots and (ii) reward by the sum of rewards over nodes.
+
+\section{Baseline search method: Simulated annealing}
+As a competitive baseline against which to benchmark ACO, we implemented a bi-objective simulated annealing (SA) algorithm \cite{kirkpatrick1983optimization,simon2013evolutionary} to search for the Pareto-optimal set of robot-team trail plans.
+
+\paragraph{Inspiration for simulated annealing.}
+In metallurgy and materials science, annealing is the process of heating a crystalline material to a high temperature, then cooling it to improve its crystallinity (i.e., reduce defects) and, thereby, some property.
+From a statistical thermodynamic perspective:
+  at high temperatures, the system is highly disordered and commonly visits high-energy micro-states; as the system cools, it settles into exploring only lower-energy micro-states in a basin of the energy landscape and exhibits more order.
+  For the purpose of reaching a highly-ordered, very low-energy state (among, likely, many local minima in the energy landscape) after cooling, the fluctuations at higher temperatures are important to overcome barriers in the energy landscape; hopefully, the system hops into the lowest-energy basins of the energy landscape, corresponding to highly crystalline materials, as the system cools.
+  
+Taking inspiration from annealing of crystalline materials, simulated annealing (SA) makes an analogy between the energy landscape of an atomistic system (which maps a micro-state to an energy) and an objective function (which maps a solution to a quality score) to search for a global-optimal solution to a multi-modal optimization problem.
+  SA directly mimics a Metropolis Markov chain Monte Carlo simulation of the canonical statistical thermodynamic ensemble governing the micro-states of a crystalline material at fixed temperature, volume, and particle number, but decreases the temperature as the search proceeds (the cooling). The two main ingredients of an SA algorithm for optimization are: 
+  (1) a mechanism to randomly perturb the current solution to propose moving to a new, neighboring solution (solution :: micro-state) and 
+  (2) the cooling rate, i.e.\ how temperature should decrease over iterations.
+  At higher temperatures, the SA search algorithm is more exploratory, then gradually transitions to exploitation as the temperature is lowered.  
+    
+\paragraph{Simulated annealing for a single-objective problem.}
+First, we define a scalar objective function of the robot-team trail plan $\mathcal{P}$ that we wish to minimize with SA:
+\begin{equation}
+	E(\mathcal{P}):= -\left( w_r \mathbb{E}[R(\mathcal{P})] + (1-w_r )\mathbb{E}[S(\mathcal{P})]  \right) \label{eq:energy}
+\end{equation} with $w_r \in [0, 1]$ the weight on the reward objective. 
+While ACO maintains a population of robot-team trail plans, SA evolves a single plan.
+We begin with an initial robot-team trail plan $\mathcal{P}_0$ then proceed through iterations.
+At each iteration of SA, we 
+(1) perturb the current solution $\mathcal{P}$ to obtain a new, neighboring solution $\mathcal{P}^\prime$ then accept or reject this perturbation based on the energy change and temperature then (2) reduce the temperature. 
+Additionally, we keep a memory of the lowest-energy team trail plan so far. At the beginning of the iteration, we choose to randomly restart with the lowest-energy team trail plan with 1\% probability. After iterations are exhausted, we return the lowest-energy team trail plan.
+
+\vspace{-\baselineskip}
+\subparagraph{Sampling a neighbor team-trail plan.}
+We sample a neighboring robot-team trail plan $\mathcal{P}^\prime$ by randomly perturbing each robot's trail plan in $\mathcal{P}$, through selecting to do one of the following at random: (i) insert a random new node into the trail, (ii) delete a random node in the trail, (iii) swap two random nodes in the trail, (iv) substitute a random node in the trail with another random node; (v) delete a random segment of the trail, or (vi) reverse the trail. Unlike working with paths in a complete graph, some coding effort was required to sample perturbations that lead to feasible trails. 
+
+\vspace{-\baselineskip}
+\subparagraph{Acceptance rules.}
+Given the proposed new state $\mathcal{P}^\prime$, 
+we compute the difference in energy, $\Delta E:= E(\mathcal{P^\prime})- E(\mathcal{P})$, from the current state $\mathcal{P}$.
+If $\Delta E < 0$, where $\mathcal{P}^\prime$ is lower in energy than $\mathcal{P}$, we replace the old trail plan $\mathcal{P}$ with the new, better trail plan $\mathcal{P}^\prime$. 
+If $\Delta E > 0$, where $\mathcal{P}^\prime$ is higher in energy than $\mathcal{P}$, we replace the old trail plan $\mathcal{P}$ with the new, worse trail plan $\mathcal{P}^\prime$ with probability $e^{-\Delta E / T}$ and reject it otherwise. The new plan is unlikely to be accepted if (i) it is much higher in energy (i.e., $\Delta E$ is large) or if (ii) the temperature $T$ is low. Hereby, the temperature controls exploration of the space of robot-team trail plans. 
+
+\vspace{-\baselineskip}
+\subparagraph{Cooling schedule.}
+We adopt an exponential cooling schedule, where for each iteration, $T \leftarrow \alpha T$ with $\alpha=0.95$. The initial temperature is $T_0=0.2$. 
+
+\vspace{-\baselineskip}
+\subparagraph{Standardization.}
+Different problems involve different numbers of robots and have different distributions of arc-survival probabilities and node-rewards.
+To (1) properly balance the two objectives in the scalarized objective function in eqn.~\ref{eq:energy} and (2) make temperature transferrable across problems, we first standardize the expected rewards by the sum of rewards over all nodes and the expected survival by the number of robots.
+
+\paragraph{Bi-objective simulated annealing.}
+To handle our bi-objective problem with SA, we run single-objective SA on the scalarized objective function in eqn.~\ref{eq:energy} while, many times over the course of the search, (1) incrementally increasing the weight $w_r$ then (2) resetting the temperature to the initial temperature $T_0$. 
+We begin with the reward weight $w_r=0$ and the robot-team trail plan where all robots stay at the base node for maximal survival.
+Then, with a set budget of $i^2$ total iterations, we run through a sequence of $i$ reward weights $w_r$ equally-spaced on $[0, 1]$ and, for each, run a single-objective SA for $i$ iterations. The SA search for each scalarized objective function is initiated with the best team-trail plan according to the most recent scalarized objective function. This way, we can start with quite a low temperature, since not as much exploration is needed, compared to restarting from scratch for each scalarized objective function. 
+The approximate Pareto-optimal set returned by bi-objective SA is the Pareto-optimal subset of the $i$ robot-team trail plans found by each optimization of a scalarized objective function.
+
+\paragraph{Comparing bi-objective ACO and SA.}
+ACO maintains a population of $N_{\rm ants}$ robot-team trail plans each iteration, while SA maintains just one.
+For SA, disadvantageously, one must set the number of iterations \emph{a priori}; incrementally adding more iterations is not effective since we have already scanned weights on the objective. By contrast, adding more iterations to ACO is quite natural.
+Thus, when comparing ACO and SA in our benchmarks: (1) we divide the total number of SA iterations by $N_{\rm ants}$ to give each the same number of robot-team trail-plan evaluations for comparison and (2) e.g. for 1000 and 10\,000 iterations, we run two separate SAs from scratch and thus plot them as points, since tracking progress is not natural. 
 
 \section{Results}
 We now implement bi-objective ant colony optimization (ACO) to search for Pareto-optimal robot-team trail plans for three instances of the bi-objective team orienteering in a hazardous environment (BOTOHE) problem.
@@ -641,33 +700,23 @@ For each case study, we visualize in Figs.~\ref{fig:two_community}-\ref{fig:powe
 \begin{enumerate}[noitemsep, label=(\Alph*)]
 \item the problem setup, i.e.\ the graph, node--to--reward map, arc--to--survival-probability map, and robot team initialization;
 \item the search progress of bi-objective ACO---guided by (i) static heuristics that greedily score the appeal of traversing a given arc and (ii) the dynamic pheromone maps that encapsulate the memory of the ant colony over previous iterations---in terms of the quality of the Pareto-front, measured by the area indicator, over iterations;
-\item the final Pareto-front of ACO, along with three robot-team trail plans to intuit the reward-survival tradeoff; and
+\item the final Pareto-front of ACO, along with a sample of three robot-team trail plans to intuit the reward-survival tradeoff; and
 \item the learned reward and survival pheromone trails at the end of ACO.
 \end{enumerate}
 More, we compare the search progress of ACO with benchmarks in panel (B): 
 \begin{itemize}[noitemsep]
-\item ACO with heuristics ablated, where $\eta_{R, S}(v, v^\prime):=1$ for all arcs $(v, v^\prime)\in\mathcal{E}$, to quantify the contribution of the heuristics for guiding the search;
-\item ACO with pheromone ablated, where statically $\tau_{R, S}=1$ for all arcs, to quantify the contribution of the pheromone for guiding the search;
-\item a [naive] random search where $\eta_{R, S}=\tau_{R,S}:=1$ ;
+\item ACO with heuristics ablated, i.e.\ where $\eta_{R, S}(v, v^\prime):=1$ for all arcs $(v, v^\prime)\in\mathcal{E}$, to quantify the contribution of the heuristics for guiding the search;
+\item ACO with pheromone ablated, i.e.\ where statically $\tau_{R, S}:=1$ for all arcs, to quantify the contribution of the pheromone for guiding the search;
+\item a [naive] random search where statically $\eta_{R, S}=\tau_{R,S}:=1$ ;
 \item a completely different and competitive approach, bi-objective simulated annealing (SA).
 \end{itemize}
 
 Our Julia code to reproduce our results is available at \url{github.com/SimonEnsemble/BO_ACO_TOHE}.
 
 \paragraph{ACO settings.} Our simulated ant colony comprises $N_{\rm ants}=100$ artificial ants. We conduct 10\,000 to 100\,000 iterations depending on the problem.
-We set the pheromone evaporation rate at $\rho=0.1$. To handle different numbers of robots and scales of reward for different problems, we initialize the pheromone maps with, for each arc $(v, v^\prime)$, $\tau_s(v, v^\prime) := K$ and $\tau_r(v, v^\prime) := \sum_{v \in \mathcal{V}} r(v)$.
+We set the pheromone evaporation rate at $\rho=0.1$. To handle different numbers of robots and ranges of rewards for different problems, we initialize the pheromone maps with, for each arc $(v, v^\prime)$, $\tau_s(v, v^\prime) := K$ and $\tau_r(v, v^\prime) := \sum_{v \in \mathcal{V}} r(v)$.
 
-\paragraph{Simulated annealing baseline}
-We implemented a bi-objective simulated annealing (SA) algorithm \cite{kirkpatrick1983optimization,simon2013evolutionary} for a competitive baseline against which to benchmark ACO.
 
-In metallurgy and materials science, annealing is the process of heating a crystalline material to a high temperature, then cooling it to improve its crystallinity (i.e., reduce defects) and, thereby, some property.
-From a statistical thermodynamic perspective:
-  at high temperatures, the system is highly disordered as it explores high-energy micro-states; as the system cools, it settles into a basin of low-energy micro-states that exhibit more order.
-  The fluctuations at higher temperatures are important to overcome energy barriers; hopefully, the system hops into the lowest-energy basins of the micro-state space corresponding to highly crystalline materials as the system cools.
-  
-Taking inspiration from annealing of crystalline materials, simulated annealing (SA) makes an analogy between the energy of an atomistic system and an objective function to search for global-optimal solutions in a combinatorial optimization problem.
-  SA directly mimics a Metropolis Markov chain Monte Carlo simulation of the canonical statistical thermodynamic ensemble governing the micro-states of a crystalline material at fixed temperature, volume, and particle number while decreasing the temperature as the search proceeds.
-  As opposed to ACO, SA maintains a single robot team-trail plan, and iteratively evolves it. The team-trail plan is analogous to the micro-state of a simulated crystalline system. For each step of the SA, instead of proposing to perturb the position(s) of atom(s) in a simulated physical system, we propose to perturb a robot-team trail plan by, for each robot: (i) inserting a new node into the trail, (ii) deleting a node in the trail, (iii) swapping two nodes in the trail, (iv) substituting a node in the trail with another node; (v) deleting a segment of the trail, and (vi) reversing the trail. Then, after generating this feasible ``neighboring'' (i.e., slightly perturbed) trail-plan at random, we compute its expected reward and robot survival.
   
 \subsection{Synthetic graph with two communities}
 Fig.~\ref{fig:two_community} shows the results for a synthetic, random graph containing two communities.
