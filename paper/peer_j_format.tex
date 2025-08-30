@@ -6,7 +6,6 @@
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{xcolor}
-
 \usepackage{tcolorbox} 
 \tcbuselibrary{breakable}
 \newtcolorbox[auto counter
@@ -18,7 +17,7 @@ colframe=gray,
 fonttitle=\bfseries,
 parbox=false
 }
-
+\usepackage{enumitem}
 
 
 \title{Bi-objective trail-planning for a robot team orienteering in a hazardous environment}
@@ -634,51 +633,86 @@ To disallow one objective to dominate the area indicator, we report the normaliz
 (i) survival by the number of robots and (ii) reward by the sum of rewards over nodes.
 
 \section{Results}
-We now implement bi-objective ant colony optimization (ACO) to search for Pareto-optimal robot-team trail plans for three instances of the bi-objective team orienteering in a hazardous environment (BOTOHE) problem. 
-We visualize the pheromone trail and some of the Pareto-optimal solutions to gain intuition; 
-conduct an ablation study to quantify the importance of the pheromone and heuristics for guiding the search;
-and benchmark ACO against [naive] random search and [more competitive] simulated annealing. 
+We now implement bi-objective ant colony optimization (ACO) to search for Pareto-optimal robot-team trail plans for three instances of the bi-objective team orienteering in a hazardous environment (BOTOHE) problem.
+
+While the first example is a random, two-community graph, the second and third examples are based on real environments, namely an art museum and a power plant.
+
+For each case study, we visualize in Figs.~\ref{fig:two_community}-\ref{fig:power_plant}:
+\begin{enumerate}[noitemsep, label=(\Alph*)]
+\item the problem setup, i.e.\ the graph, node--to--reward map, arc--to--survival-probability map, and robot team initialization;
+\item the search progress of bi-objective ACO---guided by (i) static heuristics that greedily score the appeal of traversing a given arc and (ii) the dynamic pheromone maps that encapsulate the memory of the ant colony over previous iterations---in terms of the quality of the Pareto-front, measured by the area indicator, over iterations;
+\item the final Pareto-front of ACO, along with three robot-team trail plans to intuit the reward-survival tradeoff; and
+\item the learned reward and survival pheromone trails at the end of ACO.
+\end{enumerate}
+More, we compare the search progress of ACO with benchmarks in panel (B): 
+\begin{itemize}[noitemsep]
+\item ACO with heuristics ablated, where $\eta_{R, S}(v, v^\prime):=1$ for all arcs $(v, v^\prime)\in\mathcal{E}$, to quantify the contribution of the heuristics for guiding the search;
+\item ACO with pheromone ablated, where statically $\tau_{R, S}=1$ for all arcs, to quantify the contribution of the pheromone for guiding the search;
+\item a [naive] random search where $\eta_{R, S}=\tau_{R,S}:=1$ ;
+\item a completely different and competitive approach, bi-objective simulated annealing (SA).
+\end{itemize}
+
 Our Julia code to reproduce our results is available at \url{github.com/SimonEnsemble/BO_ACO_TOHE}.
 
+\paragraph{ACO settings.} Our simulated ant colony comprises $N_{\rm ants}=100$ artificial ants. We conduct 10\,000 to 100\,000 iterations depending on the problem.
+We set the pheromone evaporation rate at $\rho=0.1$. To handle different numbers of robots and scales of reward for different problems, we initialize the pheromone maps with, for each arc $(v, v^\prime)$, $\tau_s(v, v^\prime) := K$ and $\tau_r(v, v^\prime) := \sum_{v \in \mathcal{V}} r(v)$.
+
+\paragraph{Simulated annealing baseline}
+We implemented a bi-objective simulated annealing (SA) algorithm \cite{kirkpatrick1983optimization,simon2013evolutionary} for a competitive baseline against which to benchmark ACO.
+
+In metallurgy and materials science, annealing is the process of heating a crystalline material to a high temperature, then cooling it to improve its crystallinity (i.e., reduce defects) and, thereby, some property.
+From a statistical thermodynamic perspective:
+  at high temperatures, the system is highly disordered as it explores high-energy micro-states; as the system cools, it settles into a basin of low-energy micro-states that exhibit more order.
+  The fluctuations at higher temperatures are important to overcome energy barriers; hopefully, the system hops into the lowest-energy basins of the micro-state space corresponding to highly crystalline materials as the system cools.
+  
+Taking inspiration from annealing of crystalline materials, simulated annealing (SA) makes an analogy between the energy of an atomistic system and an objective function to search for global-optimal solutions in a combinatorial optimization problem.
+  SA directly mimics a Metropolis Markov chain Monte Carlo simulation of the canonical statistical thermodynamic ensemble governing the micro-states of a crystalline material at fixed temperature, volume, and particle number while decreasing the temperature as the search proceeds.
+  As opposed to ACO, SA maintains a single robot team-trail plan, and iteratively evolves it. The team-trail plan is analogous to the micro-state of a simulated crystalline system. For each step of the SA, instead of proposing to perturb the position(s) of atom(s) in a simulated physical system, we propose to perturb a robot-team trail plan by, for each robot: (i) inserting a new node into the trail, (ii) deleting a node in the trail, (iii) swapping two nodes in the trail, (iv) substituting a node in the trail with another node; (v) deleting a segment of the trail, and (vi) reversing the trail. Then, after generating this feasible ``neighboring'' (i.e., slightly perturbed) trail-plan at random, we compute its expected reward and robot survival.
+  
 \subsection{Synthetic graph with two communities}
+Fig.~\ref{fig:two_community} shows the results for a synthetic, random graph containing two communities.
+
+\paragraph{Setup.}
+Fig.~\ref{fig:two_community}A shows the problem setup.
+We obtained the two-community graph via a sample from a stochastic block model (community \#1: 8 nodes, community \#2: 12 nodes; probability of community \#1-\#1, \#2-\#2, and \#1-\#2 joins 0.3, 0.4, 0.025, respectively).
+At the base node, $K=2$ robots begin.
+We assigned rewards to community \#1 and \#2 by sampling from two different Gaussian distributions ($\mu_1=5$, $\sigma_1=2$; $\mu_2=1$, $\sigma_2=1/2$, both truncated below zero).
+For arc survival probabilities, we sampled from the same Gaussian ($\mu=0.9$, $\sigma=0.3$, truncated below zero and above one).
+
+\paragraph{Search progress.}
+Fig.~\ref{fig:two_community}B shows the search progress of ACO in terms of the normalized area indicator over iterations. After 10\,000 iterations, the area indicator for ACO plateaus. By comparison, ACO without the heuristics and ACO without pheromone trails perform quite poorly, but better than random search. 
+More, ACO outperforms the competitive SA baseline.
+Reflecting the competitiveness of SA, at 1\,000 and 10\,000 iterations, the SA baseline outperforms ACO without the heuristic and without the pheromone.  
+We conclude both the heuristic and pheromone are important in ACO for this problem.
+
+\paragraph{Pareto-front and sample of Pareto-optimal robot-team trail plans.}
+
+\paragraph{Pheromone trails.}
+Finally, Fig.~\ref{fig:two_community}D shows the learned pheromone trails that guided the search in a run of ACO after 10\,000 iterations.
+
+\paragraph{ACO runtime.}
 
 \begin{figure}[h!]
     \centering
     	\includegraphics[width=\textwidth]{block_model_results.pdf}
     \caption{
     BOTOHE problem on a random, two-community graph. 
-    (a) Problem setup: the directed graph, robot team at the base node, node rewards, and edge survival probabilities. 
-    (b) Performance of different search algorithms at finding the Pareto-optimal team-trail plans as iterations proceed. Average and standard deviation over four runs depicted.
-    (c) Pareto front of robot-team trail plans at the end of a run of ACO with three plans shown (from top to bottom: high-survival, low-reward; medium-survival, medium reward; low-survival, high-reward).
+    (a) Problem setup: the graph, node--to--reward map, arc--to--survival-probability map, and robot-team start.
+    (b) Search progress of various algorithms. (Mean, standard deviation over four runs.)
+    (c) Pareto front of robot-team trail plans at the end of a run of ACO and a sample of three plans.
     (d) Pheromone trails at the end of a run of ACO.
     } \label{fig:two_community}
 \end{figure}
 
-\subsection{San Diego Art Museum}
-\paragraph{Problem setup.}
-A team of $K=3$ mobile robots are assigned an information-gathering mission in the San Diego Museum of Art. 
-We selected this art museum for (i) its rich connectivity between galleries, giving an interesting example, and (ii) its small size, allowing us to visualize, interpret, and intuit the solution to a BOTOHE problem on it.
+\subsection{Art Museum}
+
+\paragraph{Setup.}
+Fig.~\ref{fig:art_museum}A shows the problem setup, where a team of $K=3$ mobile robots are assigned an information-gathering mission in the San Diego Museum of Art. 
+% We selected this art museum for (i) its rich connectivity between galleries, giving an interesting example, and (ii) its small size, allowing us to visualize, interpret, and intuit the solution to a BOTOHE problem on it.
+
 We spatially model the art museum as a directed graph $G=(\mathcal{V}, \mathcal{E})$.
 The set of 27 nodes $\mathcal{V}$ represents the 23 art galleries (rooms), the outside entrance to the building (base node $v_b$), the main entrance rooms on the first and second floors, and the stairway.
 The set of arcs $\mathcal{E}$ represents direct passages/doorways between the rooms. 
-
-\subsection{Satsop Nuclear Power Plant}
-
-
-
-A team of $K=3$ mobile robots are assigned an information-gathering mission in the San Diego Museum of Art. 
-We selected this art museum for (i) its rich connectivity between galleries, giving an interesting example, and (ii) its small size, allowing us to visualize, interpret, and intuit the solution to a BOTOHE problem on it.
-%The robots are equipped with omnidirectional cameras and can transmit images of the art back to the command center outside of the museum. Suppose adversarial security guards in the museum seek to prevent imaging of the art. 
-%The command center wishes for the robots (i) to collect images of the art in each gallery and (ii) return from the mission. 
-%Hence, we formulate this as a BOTHE problem.
-% Suppose these images have a gallery-dependent value to the command center.
-We spatially model the art museum as a directed graph $G=(\mathcal{V}, \mathcal{E})$.
-%  the art museum exhibits a rich topology.
-%Each node represents an art gallery (room). 
-%Each arc represents a passage, doorway, or stairway. 
-% The museum has two floors connected by a single stairway.
-The set of 27 nodes $\mathcal{V}$ represents the 23 art galleries (rooms), the outside entrance to the building (base node $v_b$), the main entrance rooms on the first and second floors, and the stairway.
-The set of arcs $\mathcal{E}$ represents direct passages/doorways between the rooms. % For each pair of rooms connected by a passage/doorway, we allocate two arcs in each direction. 
 
 Suppose traversing the art museum is hazardous for the robots, owing to
 (i) adversarial security guards that (a) seek to prevent the robots from imaging the art and (b) possess the ability attack and/or capture the robots, and
@@ -690,8 +724,9 @@ To model risks of destruction or capture, we assign survival probabilities $\ome
 (iv) on the left side of the first floor of 0.95,
 and
 (v) on the second floor of 0.9.
+So, the stairway is the most dangerous arc.
 
-Suppose, when a robot visits an art gallery in the museum, it images the art there and transmits this image back to the command center, providing utility to the command center. 
+Further suppose, when a robot visits an art gallery in the museum, it images the art there and transmits this image back to the command center, providing utility to the command center. 
 The utility of each image to the command center is scored by
 % Note, (i) even if the robot that took this image is later destroyed or captured, the image irrevocably provides utility to the command center, and (ii) multiple visits by robot(s) to a gallery do not provide further marginal reward because the command center already has an image from the first robot visit.
 the node reward map $r$ assigning rewards of
@@ -702,75 +737,9 @@ the node reward map $r$ assigning rewards of
 
 The two objectives of the command center are to plan the trails of the robots in the art museum to maximize the (1) expected reward, via robots visiting art galleries, imaging them, then transmitting the images back to the command center, and (2) expected number of robots that return from the mission. 
 
-We visualize this BOTOHE problem instance in Fig.~\ref{fig:ex_setup}. 
-The topology of the directed graph is shown, with a layout reflecting the spatial location of the rooms in the San Diego Museum of Art. The nodes on the first and second floor are grouped together.
-The base node is marked by the three robots near it.
-The arc survival probability map $\omega$ is visualized by the color assigned to each arc.
-The stairway is the most dangerous arc.
-The node reward map $r$ is visualized by the color assigned to each node. 
+\paragraph{Search progress.}
 
-% As a hazardous environment containing locations that offer rewards to a robot team, we use the graph model of the Satsop Nuclear Power Plant in Elma, Washington from the Defense Advanced Research Projects Agency (DARPA) Subterranean (SubT) robotics challenge \cite{chung2023into} (Alpha course of the Urban Circuit Network \cite{github_darpa_subt}).
-
-\begin{figure}[h!]
-    \centering
-    	\includegraphics[width=0.6\textwidth]{art_museum_full_setup.pdf}
-    \caption{BOTOHE problem instances: 
-    (a) A synthetic, two-community graph. 
-    (b) The San Diego Art Museum.
-    (c) The Satsop Nuclear Power Plant.
-    Arcs are colored according to robot survival probabilities. Nodes are colored according to rewards offered to the team when a robot visits. The robots (planes) initially reside at the base node. % TODO use robot emoji
-    } \label{fig:ex_setup}
-\end{figure}
-
-
-
-
-
-\subsection{Computational results}
-We now employ our bi-objective ant optimization algorithm to search for the Pareto-optimal robot-team trail plans for our problem instance.
-We use a colony of $N_{ants}=100$ artificial ants, a pheromone evaporation rate of $\rho=0.04$, and 10\,000 iterations. We initialize the pheromone maps with one unit of pheromone on each arc.
-The runtime is $\sim$5\,min on an Apple M1 machine.
-
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=0.4\textwidth]{ACO_comparison.pdf}
-    \caption{Progress of BO-ACO on our TOHE problem instance and comparison with baselines. 
-    The quality of the Pareto-set of robot team trail plans, measured via the area indicator, is shown as a function of the number of iterations of ACO---for ordinary ACO, ACO without heuristics, and ACO without pheromone.
-    } \label{fig:aco_progress}
-\end{figure}
-
-Fig.~\ref{fig:aco_progress} shows the quality (area indicator) of the Pareto-set ($q$ in eqn.~\ref{eq:q}) over iterations. As the ACO algorithm progresses, the quality of the Pareto-set improves, but with diminishing returns. The saturation of the progress over iterations indicates satisfactory convergence.
-
-ACO searches for Pareto-optimal robot-team trail plans,
-guided by (i) the static heuristics $\eta_{R,S}$ that greedily score the appeal of traversing a given arc and (ii) the dynamic pheromone maps $\tau_{R,S}$ that encapsulate the memory of the ant colony over previous iterations. 
-Next, we quantify how each of these components are contributing to the effectiveness of ACO by ablating each. 
-First, we run ACO where heuristics are not used to bias the ants towards \emph{a priori} promising arcs by setting $\eta_{R,S}(v, v^\prime)=1$ for all arcs $(v, v^\prime)\in \mathcal{E}$. Second, we run ACO where pheromone is not used to bias the ants towards promising arcs based on the history of the colony's search by setting $\tau_{R,S}(v, v^\prime)=1$ for all arcs $(v, v^\prime)\in \mathcal{E}$.
-Fig.~\ref{fig:aco_progress} compares the search efficiency of these ablated runs with ordinary ACO (where both heuristics and pheromone are used).
-Compared to ordinary ACO, the search efficiency diminishes for each ablation study. 
-Thus, both heuristic and pheromone contribute to the search efficiency.
-However, the search efficiency drops more dramatically when the heuristic is ablated. 
-Thus, the heuristic is more helpful than the pheromone in terms of finding a quality Pareto-set in few iterations. 
-
-\begin{figure}[h!]
-    \centering
-    \begin{subfigure}[b]{0.59\textwidth}
-    	\includegraphics[width=\textwidth]{pheremone.pdf}
-	\caption{Pheromone trails} \label{fig:pheromone}
-    \end{subfigure}
-        \begin{subfigure}[b]{\textwidth}
-    	\includegraphics[width=\textwidth]{real_pareto_front.pdf}
-	\caption{Pareto-optimal solutions} \label{fig:pareto_front}
-    \end{subfigure}
-    \caption{Analysis of the BO-ACO solution to our TOHE problem instance. 
-    (a) The pheromone trails and distribution of the amount of pheromone on the arcs at the end of the ACO algorithm. 
-    (b) The [approximate] Pareto-front of robot-team team trail plans at the end of the ACO algorithm with four select plans shown. The indicator of the Pareto-set quality is the area of the highlighted, yellow region.
-    }
-\end{figure}
-
-At the end of the ACO algorithm, Fig.~\ref{fig:pheromone} visualizes the pheromone maps $\tau_{R}$ and $\tau_S$.
- Note the clock-wise vs.\ counter-close-wise preferences in some cycles of high pheromone to pursue high-reward nodes earlier in the trails to maximize expected reward.
- 
- 
+\paragraph{Pareto-front and sample of Pareto-optimal robot-team trail plans.}
 
 Fig.~\ref{fig:pareto_front} shows the [approximate] Pareto-front of 167 solutions found by BO-ACO. 
 Walking down the Pareto-front trades larger expected team reward for a smaller expected number of robots that return from the mission. The key motivation for treating the \emph{bi-objective} TOHE problem is to present this Pareto-front to a human decision-maker who ultimately chooses a robot-team trail plan that balances reward with robot survival.
@@ -781,6 +750,60 @@ In the first plan, only a single robot enters the museum to image galleries offe
 In the second plan, two robots are utilized: the first plans to cover much of the left side of the first floor, while the second plans to cover much of the right side of the first floor.
 In the third plan, also utilizing two robots, the first robot plans to traverse most of the first floor and the second floor later. The second robot traverses much of the first floor. This redundancy in first-floor coverage builds robustness into the plans: even if the first robot gets destroyed early on, the second robot can still image most of the galleries on the first floor.
 Finally, the fourth plan uses all three robots with much redundancy to achieve high expected reward. Still, the robots avoid taking the risk to enter the bottom left corner of the first floor, whose galleries offer only a small reward.
+
+\paragraph{Pheromone trails.}
+At the end of the ACO algorithm, Fig.~\ref{fig:pheromone} visualizes the pheromone maps $\tau_{R}$ and $\tau_S$.
+ Note the clock-wise vs.\ counter-close-wise preferences in some cycles of high pheromone to pursue high-reward nodes earlier in the trails to maximize expected reward.
+
+\paragraph{ACO runtime.}
+
+\begin{figure}[h!]
+    \centering
+    	\includegraphics[width=\textwidth]{art_museum_results.pdf}
+    \caption{
+    BOTOHE problem in the San Diego Art Museum. 
+    (a) Problem setup: the graph, node--to--reward map, arc--to--survival-probability map, and robot-team start.
+    (b) Search progress of various algorithms. (Mean, standard deviation over four runs.)
+    (c) Pareto front of robot-team trail plans at the end of a run of ACO and a sample of three plans.
+    (d) Pheromone trails at the end of a run of ACO.
+    } \label{fig:art_museum}
+\end{figure}
+
+
+\subsection{Nuclear Power Plant}
+\paragraph{Setup.}
+
+\paragraph{Search progress.}
+
+\paragraph{Pareto-front and sample of Pareto-optimal robot-team trail plans.}
+
+\paragraph{Pheromone trails.}
+
+\paragraph{ACO runtime.}
+
+
+\begin{figure}[h!]
+    \centering
+    	\includegraphics[width=\textwidth]{power_plant_results.pdf}
+    \caption{
+    BOTOHE problem in the Satsop Nuclear Power Plant. 
+    (a) Problem setup: the graph, node--to--reward map, arc--to--survival-probability map, and robot-team start.
+    (b) Search progress of various algorithms. (Mean, standard deviation over four runs.)
+    (c) Pareto front of robot-team trail plans at the end of a run of ACO and a sample of three plans.
+    (d) Pheromone trails at the end of a run of ACO.
+    } \label{fig:power_plant}
+\end{figure}
+
+% As a hazardous environment containing locations that offer rewards to a robot team, we use the graph model of the Satsop Nuclear Power Plant in Elma, Washington from the Defense Advanced Research Projects Agency (DARPA) Subterranean (SubT) robotics challenge \cite{chung2023into} (Alpha course of the Urban Circuit Network \cite{github_darpa_subt}).
+
+
+
+
+
+ 
+ 
+
+
 
 
 \section{Discussion}
