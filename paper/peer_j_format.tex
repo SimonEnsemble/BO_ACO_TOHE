@@ -699,7 +699,7 @@ While the first example is a random, two-community graph, the second and third e
 For each case study, we visualize in Figs.~\ref{fig:two_community}-\ref{fig:power_plant}:
 \begin{enumerate}[noitemsep, label=(\Alph*)]
 \item the problem setup, i.e.\ the graph, node--to--reward map, arc--to--survival-probability map, and robot team initialization;
-\item the search progress of bi-objective ACO---guided by (i) static heuristics that greedily score the appeal of traversing a given arc and (ii) the dynamic pheromone maps that encapsulate the memory of the ant colony over previous iterations---in terms of the quality of the Pareto-front, measured by the area indicator, over iterations;
+\item the search progress of bi-objective ACO---guided by (i) static heuristics that greedily score the appeal of traversing a given arc and (ii) the dynamic pheromone maps that encapsulate the memory of the ant colony over previous iterations---in terms of the quality of the Pareto-front, measured by the area indicator, over iterations (average and standard deviation over four runs);
 \item the final Pareto-front of ACO, along with a sample of three robot-team trail plans to intuit the reward-survival tradeoff; and
 \item the learned reward and survival pheromone trails at the end of ACO.
 \end{enumerate}
@@ -723,21 +723,29 @@ Fig.~\ref{fig:two_community} shows the results for a synthetic, random graph con
 
 \paragraph{Setup.}
 Fig.~\ref{fig:two_community}A shows the problem setup.
-We obtained the two-community graph via a sample from a stochastic block model (community \#1: 8 nodes, community \#2: 12 nodes; probability of community \#1-\#1, \#2-\#2, and \#1-\#2 joins 0.3, 0.4, 0.025, respectively).
+We sampled the two-community graph from a stochastic block model. Community \#1 was assigned 8 nodes; community \#2: 12 nodes.
+The probability of joining (both ways) a pair of nodes both in community \#1 was 0.3; both in community \#2: 0.4; and, for two nodes in distinct communities, much lower: 0.025.
 At the base node, $K=2$ robots begin.
-We assigned rewards to community \#1 and \#2 by sampling from two different Gaussian distributions ($\mu_1=5$, $\sigma_1=2$; $\mu_2=1$, $\sigma_2=1/2$, both truncated below zero).
-For arc survival probabilities, we sampled from the same Gaussian ($\mu=0.9$, $\sigma=0.3$, truncated below zero and above one).
+We assigned a reward to each node by sampling from a distribution based on community membership (both Gaussian and truncated below zero; $\mu_1=5$, $\sigma_1=2$; $\mu_2=1$, $\sigma_2=1/2$).
+We sampled arc survival probabilities from a distribution regardless of community membership (Gaussian with $\mu=0.9$, $\sigma=0.3$, truncated below zero and above one).
+
 
 \paragraph{Search progress.}
-Fig.~\ref{fig:two_community}B shows the search progress of ACO in terms of the normalized area indicator over iterations. After 10\,000 iterations, the area indicator for ACO plateaus. By comparison, ACO without the heuristics and ACO without pheromone trails perform quite poorly, but better than random search. 
-More, ACO outperforms the competitive SA baseline.
-Reflecting the competitiveness of SA, at 1\,000 and 10\,000 iterations, the SA baseline outperforms ACO without the heuristic and without the pheromone.  
+Fig.~\ref{fig:two_community}B shows the search progress of ACO in terms of the normalized area indicator over iterations. After 10\,000 iterations, the area indicator for ACO plateaus, suggesting convergence. By comparison, ACO without the heuristics and ACO without pheromone trails perform quite poorly, but better than random search. 
+More, ACO outperforms the competitive SA baseline over all four total iterations dedicated to SA.
+Reflecting the competitiveness of SA, at 1\,000 and 10\,000 iterations, the SA baseline outperforms ACO without the heuristic and ACO without the pheromone.  
 We conclude both the heuristic and pheromone are important in ACO for this problem.
 
 \paragraph{Pareto-front and sample of Pareto-optimal robot-team trail plans.}
+Fig.~\ref{fig:two_community}C shows the Pareto-front at the end of an ACO run. The yellow highlighted region represents the [albeit, un-normalized] area indicator that scores the quality of the Pareto-front. Three Pareto-optimal robot-team trail plans are highlighted, running down the Pareto front: high expected survival with low expected reward; medium survival and reward; and high reward with low survival. In the high survival, low reward plan, the first robot explores one node of community \#1 then takes a safe cycle through community \#2, while the other robot visits only three nodes across safe arcs.
+In the medium survival and reward plan, we see more coverage, some division of labor among the two robots, yet also node visit redundancy. The first robot visits all of community \#1 while avoiding the most dangerous arc within it. 
+The second robot first visits many nodes in community \#2, avoiding the most dangerous arcs, then visits some of community \# to reap the rewards therein in the case that the first robot fails, giving robustness.
 
 \paragraph{Pheromone trails.}
-Finally, Fig.~\ref{fig:two_community}D shows the learned pheromone trails that guided the search in a run of ACO after 10\,000 iterations.
+Finally, Fig.~\ref{fig:two_community}D shows the learned pheromone trails after a run of ACO after 10\,000 iterations.
+The reward and survival pheromone maps appear similar; the Pearson correlation coefficient between the reward and survival pheromone is 0.95. 
+The reward pheromone exhibits a small correlation (coefficient: 0.2) with the reward on the destination node, and the survival pheromone exhibits a small correlation (coefficient: 0.45) with the arc survival probability. The lack of a strong correlation evidences that the pheromone contains information beyond the greedy heuristics that look at these.
+Finally, note the asymmetry present, where sometimes arc $(v, v^\prime)$ has high pheromone but arc $(v^\prime, v)$ has low pheromone. This shows that the pheromone can promote the robot to take a counter-clockwise cycle over a clock-wise one.
 
 \paragraph{ACO runtime.}
 
