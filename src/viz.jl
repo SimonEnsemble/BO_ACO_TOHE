@@ -602,6 +602,33 @@ function viz_agg_objectives(run::MO_SA_Run; savename::String="")
 	fig
 end
 
+function viz_pheromone_graph_correlation(
+	top::TOP, res::MO_ACO_run; savename::String=""
+)
+    τᵣs = [res.pheremone.τ_r[ed.src, ed.dst] for ed in edges(top.g)]
+    τₛs = [res.pheremone.τ_s[ed.src, ed.dst] for ed in edges(top.g)]
+	# reward of node edge is heading to
+	rs = [get_r(top, ed.dst) for ed in edges(top.g)]
+	# ω
+	ωs = [get_ω(top, ed.src, ed.dst) for ed in edges(top.g)]
+
+    fig = Figure(size=(700, 300))
+    ax = Axis(
+		fig[1, 1], xlabel="r(v′)", ylabel="τᵣ(v, v′)"
+	)
+    scatter!(ax, rs, τᵣs)
+
+	ax2 = Axis(
+		fig[1, 2], xlabel="ω(v, v′)", ylabel="τₛ(v, v′)"
+	)
+    scatter!(ax2, ωs, τₛs)
+
+    if ! (savename == "")
+        save(savename, fig)
+    end
+    fig
+end
+
 function viz_pheromone_correlation(top::TOP, res::MO_ACO_run; savename::String="")
 	τᵣs = [res.pheremone.τ_r[ed.src, ed.dst] for ed in edges(top.g)]
 	τₛs = [res.pheremone.τ_s[ed.src, ed.dst] for ed in edges(top.g)]

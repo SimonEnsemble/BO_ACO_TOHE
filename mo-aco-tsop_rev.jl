@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.11
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -64,7 +64,7 @@ md"run simualted annealing? $(@bind run_sa CheckBox(default=false))"
 begin
 	problem_instance = "art museum"
 	problem_instance = "nuclear power plant"
-	# problem_instance = "block model"
+	problem_instance = "block model"
 	# "block model", "nuclear power plant
 	# ["power_plant", "art_museum", "random", "block model", "complete"], 
 
@@ -361,6 +361,20 @@ viz_pheremone(
 	search_results["ACO"][run_id].pheremone, top, 
 	savename="pheremone_$(top.name)", 
 	layout=layout
+)
+
+# ╔═╡ d5b37e58-2fe2-4791-b3de-376b4ca0d455
+heatmap(search_results["ACO"][run_id].pheremone.τ_r)
+
+# ╔═╡ 892b6611-30ea-40af-ac58-c112b151fce1
+viz_pheromone_correlation(
+	top, search_results["ACO"][run_id], 
+	savename="pheromone_correlation_$problem_instance.pdf"
+)
+
+# ╔═╡ a184017a-1c91-44c2-8a0a-65e8426600d9
+viz_pheromone_graph_correlation(
+	top, search_results["ACO"][run_id]
 )
 
 # ╔═╡ 514851fe-da59-4885-9dc8-0c9fb0c02223
@@ -736,6 +750,9 @@ problem_instance
 # ╠═b24669d5-02c9-4986-9cb8-e9f92ca568ac
 # ╟─e55fbea2-4865-498f-abeb-86f6db202b43
 # ╠═197ea13f-b460-4457-a2ad-ae8d63c5e5ea
+# ╠═d5b37e58-2fe2-4791-b3de-376b4ca0d455
+# ╠═892b6611-30ea-40af-ac58-c112b151fce1
+# ╠═a184017a-1c91-44c2-8a0a-65e8426600d9
 # ╟─514851fe-da59-4885-9dc8-0c9fb0c02223
 # ╟─9d4ae33a-7fac-4a8d-b37a-29ab00b8056d
 # ╠═67c9334e-1155-4ef3-8d75-030dcfc1e570

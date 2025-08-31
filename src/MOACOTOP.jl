@@ -22,7 +22,7 @@ module MOACOTOP
            Ant, Ants, Pheremone, lay!, evaporate!, min_max!, # ants.jl
            next_node_candidates, extend_trail!, construct_soln, # build_soln.jl
            mo_aco, MO_ACO_run, # mo_aco.jl
-           viz_setup, viz_Pareto_front, viz_soln, viz_pheremone, viz_progress, viz_robot_trail, viz_pheromone_correlation, # viz.jl
+           viz_setup, viz_Pareto_front, viz_soln, viz_pheremone, viz_progress, viz_robot_trail, viz_pheromone_correlation, viz_pheromone_graph_correlation, # viz.jl
            darpa_urban_environment, art_museum, generate_random_top, generate_manual_top, toy_problem, 
            toy_starish_top, art_museum_layout, block_model, complete_graph_top, power_plant_layout, # examples.jl
            perturb_trail, so_simulated_annealing, mo_simulated_annealing, viz_agg_objectives, MO_SA_Run, CoolingSchedule # simulated_annealing.jl
