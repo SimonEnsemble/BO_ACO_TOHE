@@ -601,3 +601,27 @@ function viz_agg_objectives(run::MO_SA_Run; savename::String="")
 
 	fig
 end
+
+function viz_pheromone_correlation(top::TOP, res::MO_ACO_run; savename::String="")
+	τᵣs = [res.pheremone.τ_r[ed.src, ed.dst] for ed in edges(top.g)]
+	τₛs = [res.pheremone.τ_s[ed.src, ed.dst] for ed in edges(top.g)]
+
+	τᵣ_range = range(0.0, maximum(τᵣs) * 1.05)
+
+	# fit line
+	coefficients = [ones(length(τᵣs)) τᵣs] \ τₛs
+	@show coefficients
+
+	fig = Figure()
+	ax = Axis(fig[1, 1], xlabel="τᵣ", ylabel="τₛ", aspect=DataAspect())
+	lines!(
+		τᵣ_range, τᵣ_range * coefficients[2] .+ coefficients[1],
+		color="gray", linestyle=:dash, label="linear fit"
+	)
+	scatter!(τᵣs, τₛs)
+	axislegend(position=:rb)
+    if ! (savename == "")
+        save(savename, fig)
+    end
+	fig
+end
