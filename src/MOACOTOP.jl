@@ -1,5 +1,5 @@
 module MOACOTOP
-    using Graphs, GraphMakie, MetaGraphs, CairoMakie, ColorSchemes, Distributions, NetworkLayout, Random, StatsBase, ProgressLogging
+    using Graphs, GraphMakie, MetaGraphs, CairoMakie, ColorSchemes, Distributions, NetworkLayout, Random, StatsBase, ProgressLogging, Statistics
     import AlgebraOfGraphics: set_aog_theme!, firasans
 
 

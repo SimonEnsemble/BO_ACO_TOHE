@@ -616,12 +616,14 @@ function viz_pheromone_graph_correlation(
     ax = Axis(
 		fig[1, 1], xlabel="r(v′)", ylabel="τᵣ(v, v′)"
 	)
+    println("correlation: ", cor(rs, τᵣs))
     scatter!(ax, rs, τᵣs)
 
 	ax2 = Axis(
 		fig[1, 2], xlabel="ω(v, v′)", ylabel="τₛ(v, v′)"
 	)
     scatter!(ax2, ωs, τₛs)
+    println("correlation: ", cor(ωs, τₛs))
 
     if ! (savename == "")
         save(savename, fig)
@@ -635,12 +637,13 @@ function viz_pheromone_correlation(top::TOP, res::MO_ACO_run; savename::String="
 
 	τᵣ_range = range(0.0, maximum(τᵣs) * 1.05)
 
+    println("correlation: ", cor(τᵣs, τₛs))
+
 	# fit line
 	coefficients = [ones(length(τᵣs)) τᵣs] \ τₛs
-	@show coefficients
 
 	fig = Figure()
-	ax = Axis(fig[1, 1], xlabel="τᵣ", ylabel="τₛ", aspect=DataAspect())
+	ax = Axis(fig[1, 1], xlabel="τᵣ", ylabel="τₛ")
 	lines!(
 		τᵣ_range, τᵣ_range * coefficients[2] .+ coefficients[1],
 		color="gray", linestyle=:dash, label="linear fit"
